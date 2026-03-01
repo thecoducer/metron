@@ -171,7 +171,98 @@ class PortfolioApp {
     });
 
     this._setupSummaryCardNavigation();
+
+    this._currentTooltip = null;
+    this._tooltipIcon = null;
+    this._tooltipPinned = false;
+    this._tooltipHideTimer = null;
+
+    document.addEventListener('mouseover', (event) => {
+      const icon = event.target.closest('.fd-alert-icon');
+      if (icon) {
+        this._cancelHideTimer();
+        if (this._tooltipIcon !== icon) this._showFDTooltip(icon, false);
+        return;
+      }
+      if (this._currentTooltip?.contains(event.target)) this._cancelHideTimer();
+    });
+
+    document.addEventListener('mouseout', (event) => {
+      if (this._tooltipPinned) return;
+      const icon = event.target.closest('.fd-alert-icon');
+      if (!icon && !(this._currentTooltip?.contains(event.target))) return;
+      const related = event.relatedTarget;
+      if (related?.closest?.('.fd-alert-icon') === this._tooltipIcon) return;
+      if (this._currentTooltip?.contains(related)) return;
+      this._tooltipHideTimer = setTimeout(() => this._destroyTooltip(), 250);
+    });
+
+    document.addEventListener('click', (event) => {
+      const icon = event.target.closest('.fd-alert-icon');
+      if (icon) {
+        event.stopPropagation();
+        this._cancelHideTimer();
+        if (this._tooltipPinned && this._tooltipIcon === icon) {
+          this._destroyTooltip();
+        } else {
+          this._showFDTooltip(icon, true);
+        }
+        return;
+      }
+      if (this._currentTooltip?.contains(event.target)) return;
+      if (this._currentTooltip) this._destroyTooltip();
+    });
   }
+
+  _showFDTooltip(icon, pinned) {
+    this._destroyTooltip();
+    if (!icon.dataset.fdWarning) return;
+
+    this._tooltipIcon = icon;
+    this._tooltipPinned = pinned;
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'fd-tooltip-fixed';
+    tooltip.innerHTML = (pinned ? '<button class="fd-tooltip-close" aria-label="Close">&times;</button>' : '')
+      + 'DICGC insures deposits up to ₹5 Lakhs per bank. Spread your savings across multiple banks to maximize your coverage. '
+      + '<a href="https://www.dicgc.org.in/guide-to-deposit-insurance" target="_blank" rel="noopener noreferrer">Learn more at DICGC</a>';
+    document.body.appendChild(tooltip);
+
+    if (pinned) {
+      tooltip.querySelector('.fd-tooltip-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._destroyTooltip();
+      });
+    }
+
+    const rect = icon.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    let top = rect.top - tooltipRect.height - 8;
+    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+    if (top < 10) top = rect.bottom + 8;
+    left = Math.max(10, Math.min(left, window.innerWidth - tooltipRect.width - 10));
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+
+    this._currentTooltip = tooltip;
+  }
+
+  _cancelHideTimer() {
+    if (this._tooltipHideTimer) {
+      clearTimeout(this._tooltipHideTimer);
+      this._tooltipHideTimer = null;
+    }
+  }
+
+  _destroyTooltip() {
+    this._cancelHideTimer();
+    this._currentTooltip?.remove();
+    this._currentTooltip = null;
+    this._tooltipIcon = null;
+    this._tooltipPinned = false;
+  }
+
+  
 
   _setupHeaderSortListeners() {
     const tableConfigs = [

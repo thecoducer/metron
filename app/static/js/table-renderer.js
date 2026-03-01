@@ -1251,17 +1251,17 @@ class TableRenderer {
   _buildFDSummaryRow(summary) {
     const { bank, account, totalDeposited, totalCurrentValue, totalReturns } = summary;
     const isHighValue = this._isFDSummaryHighValue(totalCurrentValue);
-    const currentValueColor = isHighValue ? 'rgba(218, 165, 32, 1)' : 'inherit'; // Gold text color
-    const currentValueFontWeight = isHighValue ? '600' : 'normal'; // Bold when >5L
     const returnColor = Formatter.colorPL(totalReturns);
     const returnsPct = totalDeposited > 0 ? (totalReturns / totalDeposited * 100) : 0;
     const returnsPctText = Formatter.formatPercentage(returnsPct);
+
+    const alertIcon = isHighValue ? ' <span class="fd-alert-icon" role="img" aria-label="High FD value" data-fd-warning="true"></span>' : '';
 
     return `<tr>
       <td style="text-transform:uppercase">${bank}</td>
       <td>${account}</td>
       <td>${Formatter.formatCurrency(totalDeposited)}</td>
-      <td><span style="color:${currentValueColor};font-weight:${currentValueFontWeight}">${Formatter.formatCurrency(totalCurrentValue)}</span></td>
+      <td>${Formatter.formatCurrency(totalCurrentValue)}${alertIcon}</td>
       <td><span style="color:${returnColor};font-weight:600">${Formatter.formatCurrency(totalReturns)} <span class="pl_pct_small" style="color:${returnColor}">${returnsPctText}</span></span></td>
     </tr>`;
   }
