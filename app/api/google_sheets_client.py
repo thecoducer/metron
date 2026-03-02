@@ -1,16 +1,16 @@
 """
-Google Sheets API client for fetching physical gold holdings data.
+Google Sheets API client for fetching portfolio data.
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from ..constants import GOOGLE_SHEETS_SCOPES, GOOGLE_SHEETS_TIMEOUT
+from ..constants import GOOGLE_SHEETS_TIMEOUT
 from ..error_handler import (APIError, DataError, ErrorHandler, NetworkError,
                              retry_on_transient_error)
 from ..logging_config import logger
 
 try:
     import httplib2
-    from google.oauth2 import service_account
+    from google.oauth2.credentials import Credentials as UserCredentials
     from google_auth_httplib2 import AuthorizedHttp
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
@@ -21,24 +21,28 @@ except ImportError:
 
 
 class GoogleSheetsClient:
-    """Client for fetching data from Google Sheets."""
+    """Client for fetching data from Google Sheets.
+
+    Authenticates using per-user OAuth credentials obtained from the
+    Google sign-in flow.
+    """
     
-    SCOPES = GOOGLE_SHEETS_SCOPES
     TIMEOUT_SECONDS = GOOGLE_SHEETS_TIMEOUT
     
-    def __init__(self, credentials_file: str = None):
+    def __init__(self, user_credentials: Any = None):
         """Initialize Google Sheets client.
         
         Args:
-            credentials_file: Path to service account credentials JSON file
+            user_credentials: A google.oauth2.credentials.Credentials object
+                              obtained from the per-user OAuth flow.
         """
         if not GOOGLE_SHEETS_AVAILABLE:
             raise ImportError("Google Sheets libraries not installed")
         
-        if not credentials_file:
-            raise ValueError("Credentials file is required")
+        if not user_credentials:
+            raise ValueError("user_credentials is required")
             
-        self.credentials_file = credentials_file
+        self._user_credentials = user_credentials
         self.credentials = None
         self.service = None
         self._is_authenticated = False
@@ -49,9 +53,7 @@ class GoogleSheetsClient:
             return True
         
         try:
-            if not self.credentials:
-                self.credentials = service_account.Credentials.from_service_account_file(
-                    self.credentials_file, scopes=self.SCOPES)
+            self.credentials = self._user_credentials
             
             http = httplib2.Http(timeout=self.TIMEOUT_SECONDS, cache=None)
             self.service = build('sheets', 'v4', 

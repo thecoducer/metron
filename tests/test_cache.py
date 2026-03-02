@@ -16,9 +16,6 @@ class TestPortfolioCache(unittest.TestCase):
         self.assertEqual(c.mf_holdings, [])
         self.assertEqual(c.sips, [])
         self.assertEqual(c.nifty50, [])
-        self.assertEqual(c.physical_gold, [])
-        self.assertEqual(c.fixed_deposits, [])
-        self.assertEqual(c.fd_summary, [])
         self.assertEqual(c.gold_prices, {})
         self.assertIsNone(c.gold_prices_last_fetch)
 

@@ -1,5 +1,5 @@
 """
-Centralized error handling for the portfolio tracker application.
+Centralized error handling for the Metron application.
 
 This module provides:
 - Custom exception classes
@@ -30,7 +30,7 @@ class ErrorCategory(Enum):
 
 
 class PortfolioTrackerError(Exception):
-    """Base exception for all portfolio tracker errors."""
+    """Base exception for all Metron errors."""
     
     def __init__(self, message: str, category: ErrorCategory = ErrorCategory.UNKNOWN, 
                  original_error: Optional[Exception] = None):

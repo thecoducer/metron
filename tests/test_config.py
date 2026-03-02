@@ -1,7 +1,6 @@
 """
 Unit tests for config.py (AppConfig).
 """
-import os
 import unittest
 
 from app.config import AppConfig, app_config
@@ -19,9 +18,9 @@ class TestAppConfig(unittest.TestCase):
         expected = f"http://{app_config.callback_host}:{app_config.callback_port}{app_config.callback_path}"
         self.assertEqual(app_config.redirect_url, expected)
 
-    def test_session_cache_file_path(self):
-        """Session cache file should be an absolute path."""
-        self.assertTrue(os.path.isabs(app_config.session_cache_file))
+    def test_no_session_cache_file(self):
+        """AppConfig should no longer have a session_cache_file attribute."""
+        self.assertFalse(hasattr(app_config, 'session_cache_file'))
 
 
 if __name__ == '__main__':

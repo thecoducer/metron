@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Theme Management Module */
+/* Metron - Theme Management Module */
 
 class ThemeManager {
   constructor() {
@@ -25,10 +25,10 @@ class ThemeManager {
     
     if (theme === 'dark') {
       body.classList.add('dark-theme');
-      this.themeIcon.textContent = '☀️';
+      if (this.themeIcon) this.themeIcon.textContent = '☀️';
     } else {
       body.classList.remove('dark-theme');
-      this.themeIcon.textContent = '🌙';
+      if (this.themeIcon) this.themeIcon.textContent = '🌙';
     }
     
     // Re-enable transitions after the browser has painted the new theme

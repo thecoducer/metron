@@ -1,16 +1,4 @@
 {
-  "accounts": [
-    {
-      "name": "Account1",
-      "api_key": "your_kite_api_key_here",
-      "api_secret": "your_kite_api_secret_here"
-    },
-    {
-      "name": "Account2",
-      "api_key": "your_kite_api_key_here",
-      "api_secret": "your_kite_api_secret_here"
-    }
-  ],
   "server": {
     "callback_host": "127.0.0.1",
     "callback_port": 5000,
@@ -23,18 +11,16 @@
     "auto_refresh_interval_seconds": 60
   },
   "features": {
-    "auto_refresh_outside_market_hours": false,
-    "fetch_physical_gold_from_google_sheets": {
-      "enabled": false,
-      "credentials_file": "path/to/service-account-credentials.json",
-      "spreadsheet_id": "your_google_sheets_spreadsheet_id",
-      "range_name": "Gold!A:K"
-    },
-    "fetch_fixed_deposits_from_google_sheets": {
-      "enabled": false,
-      "credentials_file": "path/to/service-account-credentials.json",
-      "spreadsheet_id": "your_google_sheets_spreadsheet_id",
-      "range_name": "FixedDeposits!A:J"
-    }
+    "auto_refresh_outside_market_hours": false
+  },
+
+  "_comment_google_oauth": "See README for setup instructions",
+  "google_oauth": {
+    "client_secrets_file": "config/google-oauth-credentials.json"
+  },
+
+  "_comment_firebase": "Firebase service-account JSON for Firestore user storage",
+  "firebase": {
+    "credentials_file": "config/firebase-credentials.json"
   }
 }

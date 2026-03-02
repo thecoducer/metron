@@ -2,44 +2,50 @@
 Data fetching functions and auto-refresh scheduling.
 
 Contains all background data-fetching logic for portfolio, Nifty 50,
-physical gold, and fixed deposits, plus the auto-refresh scheduler.
+and gold prices, plus the auto-refresh scheduler.
 """
 
 import threading
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from requests.exceptions import ConnectionError, Timeout
 
-from .api import NSEAPIClient
-from .api.fixed_deposits import calculate_current_value
+from .api import MarketDataClient
 from .api.ibja_gold_price import get_gold_price_service
 from .cache import cache, fetch_in_progress, nifty50_fetch_in_progress
 from .config import app_config
 from .constants import GOLD_PRICE_FETCH_HOURS, NIFTY50_FALLBACK_SYMBOLS
 from .logging_config import logger
-from .services import (_all_sessions_valid, fixed_deposits_service,
-                       physical_gold_service, state_manager, zerodha_client)
+from .services import state_manager, zerodha_client, session_manager, get_active_accounts, get_authenticated_accounts
 from .utils import is_market_open_ist
 
 # --------------------------
 # PORTFOLIO DATA
 # --------------------------
 
-def fetch_portfolio_data(force_login: bool = False) -> None:
-    """Fetch holdings and SIPs for all configured accounts.
+def fetch_portfolio_data(accounts: Optional[list] = None) -> None:
+    """Fetch holdings and SIPs for authenticated Zerodha accounts.
 
     Args:
-        force_login: If True, force re-authentication even if cached tokens exist.
+        accounts: List of account config dicts (pre-filtered as authenticated).
+                  If None, resolves authenticated accounts from Firebase.
     """
+    if accounts is None:
+        accounts = get_authenticated_accounts()
+
+    if not accounts:
+        logger.info("No authenticated Zerodha accounts \u2013 skipping portfolio fetch")
+        return
+
     fetch_in_progress.set()
     state_manager.set_portfolio_updating()
     error_occurred = None
 
     try:
         merged_stocks, merged_mfs, merged_sips, error_occurred = \
-            zerodha_client.fetch_all_accounts_data(app_config.accounts, force_login)
+            zerodha_client.fetch_all_accounts_data(accounts)
 
         if not error_occurred:
             cache.stocks = merged_stocks
@@ -63,7 +69,7 @@ def fetch_portfolio_data(force_login: bool = False) -> None:
 
 
 # --------------------------
-# GOLD PRICE SCHEDULING
+# GOLD PRICES (IBJA)
 # --------------------------
 
 def _should_fetch_gold_prices() -> bool:
@@ -87,244 +93,31 @@ def _should_fetch_gold_prices() -> bool:
     return False
 
 
-# --------------------------
-# PHYSICAL GOLD
-# --------------------------
-
-def fetch_physical_gold_and_fixed_deposits_data(force_gold_price_fetch: bool = False) -> None:
-    """Fetch physical gold and fixed deposits from Google Sheets in a single batch request.
-
-    Uses batch API to fetch both data sources efficiently in one call.
+def fetch_gold_prices(force: bool = False) -> None:
+    """Fetch latest IBJA gold prices.
 
     Args:
-        force_gold_price_fetch: If True, bypass schedule and fetch gold prices immediately.
+        force: If True, bypass schedule and fetch immediately.
     """
-    state_manager.set_physical_gold_updating()
-    state_manager.set_fixed_deposits_updating()
-    gold_error_occurred = False
-    fd_error_occurred = False
-
-    # Fallback if services not available
-    if not physical_gold_service or not fixed_deposits_service:
-        _fetch_physical_gold_individual(force_gold_price_fetch)
-        _fetch_fixed_deposits_individual()
-        return
-
-    try:
-        gold_sheets_config = app_config.features.get("fetch_physical_gold_from_google_sheets", {})
-        fd_sheets_config = app_config.features.get("fetch_fixed_deposits_from_google_sheets", {})
-
-        gold_spreadsheet_id = gold_sheets_config.get("spreadsheet_id")
-        fd_spreadsheet_id = fd_sheets_config.get("spreadsheet_id")
-
-        # If both are configured in same spreadsheet, batch fetch
-        if gold_spreadsheet_id and fd_spreadsheet_id and gold_spreadsheet_id == fd_spreadsheet_id:
-            gold_sheet_name = gold_sheets_config.get("range_name", "Sheet1!A:K").split('!')[0]
-            fd_sheet_name = fd_sheets_config.get("range_name", "FixedDeposits!A:K").split('!')[0]
-
-            logger.info("Batch fetching Physical Gold and Fixed Deposits from Google Sheets...")
-            
-            # Single batch request for both sheets
-            batch_ranges = [
-                f"{gold_sheet_name}!A1:Z1000",
-                f"{fd_sheet_name}!A1:Z1000"
-            ]
-
-            batch_data = physical_gold_service.client.batch_fetch_sheet_data(gold_spreadsheet_id, batch_ranges)
-
-            logger.info("Batch data keys: %s", list(batch_data.keys()))
-
-            # Google Sheets API returns valueRanges in the same order as requested
-            # Extract values by finding the matching sheet name in returned keys
-            gold_data = []
-            fd_data = []
-            
-            for range_key, values in batch_data.items():
-                logger.info("Processing batch key: %s, rows: %d, gold_sheet_name: %s, fd_sheet_name: %s", 
-                           range_key, len(values), gold_sheet_name, fd_sheet_name)
-                if range_key.startswith(gold_sheet_name):
-                    gold_data = values
-                    logger.info("Assigned gold data from key: %s, rows: %d", range_key, len(values))
-                elif range_key.startswith(fd_sheet_name):
-                    fd_data = values
-                    logger.info("Assigned FD data from key: %s, rows: %d", range_key, len(values))
-
-            logger.info("Gold data rows: %d, FD data rows: %d", len(gold_data), len(fd_data))
-
-            # Process physical gold
-            try:
-                holdings = physical_gold_service._parse_batch_data(gold_data)
-                cache.physical_gold = holdings
-                logger.info("Physical Gold data updated: %d holdings", len(holdings))
-            except Exception as e:
-                logger.exception("Error processing Physical Gold data: %s", e)
-                gold_error_occurred = True
-
-            # Process fixed deposits
-            try:
-                deposits = fixed_deposits_service._parse_batch_data(fd_data)
-                deposits = calculate_current_value(deposits)
-                cache.fixed_deposits = deposits
-                cache.fd_summary = _compute_fd_summary(deposits)
-                logger.info("Fixed Deposits data updated: %d deposits, %d summary groups",
-                           len(deposits), len(cache.fd_summary))
-            except Exception as e:
-                logger.exception("Error processing Fixed Deposits data: %s", e)
-                fd_error_occurred = True
-        else:
-            # Fallback to individual fetches if not in same spreadsheet
-            _fetch_physical_gold_individual(force_gold_price_fetch)
-            _fetch_fixed_deposits_individual()
-            return
-
-        # Fetch gold prices if needed
-        should_fetch = force_gold_price_fetch or _should_fetch_gold_prices()
-        if should_fetch:
-            try:
-                gold_service = get_gold_price_service()
-                gold_prices = gold_service.fetch_gold_prices()
-                if gold_prices:
-                    cache.gold_prices = gold_prices
-                    cache.gold_prices_last_fetch = datetime.now()
-                    logger.info("Gold prices updated: %s", list(gold_prices.keys()))
-                else:
-                    logger.warning("Failed to fetch gold prices - keeping cached prices if available")
-            except Exception as gold_error:
-                logger.error("Error fetching gold prices: %s - keeping cached prices", gold_error)
-        else:
-            scheduled_times = ", ".join([f"{h}:00" for h in GOLD_PRICE_FETCH_HOURS])
-            logger.info("Skipping gold price fetch - using cached prices (next scheduled: %s IST)", scheduled_times)
-
-    except Exception as e:
-        logger.exception("Error in batch fetch: %s", e)
-        gold_error_occurred = True
-        fd_error_occurred = True
+    if not force and not _should_fetch_gold_prices():
+        scheduled_times = ", ".join([f"{h}:00" for h in GOLD_PRICE_FETCH_HOURS])
         logger.info(
-            "Preserved %d existing physical gold holdings and %d fixed deposits after fetch failure",
-            len(cache.physical_gold), len(cache.fixed_deposits),
+            "Skipping gold price fetch – using cached prices (next scheduled: %s IST)",
+            scheduled_times,
         )
-    finally:
-        gold_msg = "Failed to fetch physical gold data" if gold_error_occurred else None
-        fd_msg = "Failed to fetch fixed deposits data" if fd_error_occurred else None
-        state_manager.set_physical_gold_updated(error=gold_msg)
-        state_manager.set_fixed_deposits_updated(error=fd_msg)
-
-
-def _fetch_physical_gold_individual(force_gold_price_fetch: bool = False) -> None:
-    """Fallback: Fetch physical gold individually."""
-    if not physical_gold_service:
         return
 
-    error_occurred = False
     try:
-        google_sheets_config = app_config.features.get("fetch_physical_gold_from_google_sheets", {})
-        spreadsheet_id = google_sheets_config.get("spreadsheet_id")
-        range_name = google_sheets_config.get("range_name", "Sheet1!A:K")
-
-        if not spreadsheet_id:
-            return
-
-        logger.info("Fetching Physical Gold data from Google Sheets...")
-        holdings = physical_gold_service.fetch_holdings(spreadsheet_id, range_name)
-        cache.physical_gold = holdings
-        logger.info("Physical Gold data updated: %d holdings", len(holdings))
-
-        should_fetch = force_gold_price_fetch or _should_fetch_gold_prices()
-        if should_fetch:
-            try:
-                gold_service = get_gold_price_service()
-                gold_prices = gold_service.fetch_gold_prices()
-                if gold_prices:
-                    cache.gold_prices = gold_prices
-                    cache.gold_prices_last_fetch = datetime.now()
-                    logger.info("Gold prices updated: %s", list(gold_prices.keys()))
-            except Exception as gold_error:
-                logger.error("Error fetching gold prices: %s", gold_error)
+        gold_service = get_gold_price_service()
+        gold_prices = gold_service.fetch_gold_prices()
+        if gold_prices:
+            cache.gold_prices = gold_prices
+            cache.gold_prices_last_fetch = datetime.now()
+            logger.info("Gold prices updated: %s", list(gold_prices.keys()))
+        else:
+            logger.warning("Failed to fetch gold prices – keeping cached prices if available")
     except Exception as e:
-        logger.exception("Error fetching Physical Gold data: %s", e)
-        error_occurred = True
-        logger.info("Preserved %d existing physical gold holdings after fetch failure", len(cache.physical_gold))
-    finally:
-        error_msg = "Failed to fetch physical gold data" if error_occurred else None
-        state_manager.set_physical_gold_updated(error=error_msg)
-
-
-# --------------------------
-# FIXED DEPOSITS
-# --------------------------
-
-def _fetch_fixed_deposits_individual() -> None:
-    """Fallback: Fetch fixed deposits individually."""
-    if not fixed_deposits_service:
-        return
-
-    error_occurred = False
-    try:
-        fixed_deposits_config = app_config.features.get("fetch_fixed_deposits_from_google_sheets", {})
-        spreadsheet_id = fixed_deposits_config.get("spreadsheet_id")
-        range_name = fixed_deposits_config.get("range_name", "FixedDeposits!A2:K")
-
-        if not spreadsheet_id:
-            return
-
-        logger.info("Fetching Fixed Deposits data from Google Sheets...")
-        deposits = fixed_deposits_service.fetch_deposits(spreadsheet_id, range_name)
-        cache.fixed_deposits = calculate_current_value(deposits)
-        cache.fd_summary = _compute_fd_summary(cache.fixed_deposits)
-        logger.info("Fixed Deposits data updated: %d deposits, %d summary groups",
-                   len(cache.fixed_deposits), len(cache.fd_summary))
-    except Exception as e:
-        logger.exception("Error fetching Fixed Deposits data: %s", e)
-        error_occurred = True
-        logger.info("Preserved %d existing fixed deposits after fetch failure", len(cache.fixed_deposits))
-    finally:
-        error_msg = "Failed to fetch fixed deposits data" if error_occurred else None
-        state_manager.set_fixed_deposits_updated(error=error_msg)
-
-
-# --------------------------
-# FIXED DEPOSITS (LEGACY - for backward compatibility)
-# --------------------------
-
-def fetch_fixed_deposits_data() -> None:
-    """Fetch fixed deposits from Google Sheets (legacy, use batch fetch instead)."""
-    _fetch_fixed_deposits_individual()
-
-
-def _compute_fd_summary(deposits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Compute FD summary grouped by bank and account.
-
-    Args:
-        deposits: List of fixed deposit records.
-
-    Returns:
-        List of summary dictionaries with bank, account, and aggregated amounts.
-    """
-    if not deposits:
-        return []
-
-    groups: Dict[str, Dict[str, Any]] = {}
-    for deposit in deposits:
-        bank = deposit.get('bank_name', 'Unknown')
-        account = deposit.get('account', 'Unknown')
-        group_key = f"{bank}|{account}"
-
-        if group_key not in groups:
-            groups[group_key] = {
-                'bank': bank,
-                'account': account,
-                'totalDeposited': 0,
-                'totalCurrentValue': 0,
-                'totalReturns': 0,
-            }
-
-        groups[group_key]['totalDeposited'] += deposit.get('original_amount', 0)
-        groups[group_key]['totalCurrentValue'] += deposit.get('current_value', 0)
-
-    for group in groups.values():
-        group['totalReturns'] = group['totalCurrentValue'] - group['totalDeposited']
-
-    return list(groups.values())
+        logger.error("Error fetching gold prices: %s – keeping cached prices", e)
 
 
 # --------------------------
@@ -348,21 +141,21 @@ def fetch_nifty50_data() -> None:
             nifty50_fetch_in_progress.set()
             logger.info("Fetching Nifty 50 data...")
 
-            nse_client = NSEAPIClient()
+            market_client = MarketDataClient()
 
-            symbols = nse_client.fetch_nifty50_symbols()
+            symbols = market_client.fetch_nifty50_symbols()
             if not symbols:
                 logger.warning("Failed to fetch symbols from NSE, using fallback list")
                 symbols = NIFTY50_FALLBACK_SYMBOLS
 
             try:
-                session = nse_client._create_session()
+                session = market_client._create_session()
             except (Timeout, ConnectionError) as e:
                 logger.error("Failed to create NSE session: %s", e)
                 raise
 
             nifty50_data = [
-                nse_client.fetch_stock_quote(session, symbol)
+                market_client.fetch_stock_quote(session, symbol)
                 for symbol in symbols
             ]
 
@@ -390,52 +183,58 @@ def fetch_nifty50_data() -> None:
 # --------------------------
 
 def run_background_fetch(
-    force_login: bool = False,
     on_complete: Optional[callable] = None,
     is_manual: bool = False,
+    accounts: Optional[list] = None,
 ) -> None:
     """Orchestrate concurrent fetching of portfolio and market data.
 
     Launches parallel background tasks:
-    1. Portfolio data (holdings and SIPs) from Zerodha.
+    1. Portfolio data (only for authenticated accounts).
     2. Nifty 50 market data from NSE.
-    3. Physical Gold data from Google Sheets (if configured).
-    4. Fixed Deposits data from Google Sheets (if configured).
+    3. Gold prices from IBJA.
 
     Args:
-        force_login: If True, force re-authentication for portfolio data.
         on_complete: Optional callback to execute after all tasks complete.
         is_manual: If True, this is a manual refresh (always fetch gold prices).
+        accounts: Pre-filtered authenticated Zerodha accounts. Resolved from
+                  Firebase if None.
     """
     def _orchestrate_fetch():
-        force_gold_fetch = is_manual or (cache.gold_prices_last_fetch is None)
+        force_gold = is_manual or (cache.gold_prices_last_fetch is None)
 
-        portfolio_thread = threading.Thread(
-            target=fetch_portfolio_data,
-            args=(force_login,),
-            name="PortfolioFetch",
-            daemon=True,
-        )
+        authenticated = accounts if accounts is not None else get_authenticated_accounts()
+
+        threads = []
+
+        if authenticated:
+            portfolio_thread = threading.Thread(
+                target=fetch_portfolio_data,
+                args=(authenticated,),
+                name="PortfolioFetch",
+                daemon=True,
+            )
+            threads.append(portfolio_thread)
+        else:
+            logger.info("No authenticated Zerodha accounts \u2013 skipping portfolio fetch")
+
         nifty50_thread = threading.Thread(
             target=fetch_nifty50_data,
             name="Nifty50Fetch",
             daemon=True,
         )
-        # Use batch fetch for both physical gold and fixed deposits (single API call)
-        google_sheets_thread = threading.Thread(
-            target=fetch_physical_gold_and_fixed_deposits_data,
-            args=(force_gold_fetch,),
-            name="GoogleSheetsBatchFetch",
+        gold_prices_thread = threading.Thread(
+            target=fetch_gold_prices,
+            args=(force_gold,),
+            name="GoldPriceFetch",
             daemon=True,
         )
+        threads.extend([nifty50_thread, gold_prices_thread])
 
-        portfolio_thread.start()
-        nifty50_thread.start()
-        google_sheets_thread.start()
-
-        portfolio_thread.join()
-        nifty50_thread.join()
-        google_sheets_thread.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
         if on_complete:
             on_complete()
@@ -453,16 +252,23 @@ def _should_auto_refresh() -> tuple[bool, Optional[str]]:
     Returns:
         Tuple of (should_run, skip_reason or None).
     """
-    market_open = is_market_open_ist()
+    from .services import get_active_user
 
-    if not market_open and not app_config.auto_refresh_outside_market_hours:
+    if not is_market_open_ist() and not app_config.auto_refresh_outside_market_hours:
         return False, "market closed and auto_refresh_outside_market_hours disabled"
 
     if fetch_in_progress.is_set():
         return False, "manual refresh in progress"
 
-    if not _all_sessions_valid():
-        return False, "one or more sessions invalid - manual login required"
+    if not get_active_user():
+        return False, "no user signed in"
+
+    # Allow refresh when at least one Zerodha account is authenticated,
+    # or when the user has no Zerodha accounts at all (sheets-only user
+    # still benefits from gold / nifty refreshes).
+    accounts = get_active_accounts()
+    if accounts and not any(session_manager.is_valid(a["name"]) for a in accounts):
+        return False, "no authenticated Zerodha accounts \u2013 manual login required"
 
     return True, None
 
@@ -486,4 +292,4 @@ def run_auto_refresh() -> None:
         market_status = "outside market hours" if not market_open else "during market hours"
         timestamp = datetime.now().strftime('%H:%M:%S')
         logger.info("Auto-refresh triggered at %s (%s)", timestamp, market_status)
-        run_background_fetch(force_login=False)
+        run_background_fetch()

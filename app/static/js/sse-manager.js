@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Server-Sent Events (SSE) Connection Manager */
+/* Metron - Server-Sent Events (SSE) Connection Manager */
 
 class SSEConnectionManager {
   constructor(eventUrl = '/events', reconnectDelay = 5000) {

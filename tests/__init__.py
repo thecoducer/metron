@@ -1,3 +1,3 @@
 """
-Test suite for Investment Portfolio Tracker
+Test suite for Metron
 """

@@ -154,7 +154,7 @@ class Nifty50App {
       if (isUpdating) {
         refreshBtn.classList.add('loading');
         refreshBtn.disabled = true;
-        refreshBtnText.innerHTML = '<span class="spinner"></span>';
+        refreshBtnText.textContent = '';
       } else {
         refreshBtn.classList.remove('loading');
         refreshBtn.disabled = false;

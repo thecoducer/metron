@@ -20,124 +20,187 @@ from .logging_config import logger
 
 
 class SessionManager:
-    """Handles session token caching and validation with encryption."""
-    
-    def __init__(self, cache_file: str):
-        self.cache_file = cache_file
+    """Manages Zerodha session tokens with Firestore persistence and Fernet encryption.
+
+    Tokens are stored per-user in Firebase Firestore and cached in memory for
+    fast access.  Encryption uses a secret from the ``ZERODHA_TOKEN_SECRET``
+    environment variable (falls back to a machine-specific key for local
+    development when the variable is unset).
+
+    Usage::
+
+        sm = SessionManager()
+        sm.set_user("google_id_123")   # loads sessions from Firestore
+        sm.set_token("AccountName", "access_token_xyz")
+        sm.save()                       # persists to Firestore
+    """
+
+    def __init__(self):
         self.sessions: Dict[str, Dict[str, Any]] = {}
         self._cipher = self._get_cipher()
-    
-    def _get_cipher(self) -> Fernet:
-        """Generate a cipher using machine-specific data for encryption key."""
-        machine_id = platform.node() + platform.machine()
-        key_material = hashlib.sha256(machine_id.encode()).digest()
+        self._google_id: str = None
+
+    # ------------------------------------------------------------------
+    # Encryption
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _get_cipher() -> Fernet:
+        """Build a Fernet cipher.
+
+        Key source priority:
+        1. ``ZERODHA_TOKEN_SECRET`` env var  (production)
+        2. Machine-specific fallback          (local development)
+        """
+        secret = os.environ.get("ZERODHA_TOKEN_SECRET")
+        if secret:
+            key_material = hashlib.sha256(secret.encode()).digest()
+        else:
+            machine_id = platform.node() + platform.machine()
+            key_material = hashlib.sha256(machine_id.encode()).digest()
+            logger.warning(
+                "ZERODHA_TOKEN_SECRET not set – using machine-specific key "
+                "(not suitable for production)"
+            )
         key = urlsafe_b64encode(key_material)
         return Fernet(key)
-    
+
     def _encrypt_token(self, token: str) -> str:
         """Encrypt an access token."""
         return self._cipher.encrypt(token.encode()).decode()
-    
+
     def _decrypt_token(self, encrypted_token: str) -> str:
         """Decrypt an access token."""
         try:
             return self._cipher.decrypt(encrypted_token.encode()).decode()
         except Exception:
             return encrypted_token
-    
-    def load(self):
-        """Load cached session tokens from file and decrypt them."""
-        if not os.path.exists(self.cache_file):
+
+    # ------------------------------------------------------------------
+    # User scoping
+    # ------------------------------------------------------------------
+
+    def set_user(self, google_id: str) -> None:
+        """Set the active user and load their sessions from Firestore.
+
+        If *google_id* is the same as the current user the call is a no-op.
+        """
+        if not google_id:
             return
-        
+        if self._google_id == google_id:
+            return
+        self._google_id = google_id
+        self.sessions = {}
+        self.load()
+
+    # ------------------------------------------------------------------
+    # Firestore persistence
+    # ------------------------------------------------------------------
+
+    def load(self) -> None:
+        """Load session tokens from Firestore for the active user."""
+        if not self._google_id:
+            return
+
         try:
-            with open(self.cache_file, "r") as f:
-                cache_data = json.load(f)
-            
-            for account_name, session_info in cache_data.items():
-                expiry_str = session_info.get("expiry")
-                try:
-                    expiry = datetime.fromisoformat(expiry_str)
-                    if expiry.tzinfo is None:
-                        expiry = expiry.replace(tzinfo=timezone.utc)
-                except (ValueError, TypeError):
-                    continue
-                
-                # Decrypt the access token
-                encrypted_token = session_info.get("access_token")
-                access_token = self._decrypt_token(encrypted_token)
-                
-                self.sessions[account_name] = {
-                    "access_token": access_token,
-                    "expiry": expiry
-                }
-            
-            logger.info("Loaded cached sessions for: %s", ', '.join(self.sessions.keys()))
+            from .firebase_store import get_zerodha_sessions
+            stored = get_zerodha_sessions(self._google_id)
         except Exception as e:
-            logger.exception("Error loading session cache: %s", e)
-    
-    def save(self):
-        """Save session tokens to file with encryption."""
+            logger.exception("Error loading sessions from Firestore: %s", e)
+            return
+
+        for account_name, session_info in stored.items():
+            expiry_str = session_info.get("expiry")
+            try:
+                expiry = datetime.fromisoformat(expiry_str)
+                if expiry.tzinfo is None:
+                    expiry = expiry.replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                continue
+
+            encrypted_token = session_info.get("access_token")
+            access_token = self._decrypt_token(encrypted_token)
+
+            self.sessions[account_name] = {
+                "access_token": access_token,
+                "expiry": expiry,
+            }
+
+        if self.sessions:
+            logger.info(
+                "Loaded cached sessions for: %s",
+                ", ".join(self.sessions.keys()),
+            )
+
+    def save(self) -> None:
+        """Persist session tokens to Firestore for the active user."""
+        if not self._google_id:
+            logger.warning("Cannot save sessions – no active user set")
+            return
+
+        stored: Dict[str, Dict[str, str]] = {}
+        for account_name, info in self.sessions.items():
+            stored[account_name] = {
+                "access_token": self._encrypt_token(info["access_token"]),
+                "expiry": info["expiry"].isoformat(),
+            }
+
         try:
-            cache_data = {}
-            for account_name, session_info in self.sessions.items():
-                encrypted_token = self._encrypt_token(session_info.get("access_token"))
-                
-                cache_data[account_name] = {
-                    "access_token": encrypted_token,
-                    "expiry": session_info["expiry"].isoformat()
-                }
-            
-            with open(self.cache_file, "w") as f:
-                json.dump(cache_data, f, indent=2)
-            logger.info("Saved encrypted session cache for: %s", ', '.join(cache_data.keys()))
+            from .firebase_store import save_zerodha_sessions
+            save_zerodha_sessions(self._google_id, stored)
+            logger.info(
+                "Saved encrypted sessions to Firestore for: %s",
+                ", ".join(stored.keys()),
+            )
         except Exception as e:
-            logger.exception("Error saving session cache: %s", e)
-    
+            logger.exception("Error saving sessions to Firestore: %s", e)
+
+    # ------------------------------------------------------------------
+    # Token operations (interface unchanged)
+    # ------------------------------------------------------------------
+
     def _is_token_expired(self, expiry: datetime) -> bool:
         """Check if a token has expired."""
         return datetime.now(timezone.utc) >= expiry
-    
+
     def is_valid(self, account_name: str) -> bool:
         """Check if account session token is still valid."""
         sess = self.sessions.get(account_name)
         if not sess:
             return False
         return not self._is_token_expired(sess["expiry"])
-    
+
     def set_token(self, account_name: str, access_token: str, hours: int = 23, minutes: int = 50):
         """Store a new access token with expiry."""
         self.sessions[account_name] = {
             "access_token": access_token,
-            "expiry": datetime.now(timezone.utc) + timedelta(hours=hours, minutes=minutes)
+            "expiry": datetime.now(timezone.utc) + timedelta(hours=hours, minutes=minutes),
         }
-    
+
     def get_token(self, account_name: str) -> str:
         """Get access token for account."""
         return self.sessions.get(account_name, {}).get("access_token")
-    
+
     def invalidate(self, account_name: str):
         """Invalidate (remove) the session for an account."""
         if account_name in self.sessions:
             del self.sessions[account_name]
             logger.info("Invalidated session for account: %s", account_name)
             self.save()
-    
+
     def get_validity(self, all_accounts: List[str] = None) -> Dict[str, bool]:
         """Get validity status for all accounts.
-        
+
         Args:
             all_accounts: Optional list of all account names from config.
                          If provided, ensures all accounts are included in result.
-        
+
         Returns:
             Dict mapping account name to validity status (True if valid, False otherwise)
         """
         if all_accounts:
-            # Include all configured accounts, not just those with cached sessions
             return {name: self.is_valid(name) for name in all_accounts}
         else:
-            # Backward compatibility: only return accounts with cached sessions
             return {name: self.is_valid(name) for name in self.sessions.keys()}
 
 
@@ -154,7 +217,6 @@ class StateManager:
             setattr(self, f'{state_type}_last_updated', None)
         
         self.last_error: str = None
-        self.waiting_for_login = False
         self._change_listeners = []
     
     def _notify_change(self):
@@ -194,12 +256,11 @@ class StateManager:
             setattr(self, f'{state_type}_state', STATE_UPDATED)
         self._notify_change()
     
-    # Portfolio-specific methods (has additional login flag logic)
+    # Portfolio-specific methods
     def set_portfolio_updating(self, error: str = None):
         self._set_updating('portfolio', error)
     
     def set_portfolio_updated(self, error: str = None):
-        self.waiting_for_login = False
         self._set_updated('portfolio', error, clear_global_error=True)
     
     def __getattr__(self, name: str):
@@ -273,24 +334,20 @@ def is_market_open_ist() -> bool:
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
-    """Load configuration from JSON file."""
+    """Load configuration from JSON file.
+
+    Returns an empty dict on any error (file missing, invalid JSON, etc.).
+    """
     try:
         with open(config_path, "r") as f:
             return json.load(f)
+    except FileNotFoundError:
+        logger.warning("Config file not found: %s", config_path)
+        return {}
+    except json.JSONDecodeError as e:
+        logger.error("Invalid JSON in %s: %s", config_path, e)
+        return {}
     except Exception as e:
-        logger.exception("Error loading config: %s", e)
+        logger.exception("Error loading config %s: %s", config_path, e)
         return {}
 
-
-def validate_accounts(accounts: List[Dict[str, str]]):
-    """Validate that all required account fields are present."""
-    missing = []
-    for acc in accounts:
-        api_key = acc.get("api_key", "")
-        api_secret = acc.get("api_secret", "")
-        
-        if not api_key or not api_secret:
-            missing.append(acc.get("name", "<unknown>"))
-    
-    if missing:
-        raise RuntimeError(f"Missing API credentials for accounts: {', '.join(missing)}")

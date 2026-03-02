@@ -1,10 +1,11 @@
 """
-Integration tests for the portfolio tracker
+Integration tests for Metron
 """
 import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from app.api.holdings import HoldingsService
 from app.utils import SessionManager, StateManager
@@ -163,26 +164,26 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(state_manager.is_any_running())
     
     def test_session_token_workflow(self):
-        """Test session token caching workflow"""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-            temp_file = f.name
-        
-        try:
-            session_manager = SessionManager(temp_file)
-            
-            # Save token
-            session_manager.set_token("Account1", "token123")
-            session_manager.save()
-            
-            # Retrieve in new instance (simulates restart)
-            new_session_manager = SessionManager(temp_file)
+        """Test session token caching workflow via Firestore"""
+        session_manager = SessionManager()
+        session_manager._google_id = "test_user_123"
+
+        # Save token
+        session_manager.set_token("Account1", "token123")
+
+        # Simulate round-trip: encrypt → store → decrypt
+        encrypted = session_manager._encrypt_token("token123")
+        stored = {"Account1": {"access_token": encrypted,
+                               "expiry": session_manager.sessions["Account1"]["expiry"].isoformat()}}
+
+        # New instance loads the stored data
+        new_session_manager = SessionManager()
+        new_session_manager._google_id = "test_user_123"
+        with patch('app.firebase_store.get_zerodha_sessions', return_value=stored):
             new_session_manager.load()
-            retrieved_token = new_session_manager.get_token("Account1")
-            
-            self.assertEqual(retrieved_token, "token123")
-        finally:
-            if os.path.exists(temp_file):
-                os.unlink(temp_file)
+
+        retrieved_token = new_session_manager.get_token("Account1")
+        self.assertEqual(retrieved_token, "token123")
     
     def test_error_handling_chain(self):
         """Test error handling across services with API errors"""

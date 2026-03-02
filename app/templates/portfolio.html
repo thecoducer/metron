@@ -6,11 +6,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/styles.css">
 <link rel="preload" href="/static/js/app.js" as="script">
 </head>
 <body>
+<script>
+  // Apply saved theme immediately (before first paint) to prevent flash
+  (function() {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark') document.body.classList.add('dark-theme');
+  })();
+</script>
 <div class="container">
 <header>
 <div class="nav-menu" id="navMenu">
@@ -30,49 +37,73 @@
 </a>
 </div>
 </div>
-<div id="header_left">
-<div class="index-tickers" id="indexTickers">
-    <div class="index-ticker" id="niftyTicker" title="NIFTY 50">
-        <span class="index-name">NIFTY 50</span>
-        <div class="index-bottom-row">
-            <span class="index-value" id="niftyValue">--</span>
-            <span class="index-change neutral" id="niftyChange"></span>
-        </div>
-    </div>
-    <div class="index-divider"></div>
-    <div class="index-ticker" id="sensexTicker" title="SENSEX">
-        <span class="index-name">SENSEX</span>
-        <div class="index-bottom-row">
-            <span class="index-value" id="sensexValue">--</span>
-            <span class="index-change neutral" id="sensexChange"></span>
-        </div>
-    </div>
-</div>
-</div>
-<div id="status_tag" class="">
-<span class="status-dot"></span>
-<span id="status_text"></span>
-</div>
 <div class="controls">
-<button class="btn" id="refresh_btn" onclick="triggerRefresh()">
-    <span id="refresh_btn_text">Refresh</span>
-</button>
-<div class="toggle-group">
-<button class="theme-toggle" id="compact_toggle_btn" onclick="toggleCompactFormat()" title="Toggle number format">
-    <span id="compact_toggle_icon">🔢</span>
-</button>
-<button class="theme-toggle" id="privacy_toggle_btn" onclick="togglePrivacy()" title="Toggle privacy mode">
-    <span id="privacy_toggle_icon">👁️</span>
-</button>
-<button class="theme-toggle" id="theme_toggle_btn" onclick="toggleTheme()" title="Toggle theme">
-    <span id="theme_toggle_icon">🌙</span>
-</button>
+{% if user %}
+<div class="user-profile" id="userProfile">
+    <button class="user-avatar-btn" id="userAvatarBtn" title="{{ user.name or user.email }}">
+        {% if user.picture %}
+        <img src="{{ user.picture }}" alt="" class="user-avatar-img" referrerpolicy="no-referrer">
+        {% else %}
+        <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
+        {% endif %}
+    </button>
+    <div class="user-dropdown" id="userDropdown">
+        <div class="user-dropdown-info">
+            <strong>{{ user.name or 'User' }}</strong>
+            <span>{{ user.email }}</span>
+        </div>
+        <hr>
+        <div class="user-dropdown-toggles">
+            <button class="user-dropdown-toggle-btn" id="compact_toggle_btn" onclick="toggleCompactFormat()" title="Toggle number format">
+                <svg class="dropdown-icon" id="compact_toggle_icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                <span>Compact Numbers</span>
+            </button>
+            <button class="user-dropdown-toggle-btn" id="privacy_toggle_btn" onclick="togglePrivacy()" title="Toggle privacy mode">
+                <svg class="dropdown-icon" id="privacy_toggle_icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Privacy Mode</span>
+            </button>
+        </div>
+        <hr>
+        <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}" target="_blank" class="user-dropdown-item">
+            <svg class="dropdown-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Open My Sheet</span>
+        </a>
+        <button class="user-dropdown-item" onclick="openSettingsDrawer()">
+            <svg class="dropdown-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Settings</span>
+        </button>
+        <hr>
+        <button class="user-dropdown-item user-dropdown-logout" onclick="handleLogout()">
+            <svg class="dropdown-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Sign Out</span>
+        </button>
+    </div>
 </div>
+{% endif %}
 </div>
 </header>
 
+<!-- Login required banner (hidden by default, shown via JS when accounts expire) -->
+<div class="login-banner" id="loginBanner" style="display:none">
+  <div class="login-banner-inner">
+    <svg class="login-banner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span class="login-banner-text" id="loginBannerText"></span>
+  </div>
+</div>
+
 <div class="portfolio-overview" id="combined_summary">
-    <div class="overview-label">Total Net Worth</div>
+    <div class="overview-top-row">
+        <div class="overview-label">Total Net Worth</div>
+        <div class="overview-top-right">
+            <button class="refresh-btn" id="refresh_btn" onclick="triggerRefresh()">
+                <svg class="refresh-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+            <div id="status_tag" class="">
+                <span class="status-dot"></span>
+                <span id="status_text"></span>
+            </div>
+        </div>
+    </div>
     <div class="overview-metrics">
         <div class="overview-primary">
             <span class="overview-current" id="combined_current_value">0.00</span>
@@ -81,6 +112,11 @@
         <div class="overview-pl-group">
             <span class="overview-pl" id="combined_total_pl">0.00</span>
             <span class="overview-pct" id="combined_total_pl_pct">0.00%</span>
+        </div>
+    </div>
+    <div class="overview-tickers">
+        <div class="index-tickers" id="indexTickers">
+            <!-- Ticker items rendered dynamically by IndexTicker -->
         </div>
     </div>
 </div>
@@ -123,43 +159,18 @@
     </div>
 </div>
 
-<div class="card card--category" id="gold_summary">
+<div class="card card--category card--clickable" id="gold_summary" tabindex="0" role="button" aria-expanded="false" aria-controls="gold_breakdown_drawer">
     <h3 class="card-title">
         <span class="allocation-pct" id="gold_allocation_pct"></span>
-        Gold <span class="card-subtitle">(ETFs + Physical)</span>
+        Gold <span class="card-subtitle">(ETFs + Physical + SGBs)</span>
+        <svg class="gold-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
     </h3>
-    <!-- small icon toggle for ETF/physical breakdown -->
-    <div class="gold-breakdown-toggle">
-        <button id="gold_breakdown_toggle" class="icon-toggle" title="Toggle ETF/Physical view">
-        </button>
-    </div>
     <div class="category-metrics">
         <div class="category-current" id="gold_current_value">0.00</div>
         <div class="category-invested" id="gold_total_invested">0.00</div>
         <div class="category-pl">
             <span id="gold_total_pl">0.00</span>
             <span class="category-pct" id="gold_total_pl_pct">0.00%</span>
-        </div>
-    </div>
-    <!-- breakdown metrics shown when toggle enabled; two-column layout -->
-    <div class="gold-breakdown-metrics" id="gold_breakdown_metrics">
-        <div class="breakdown-column" id="gold_etf_column">
-            <div class="breakdown-label">ETFs</div>
-            <div class="breakdown-current" id="gold_etf_current_value">0.00</div>
-            <div class="breakdown-invested" id="gold_etf_total_invested">0.00</div>
-            <div class="breakdown-pl">
-                <span id="gold_etf_total_pl">0.00</span>
-                <span class="category-pct" id="gold_etf_total_pl_pct">0.00%</span>
-            </div>
-        </div>
-        <div class="breakdown-column" id="gold_physical_column">
-            <div class="breakdown-label">Physical</div>
-            <div class="breakdown-current" id="gold_physical_current_value">0.00</div>
-            <div class="breakdown-invested" id="gold_physical_total_invested">0.00</div>
-            <div class="breakdown-pl">
-                <span id="gold_physical_total_pl">0.00</span>
-                <span class="category-pct" id="gold_physical_total_pl_pct">0.00%</span>
-            </div>
         </div>
     </div>
 </div>
@@ -191,6 +202,39 @@
 {% endif %}
 </div>
 
+<!-- Gold breakdown drawer (expands below summary cards when gold card is clicked) -->
+<div class="gold-breakdown-drawer" id="gold_breakdown_drawer" aria-hidden="true">
+    <div class="gold-breakdown-inner">
+        <div class="breakdown-segment" id="gold_etf_segment">
+            <div class="breakdown-label">ETFs</div>
+            <div class="breakdown-current" id="gold_etf_current_value">0.00</div>
+            <div class="breakdown-invested" id="gold_etf_total_invested">0.00</div>
+            <div class="breakdown-pl">
+                <span id="gold_etf_total_pl">0.00</span>
+                <span class="breakdown-pct" id="gold_etf_total_pl_pct">0.00%</span>
+            </div>
+        </div>
+        <div class="breakdown-segment" id="gold_physical_segment">
+            <div class="breakdown-label">Physical</div>
+            <div class="breakdown-current" id="gold_physical_current_value">0.00</div>
+            <div class="breakdown-invested" id="gold_physical_total_invested">0.00</div>
+            <div class="breakdown-pl">
+                <span id="gold_physical_total_pl">0.00</span>
+                <span class="breakdown-pct" id="gold_physical_total_pl_pct">0.00%</span>
+            </div>
+        </div>
+        <div class="breakdown-segment" id="gold_sgb_segment">
+            <div class="breakdown-label">SGBs</div>
+            <div class="breakdown-current" id="gold_sgb_current_value">0.00</div>
+            <div class="breakdown-invested" id="gold_sgb_total_invested">0.00</div>
+            <div class="breakdown-pl">
+                <span id="gold_sgb_total_pl">0.00</span>
+                <span class="breakdown-pct" id="gold_sgb_total_pl_pct">0.00%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="data-container-sections">
 <div class="section-wrapper" id="stocks-section">
 <div class="section-header">
@@ -207,6 +251,7 @@
 </div>
 </div>
 </div>
+<div class="table-scroll-wrapper">
 <table id="stocksTable" aria-label="Holdings table">
 <thead>
 <tr>
@@ -216,6 +261,7 @@
 <tbody id="tbody">
 </tbody>
 </table>
+</div>
 <div class="empty-state-message" id="stocks_empty_state" style="display:none;">No stocks data available</div>
 <div class="pagination-info" id="stocks_pagination_info"></div>
 <div class="pagination-buttons" id="stocks_pagination_buttons"></div>
@@ -236,6 +282,7 @@
 </div>
 </div>
 </div>
+<div class="table-scroll-wrapper">
 <table id="etfTable" aria-label="ETF Holdings table">
 <thead>
 <tr>
@@ -245,6 +292,7 @@
 <tbody id="etf_tbody">
 </tbody>
 </table>
+</div>
 <div class="empty-state-message" id="etf_empty_state" style="display:none;">No ETF data available</div>
 <div class="pagination-info" id="etf_pagination_info"></div>
 <div class="pagination-buttons" id="etf_pagination_buttons"></div>
@@ -265,6 +313,7 @@
 </div>
 </div>
 </div>
+<div class="table-scroll-wrapper">
 <table id="mfTable" aria-label="MF Holdings table">
 <thead>
 <tr>
@@ -274,6 +323,7 @@
 <tbody id="mf_tbody">
 </tbody>
 </table>
+</div>
 <div class="empty-state-message" id="mf_empty_state" style="display:none;">No mutual funds data available</div>
 <div class="pagination-info" id="mf_pagination_info"></div>
 <div class="pagination-buttons" id="mf_pagination_buttons"></div>
@@ -296,6 +346,7 @@
 </div>
 </div>
 </div>
+<div class="table-scroll-wrapper">
 <table id="physicalGoldTable" aria-label="Physical Gold table">
 <thead>
 <tr>
@@ -312,6 +363,7 @@
 <tbody id="physical_gold_table_body">
 </tbody>
 </table>
+</div>
 <div class="empty-state-message" id="physical_gold_empty_state" style="display:none;">No physical gold holdings available</div>
 <div class="pagination-info" id="physical_gold_pagination_info"></div>
 <div class="pagination-buttons" id="physical_gold_pagination_buttons"></div>
@@ -357,6 +409,7 @@ By Bank
 
 <!-- Tab Content: By Maturity (Detailed View) -->
 <div class="fd-tab-content active" id="fd-tab-maturity">
+<div class="table-scroll-wrapper">
 <table id="fixedDepositsTable" aria-label="Fixed Deposits table">
 <thead>
 <tr>
@@ -374,6 +427,7 @@ By Bank
 <tbody id="fixed_deposits_table_body">
 </tbody>
 </table>
+</div>
 <div class="empty-state-message" id="fixed_deposits_empty_state" style="display:none;">No fixed deposits available</div>
 <div class="pagination-info" id="fixed_deposits_pagination_info"></div>
 <div class="pagination-buttons" id="fixed_deposits_pagination_buttons"></div>
@@ -381,6 +435,7 @@ By Bank
 
 <!-- Tab Content: By Bank (Summary View) -->
 <div class="fd-tab-content" id="fd-tab-bank">
+<div class="table-scroll-wrapper">
 <table id="fdSummaryTable" aria-label="Fixed Deposits Summary table">
 <thead>
 <tr>
@@ -394,6 +449,7 @@ By Bank
 <tbody id="fd_summary_table_body">
 </tbody>
 </table>
+</div>
 <div class="pagination-info" id="fd_summary_pagination_info"></div>
 <div class="pagination-buttons" id="fd_summary_pagination_buttons"></div>
 </div>
@@ -405,6 +461,7 @@ By Bank
 <div class="section-header">
 <h2>SIPs</h2>
 </div>
+<div class="table-scroll-wrapper">
 <table aria-label="SIPs table">
 <thead>
 <tr>
@@ -414,6 +471,7 @@ By Bank
 <tbody id="sips_tbody">
 </tbody>
 </table>
+</div>
 <div class="empty-state-message" id="sips_empty_state" style="display:none;">No SIPs available</div>
 </div>
 
@@ -436,6 +494,77 @@ By Bank
 </div>
 </div>
 
+{% if user %}
+<!-- Settings Drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeSettingsDrawer()"></div>
+<aside class="settings-drawer" id="settingsDrawer">
+  <div class="drawer-header">
+    <h2 class="drawer-title">Settings</h2>
+    <button class="drawer-close" onclick="closeSettingsDrawer()" title="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <!-- Appearance -->
+    <section class="drawer-section">
+      <h3 class="drawer-section-title">Appearance</h3>
+      <div class="drawer-card">
+        <div class="drawer-setting-row">
+          <div class="drawer-setting-label">
+            <span class="drawer-setting-name">Theme</span>
+            <span class="drawer-setting-desc">Choose light or dark mode</span>
+          </div>
+          <div class="drawer-theme-switcher" id="drawerThemeSwitcher">
+            <button class="drawer-theme-option" data-theme="light" title="Light">
+              <span class="drawer-theme-icon">☀️</span><span>Light</span>
+            </button>
+            <button class="drawer-theme-option" data-theme="dark" title="Dark">
+              <span class="drawer-theme-icon">🌙</span><span>Dark</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Zerodha Accounts -->
+    <section class="drawer-section">
+      <h3 class="drawer-section-title">Zerodha Accounts</h3>
+      <div class="drawer-card">
+        <p class="drawer-card-hint">
+          Connect your Kite Connect API accounts. Credentials are stored securely and never displayed.
+        </p>
+        <div id="drawerAccountsList" class="drawer-accounts-list">
+          <div class="drawer-accounts-loading">Loading…</div>
+        </div>
+        <button type="button" class="drawer-btn-add" id="drawerAddAccountBtn" title="Add Zerodha account">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          <span>Add Account</span>
+        </button>
+        <div id="drawerAddAccountForm" class="drawer-add-form hidden">
+          <div class="drawer-field">
+            <label class="drawer-field-label" for="drawer_account_name">Account Name</label>
+            <input class="drawer-field-input" type="text" id="drawer_account_name" placeholder="e.g. Personal, Family" spellcheck="false" autocomplete="off">
+          </div>
+          <div class="drawer-field">
+            <label class="drawer-field-label" for="drawer_api_key">API Key</label>
+            <input class="drawer-field-input" type="text" id="drawer_api_key" placeholder="e.g. x1y2z3a4b5c6d7e8" spellcheck="false" autocomplete="off">
+          </div>
+          <div class="drawer-field">
+            <label class="drawer-field-label" for="drawer_api_secret">API Secret</label>
+            <input class="drawer-field-input" type="password" id="drawer_api_secret" placeholder="e.g. a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" spellcheck="false" autocomplete="off">
+          </div>
+          <div class="drawer-form-actions">
+            <button type="button" class="drawer-btn-save" id="drawerSaveAccountBtn">Save</button>
+            <button type="button" class="drawer-btn-cancel" id="drawerCancelAccountBtn">Cancel</button>
+            <span class="drawer-save-status" id="drawerSaveStatus"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</aside>
+{% endif %}
+
 <script>
 // Navigation menu toggle
 function toggleNavMenu(event) {
@@ -444,15 +573,240 @@ function toggleNavMenu(event) {
   menu.classList.toggle('active');
 }
 
-// Close menu when clicking outside
+// User profile dropdown toggle
+(function() {
+  const avatarBtn = document.getElementById('userAvatarBtn');
+  const dropdown = document.getElementById('userDropdown');
+  if (avatarBtn && dropdown) {
+    avatarBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+  }
+})();
+
+// Sign-out handler
+function handleLogout() {
+  fetch('/auth/logout', { method: 'POST' })
+    .then(() => { window.location.href = '/'; })
+    .catch(() => { window.location.href = '/'; });
+}
+
+// Close menus when clicking outside
 document.addEventListener('click', function(event) {
   const menu = document.getElementById('navMenu');
   if (menu && !menu.contains(event.target)) {
     menu.classList.remove('active');
   }
+  const dropdown = document.getElementById('userDropdown');
+  const avatarBtn = document.getElementById('userAvatarBtn');
+  if (dropdown && avatarBtn && !avatarBtn.contains(event.target) && !dropdown.contains(event.target)) {
+    dropdown.classList.remove('open');
+  }
 });
+
+// ─── Settings Drawer ──────────────────────────────────────────
+
+function openSettingsDrawer() {
+  const drawer = document.getElementById('settingsDrawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  if (!drawer) return;
+  // Close user dropdown first
+  const dd = document.getElementById('userDropdown');
+  if (dd) dd.classList.remove('open');
+
+  drawer.classList.add('open');
+  backdrop.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  initDrawerThemeSwitcher();
+  loadDrawerAccounts();
+}
+
+function closeSettingsDrawer() {
+  const drawer = document.getElementById('settingsDrawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  if (!drawer) return;
+  drawer.classList.remove('open');
+  backdrop.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close drawer on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSettingsDrawer();
+});
+
+// ─── Drawer Theme Switcher ────────────────────────────────────
+
+function initDrawerThemeSwitcher() {
+  const switcher = document.getElementById('drawerThemeSwitcher');
+  if (!switcher) return;
+  const buttons = switcher.querySelectorAll('.drawer-theme-option');
+  const current = localStorage.getItem('theme') || 'light';
+
+  function setActive(theme) {
+    buttons.forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+  }
+
+  function applyTheme(theme) {
+    document.body.classList.add('theme-transitioning');
+    if (theme === 'dark') {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+    localStorage.setItem('theme', theme);
+    setActive(theme);
+    // Also update the portfolio theme icon if it exists
+    const themeIcon = document.getElementById('theme_toggle_icon');
+    if (themeIcon) themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.body.classList.remove('theme-transitioning');
+      });
+    });
+  }
+
+  setActive(current);
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+  });
+}
+
+// ─── Drawer Zerodha Accounts ──────────────────────────────────
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderDrawerAccounts(names, sessionValidity, loginUrls) {
+  const listEl = document.getElementById('drawerAccountsList');
+  if (!listEl) return;
+  if (!names.length) {
+    listEl.innerHTML = '<div class="drawer-accounts-empty">No accounts connected yet.</div>';
+    return;
+  }
+  sessionValidity = sessionValidity || {};
+  loginUrls = loginUrls || {};
+  listEl.innerHTML = names.map(name => {
+    const isValid = sessionValidity[name] === true;
+    const loginUrl = loginUrls[name] || '';
+    let statusHtml = '';
+    if (!isValid && loginUrl) {
+      statusHtml = '<a class="drawer-account-login" href="' + escapeHtml(loginUrl) + '" target="_blank" rel="noopener" title="Session expired \u2013 click to log in">Login</a>';
+    } else if (!isValid) {
+      statusHtml = '<span class="drawer-account-expired" title="Session expired">Expired</span>';
+    } else {
+      statusHtml = '<span class="drawer-account-active" title="Session active">\u2713</span>';
+    }
+    return '<span class="drawer-account-chip' + (isValid ? '' : ' expired') + '">' +
+      '<span>' + escapeHtml(name) + '</span>' +
+      statusHtml +
+      '<button class="drawer-account-chip-remove" data-name="' + escapeHtml(name) + '" title="Remove ' + escapeHtml(name) + '">\u00d7</button>' +
+    '</span>';
+  }).join('');
+  listEl.querySelectorAll('.drawer-account-chip-remove').forEach(btn => {
+    btn.addEventListener('click', () => removeDrawerAccount(btn.dataset.name));
+  });
+}
+
+function loadDrawerAccounts() {
+  const listEl = document.getElementById('drawerAccountsList');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="drawer-accounts-loading">Loading\u2026</div>';
+  fetch('/api/settings')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const names = data.zerodha_accounts || [];
+      const validity = data.session_validity || {};
+      const loginUrls = data.login_urls || {};
+      renderDrawerAccounts(names, validity, loginUrls);
+    })
+    .catch(() => { listEl.innerHTML = '<div class="drawer-accounts-empty">Failed to load accounts.</div>'; });
+}
+
+function removeDrawerAccount(name) {
+  if (!confirm('Remove account "' + name + '"? This will delete the stored API credentials.')) return;
+  fetch('/api/settings/zerodha/' + encodeURIComponent(name), { method: 'DELETE' })
+    .then(r => r.ok ? loadDrawerAccounts() : Promise.reject())
+    .catch(() => alert('Failed to remove account.'));
+}
+
+// ─── Drawer Add-Account Form ──────────────────────────────────
+
+(function() {
+  const addBtn = document.getElementById('drawerAddAccountBtn');
+  const formEl = document.getElementById('drawerAddAccountForm');
+  const saveBtn = document.getElementById('drawerSaveAccountBtn');
+  const cancelBtn = document.getElementById('drawerCancelAccountBtn');
+  const status = document.getElementById('drawerSaveStatus');
+  const nameInput = document.getElementById('drawer_account_name');
+  const keyInput = document.getElementById('drawer_api_key');
+  const secretInput = document.getElementById('drawer_api_secret');
+  if (!addBtn || !formEl) return;
+
+  function clearForm() {
+    if (nameInput) nameInput.value = '';
+    if (keyInput) keyInput.value = '';
+    if (secretInput) secretInput.value = '';
+    if (status) { status.textContent = ''; status.className = 'drawer-save-status'; }
+  }
+
+  addBtn.addEventListener('click', () => {
+    formEl.classList.remove('hidden');
+    addBtn.style.display = 'none';
+    if (nameInput) nameInput.focus();
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    formEl.classList.add('hidden');
+    addBtn.style.display = '';
+    clearForm();
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const account_name = (nameInput.value || '').trim();
+    const api_key = (keyInput.value || '').trim();
+    const api_secret = (secretInput.value || '').trim();
+    if (!account_name || !api_key || !api_secret) {
+      status.textContent = 'All fields are required';
+      status.className = 'drawer-save-status error';
+      return;
+    }
+    saveBtn.disabled = true;
+    status.textContent = '';
+    status.className = 'drawer-save-status';
+    try {
+      const resp = await fetch('/api/settings/zerodha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_name, api_key, api_secret }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        status.textContent = result.error || 'Save failed';
+        status.classList.add('error');
+        return;
+      }
+      loadDrawerAccounts();
+      formEl.classList.add('hidden');
+      addBtn.style.display = '';
+      clearForm();
+    } catch {
+      status.textContent = 'Failed to save';
+      status.classList.add('error');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+})();
 </script>
 
+{% if initial_data_json %}
+<script>window.__INITIAL_DATA__ = {{ initial_data_json | safe }};</script>
+{% endif %}
 <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>

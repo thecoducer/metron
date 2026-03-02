@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Portfolio Tracker Startup Script
+# Metron Startup Script
 # This script sets up the environment and starts the server
 
 set -e  # Exit on error
@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo -e "${BLUE}=== Portfolio Tracker Startup ===${NC}\n"
+echo -e "${BLUE}=== Metron Startup ===${NC}\n"
 
 # Function to print colored messages
 print_info() {
@@ -54,16 +54,10 @@ try:
     with open('config/config.json', 'r') as f:
         config = json.load(f)
 
-    if 'accounts' not in config or not isinstance(config['accounts'], list) or len(config['accounts']) == 0:
-        print('ERROR: config.json must have at least one account in \"accounts\"')
-        sys.exit(1)
-
-    for idx, account in enumerate(config['accounts']):
-        for field in ('name', 'api_key', 'api_secret'):
-            val = account.get(field, '')
-            if not val or val in ('YOUR_API_KEY_HERE', 'YOUR_API_SECRET_HERE', 'your_kite_api_key_here', 'your_kite_api_secret_here'):
-                print(f'ERROR: Account {idx} has invalid or missing \"{field}\". Please configure it.')
-                sys.exit(1)
+    # Basic structure check — accounts are now stored per-user in Firebase,
+    # so we only validate that the JSON is parseable and has server settings.
+    if 'server' not in config:
+        print('WARNING: config.json is missing \"server\" section, defaults will be used')
 
     print('Configuration validation passed')
 

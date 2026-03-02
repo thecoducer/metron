@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Formatting and Calculation Utilities */
+/* Metron - Formatting and Calculation Utilities */
 
 class Formatter {
   // Global state for compact format preference
@@ -350,6 +350,7 @@ class Calculator {
 const GOLD_PREFIXES = ['SGB', 'GOLD'];
 const SILVER_PREFIXES = ['SILVR', 'SILVER'];
 const ETF_SUFFIXES = ['BEES', 'ETF'];
+const SGB_PREFIX = 'SGB';
 
 /**
  * Check if a symbol represents a gold instrument
@@ -358,6 +359,15 @@ const ETF_SUFFIXES = ['BEES', 'ETF'];
  */
 function isGoldInstrument(symbol) {
   return GOLD_PREFIXES.some(prefix => symbol.startsWith(prefix));
+}
+
+/**
+ * Check if a symbol represents a Sovereign Gold Bond (SGB)
+ * @param {string} symbol - Trading symbol to check
+ * @returns {boolean} - True if symbol is an SGB (e.g., SGBNOV28, SGBMAR29)
+ */
+function isSGBInstrument(symbol) {
+  return symbol.startsWith(SGB_PREFIX);
 }
 
 /**
@@ -382,4 +392,4 @@ function isETFInstrument(symbol, isin) {
   return false;
 }
 
-export { Formatter, Calculator, isGoldInstrument, isSilverInstrument, isETFInstrument };
+export { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, isETFInstrument };

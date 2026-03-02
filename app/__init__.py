@@ -1,3 +1,3 @@
 """
-Investment Portfolio Tracker — main application package.
+Metron — main application package.
 """

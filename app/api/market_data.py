@@ -1,5 +1,5 @@
 """
-NSE API client for fetching market data.
+Market data client – NSE stock quotes and Yahoo Finance indices / commodities.
 """
 import time
 from typing import Any, Dict, List
@@ -12,8 +12,8 @@ from ..constants import NSE_BASE_URL, NSE_REQUEST_DELAY, NSE_REQUEST_TIMEOUT
 from ..logging_config import logger
 
 
-class NSEAPIClient:
-    """Client for NSE (National Stock Exchange) API operations."""
+class MarketDataClient:
+    """Client for NSE stock quotes and Yahoo Finance market data."""
     
     def __init__(self):
         """Initialize the NSE API client with configuration."""
@@ -154,6 +154,10 @@ class NSEAPIClient:
     _YF_SYMBOLS = {
         'nifty50': ('%5ENSEI', 'NIFTY 50'),
         'sensex':  ('%5EBSESN', 'SENSEX'),
+        'sp500':   ('%5EGSPC', 'S&P 500'),
+        'gold':    ('GC%3DF', 'GOLD'),
+        'silver':  ('SI%3DF', 'SILVER'),
+        'usdinr':  ('INR%3DX', 'USD/INR'),
     }
 
     def fetch_market_indices(self) -> Dict[str, Any]:

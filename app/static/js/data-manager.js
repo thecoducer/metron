@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Data Management Module */
+/* Metron - Data Management Module */
 
 class DataManager {
   constructor() {
@@ -50,16 +50,33 @@ class DataManager {
   }
 
   async fetchAllData() {
-    const [stocks, mfHoldings, sips, physicalGold, fixedDeposits, fdSummary, status] = await Promise.all([
+    const [stocks, mfHoldings, sips, physicalGold, fixedDeposits, status] = await Promise.all([
       this.fetchStocks(),
       this.fetchMFHoldings(),
       this.fetchSIPs(),
       this.fetchPhysicalGold(),
       this.fetchFixedDeposits(),
-      this.fetchFDSummary(),
       this.fetchStatus()
     ]);
+    const fdSummary = this._computeFDSummary(fixedDeposits);
     return { stocks, mfHoldings, sips, physicalGold, fixedDeposits, fdSummary, status };
+  }
+
+  _computeFDSummary(deposits) {
+    if (!deposits || !deposits.length) return [];
+    const groups = {};
+    for (const d of deposits) {
+      const key = `${d.bank_name || 'Unknown'}|${d.account || 'Unknown'}`;
+      if (!groups[key]) {
+        groups[key] = { bank: d.bank_name || 'Unknown', account: d.account || 'Unknown', totalDeposited: 0, totalCurrentValue: 0, totalReturns: 0 };
+      }
+      groups[key].totalDeposited += d.original_amount || 0;
+      groups[key].totalCurrentValue += d.current_value || 0;
+    }
+    for (const g of Object.values(groups)) {
+      g.totalReturns = g.totalCurrentValue - g.totalDeposited;
+    }
+    return Object.values(groups);
   }
 
   _updateData(data, currentData, lastJSON, forceUpdate) {

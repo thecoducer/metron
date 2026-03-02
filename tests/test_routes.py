@@ -3,7 +3,7 @@ Unit tests for routes.py (Flask route definitions).
 """
 import json
 import unittest
-from unittest.mock import PropertyMock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 from app.routes import _create_json_response_no_cache, app_callback, app_ui
 
@@ -15,14 +15,29 @@ class TestCallbackServer(unittest.TestCase):
         self.client = app_callback.test_client()
         app_callback.testing = True
 
-    def test_callback_success(self):
-        """Test successful OAuth callback."""
-        with patch('app.routes.auth_manager.set_request_token') as mock_set_token:
+    def test_callback_success_direct_login(self):
+        """Test OAuth callback completing auth directly."""
+        mock_kite_cls = Mock()
+        mock_kite = Mock()
+        mock_kite_cls.return_value = mock_kite
+        mock_kite.generate_session.return_value = {"access_token": "new_token"}
+
+        with patch('app.services.state_manager') as mock_state, \
+             patch('app.services.session_manager') as mock_session, \
+             patch('app.routes.get_active_accounts', return_value=[
+                 {"name": "Mine", "api_key": "key1", "api_secret": "sec1"}
+             ]), \
+             patch('app.routes.fetch_in_progress') as mock_fetch_event, \
+             patch('kiteconnect.KiteConnect', mock_kite_cls):
+            mock_session.is_valid.return_value = False
+            mock_fetch_event.is_set.return_value = False
+
             response = self.client.get('/callback?request_token=test_token_123')
 
             self.assertEqual(response.status_code, 200)
-            mock_set_token.assert_called_once_with('test_token_123')
             self.assertIn(b'success', response.data.lower())
+            mock_session.set_token.assert_called_once_with("Mine", "new_token")
+            mock_session.save.assert_called_once()
 
     def test_callback_error(self):
         """Test OAuth callback without request token."""
@@ -45,9 +60,7 @@ class TestUIServerRoutes(unittest.TestCase):
              patch('app.services.session_manager') as mock_session, \
              patch('app.services.format_timestamp') as mock_format, \
              patch('app.services.is_market_open_ist') as mock_market, \
-             patch('app.services.app_config') as mock_config:
-
-            mock_config.accounts = []
+             patch('app.services.get_active_accounts', return_value=[]):
             type(mock_state).last_error = PropertyMock(return_value=None)
             type(mock_state).portfolio_state = PropertyMock(return_value='updated')
             type(mock_state).nifty50_state = PropertyMock(return_value='updated')
@@ -57,9 +70,8 @@ class TestUIServerRoutes(unittest.TestCase):
             type(mock_state).nifty50_last_updated = PropertyMock(return_value=None)
             type(mock_state).physical_gold_last_updated = PropertyMock(return_value=None)
             type(mock_state).fixed_deposits_last_updated = PropertyMock(return_value=None)
-            type(mock_state).waiting_for_login = PropertyMock(return_value=False)
 
-            mock_session.get_validity.return_value = {}
+            mock_session.is_valid.return_value = True
             mock_format.return_value = None
             mock_market.return_value = False
 
@@ -69,6 +81,9 @@ class TestUIServerRoutes(unittest.TestCase):
             data = json.loads(response.data)
             self.assertIn('portfolio_state', data)
             self.assertIn('session_validity', data)
+            self.assertIn('has_zerodha_accounts', data)
+            self.assertIn('authenticated_accounts', data)
+            self.assertIn('unauthenticated_accounts', data)
             self.assertEqual(response.headers.get('Cache-Control'), 'no-cache, no-store, must-revalidate')
 
     def test_stocks_data_endpoint(self):
@@ -126,17 +141,35 @@ class TestUIServerRoutes(unittest.TestCase):
             cache.sips = original
 
     def test_portfolio_page(self):
-        """Test root page renders."""
+        """Test root page renders landing page when not signed in."""
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'html', response.data.lower())
-        # ensure gold card displays subtitle and toggle control
-        self.assertIn(b'(ETFs + Physical)', response.data)
+        # Landing page should contain sign-in prompt
+        self.assertIn(b'Continue with Google', response.data)
+
+    def test_portfolio_page_authenticated(self):
+        """Test root page renders portfolio when signed in."""
+        with self.client.session_transaction() as sess:
+            sess['user'] = {
+                'google_id': 'test123',
+                'email': 'test@example.com',
+                'name': 'Test User',
+                'picture': '',
+                'spreadsheet_id': 'sheet_abc',
+                'google_credentials': {},
+            }
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'html', response.data.lower())
+        # ensure gold card displays subtitle and clickable drawer trigger
+        self.assertIn(b'(ETFs + Physical + SGBs)', response.data)
         # ensure silver card includes ETFs subtitle
         self.assertIn(b'Silver <span class="card-subtitle">(ETFs)</span>', response.data)
-        self.assertIn(b'id="gold_breakdown_toggle"', response.data)
-        # ensure toggle still uses icon-toggle class for CSS-rendered control
-        self.assertIn(b'class="icon-toggle"', response.data)
+        self.assertIn(b'id="gold_breakdown_drawer"', response.data)
+        # ensure gold card is clickable with chevron indicator
+        self.assertIn(b'card--clickable', response.data)
+        self.assertIn(b'class="gold-chevron"', response.data)
         # toggle should no longer be an emoji
         self.assertNotIn(b'\xf0\x9f\x94\x80', response.data)  # not 🔀 or 📊 etc
 
@@ -150,19 +183,16 @@ class TestUIServerRoutes(unittest.TestCase):
         """Test /refresh endpoint triggers refresh."""
         with patch('app.cache.fetch_in_progress') as mock_event, \
              patch('app.fetchers.run_background_fetch') as mock_fetch, \
-             patch('app.services.session_manager') as mock_session, \
-             patch('app.services.app_config') as mock_config:
+             patch('app.routes.get_authenticated_accounts', return_value=[{"name": "test"}]):
 
-            mock_config.accounts = [{"name": "test"}]
             mock_event.is_set.return_value = False
-            mock_session.is_valid.return_value = True
 
             response = self.client.post('/refresh')
 
             self.assertEqual(response.status_code, 202)
             data = json.loads(response.data)
             self.assertEqual(data['status'], 'started')
-            mock_fetch.assert_called_once_with(force_login=False, is_manual=True)
+            mock_fetch.assert_called_once_with(is_manual=True, accounts=[{"name": "test"}])
 
     def test_refresh_route_conflict(self):
         """Test /refresh returns conflict when fetch in progress."""
@@ -177,23 +207,20 @@ class TestUIServerRoutes(unittest.TestCase):
         finally:
             fetch_in_progress.clear()
 
-    def test_refresh_route_needs_login(self):
-        """Test /refresh detects expired sessions."""
+    def test_refresh_route_no_authenticated_accounts(self):
+        """Test /refresh still triggers refresh (gold/nifty) even with no authenticated accounts."""
         with patch('app.cache.fetch_in_progress') as mock_event, \
              patch('app.fetchers.run_background_fetch') as mock_fetch, \
-             patch('app.services.session_manager') as mock_session, \
-             patch('app.services.app_config') as mock_config:
+             patch('app.routes.get_authenticated_accounts', return_value=[]):
 
-            mock_config.accounts = [{"name": "test"}]
             mock_event.is_set.return_value = False
-            mock_session.is_valid.return_value = False
 
             response = self.client.post('/refresh')
 
             self.assertEqual(response.status_code, 202)
             data = json.loads(response.data)
-            self.assertTrue(data['needs_login'])
-            mock_fetch.assert_called_once_with(force_login=True, is_manual=True)
+            self.assertEqual(data['status'], 'started')
+            mock_fetch.assert_called_once_with(is_manual=True, accounts=[])
 
 
 class TestSSE(unittest.TestCase):
@@ -209,9 +236,7 @@ class TestSSE(unittest.TestCase):
              patch('app.services.session_manager') as mock_session, \
              patch('app.services.format_timestamp') as mock_format, \
              patch('app.services.is_market_open_ist') as mock_market, \
-             patch('app.services.app_config') as mock_config:
-
-            mock_config.accounts = []
+             patch('app.services.get_active_accounts', return_value=[]):
             type(mock_state).last_error = PropertyMock(return_value=None)
             type(mock_state).portfolio_state = PropertyMock(return_value='updated')
             type(mock_state).nifty50_state = PropertyMock(return_value='updated')
@@ -221,9 +246,8 @@ class TestSSE(unittest.TestCase):
             type(mock_state).nifty50_last_updated = PropertyMock(return_value=None)
             type(mock_state).physical_gold_last_updated = PropertyMock(return_value=None)
             type(mock_state).fixed_deposits_last_updated = PropertyMock(return_value=None)
-            type(mock_state).waiting_for_login = PropertyMock(return_value=False)
 
-            mock_session.get_validity.return_value = {}
+            mock_session.is_valid.return_value = True
             mock_format.return_value = None
             mock_market.return_value = True
 

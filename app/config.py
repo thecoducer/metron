@@ -9,15 +9,13 @@ from .constants import (CONFIG_DIR_NAME, CONFIG_FILENAME,
                         DEFAULT_AUTO_REFRESH_INTERVAL,
                         DEFAULT_CALLBACK_HOST, DEFAULT_CALLBACK_PATH,
                         DEFAULT_CALLBACK_PORT, DEFAULT_REQUEST_TOKEN_TIMEOUT,
-                        DEFAULT_UI_HOST, DEFAULT_UI_PORT,
-                        SESSION_CACHE_FILENAME)
+                        DEFAULT_UI_HOST, DEFAULT_UI_PORT)
 from .utils import load_config
 
 
 @dataclass
 class AppConfig:
     """Application configuration loaded from config.json."""
-    accounts: list
     callback_host: str
     callback_port: int
     callback_path: str
@@ -27,7 +25,6 @@ class AppConfig:
     request_token_timeout: int
     auto_refresh_interval: int
     auto_refresh_outside_market_hours: bool
-    session_cache_file: str
     features: dict
 
     @classmethod
@@ -43,10 +40,7 @@ class AppConfig:
         callback_port = server.get("callback_port", DEFAULT_CALLBACK_PORT)
         callback_path = server.get("callback_path", DEFAULT_CALLBACK_PATH)
 
-        base_dir = os.path.dirname(config_path)
-
         return cls(
-            accounts=config.get("accounts", []),
             callback_host=callback_host,
             callback_port=callback_port,
             callback_path=callback_path,
@@ -56,7 +50,6 @@ class AppConfig:
             request_token_timeout=timeouts.get("request_token_timeout_seconds", DEFAULT_REQUEST_TOKEN_TIMEOUT),
             auto_refresh_interval=timeouts.get("auto_refresh_interval_seconds", DEFAULT_AUTO_REFRESH_INTERVAL),
             auto_refresh_outside_market_hours=features.get("auto_refresh_outside_market_hours", False),
-            session_cache_file=os.path.join(base_dir, SESSION_CACHE_FILENAME),
             features=features,
         )
 

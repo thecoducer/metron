@@ -6,14 +6,11 @@ and provides shared helper functions for status reporting.
 """
 
 import json
-import os
-from typing import Any, Dict
+import threading
+from typing import Any, Dict, List
 
 from .api import (AuthenticationManager, HoldingsService, SIPService,
                   ZerodhaAPIClient)
-from .api.google_sheets_client import (GOOGLE_SHEETS_AVAILABLE,
-                                       FixedDepositsService,
-                                       GoogleSheetsClient, PhysicalGoldService)
 from .config import app_config
 from .logging_config import logger
 from .sse import sse_manager
@@ -24,75 +21,69 @@ from .utils import (SessionManager, StateManager, format_timestamp,
 # CORE SERVICES
 # --------------------------
 
-session_manager = SessionManager(app_config.session_cache_file)
+session_manager = SessionManager()
 state_manager = StateManager()
-auth_manager = AuthenticationManager(session_manager, app_config.request_token_timeout)
+auth_manager = AuthenticationManager(session_manager)
 holdings_service = HoldingsService()
 sip_service = SIPService()
 zerodha_client = ZerodhaAPIClient(auth_manager, holdings_service, sip_service)
 
 # --------------------------
-# OPTIONAL GOOGLE SHEETS SERVICES
+# ACTIVE USER / ACCOUNTS
 # --------------------------
 
-google_sheets_client = None
-physical_gold_service = None
-fixed_deposits_service = None
+_active_user_lock = threading.Lock()
+_active_google_id: str | None = None
 
 
-def _initialize_google_sheets_services() -> None:
-    """Initialize Google Sheets client and dependent services.
+def set_active_user(google_id: str) -> None:
+    """Store the currently signed-in user's Google ID for background threads.
 
-    Initializes Physical Gold and Fixed Deposits services if enabled in config.
-    Reuses a single GoogleSheetsClient instance for efficiency.
+    Also scopes the session manager to this user so that Zerodha tokens are
+    loaded from / saved to the correct Firestore document.
     """
-    global google_sheets_client, physical_gold_service, fixed_deposits_service
-
-    if not GOOGLE_SHEETS_AVAILABLE:
-        logger.info("Google Sheets services unavailable: libraries not installed")
-        return
-
-    features = app_config.features
-
-    service_configs = [
-        ("fetch_physical_gold_from_google_sheets", "Physical Gold", PhysicalGoldService, "physical_gold_service"),
-        ("fetch_fixed_deposits_from_google_sheets", "Fixed Deposits", FixedDepositsService, "fixed_deposits_service"),
-    ]
-
-    for feature_key, service_name, service_class, var_name in service_configs:
-        feature_config = features.get(feature_key, {})
-
-        if not feature_config.get("enabled", False):
-            logger.info("%s tracking disabled in configuration", service_name)
-            continue
-
-        credentials_file = feature_config.get("credentials_file")
-        if credentials_file and not os.path.isabs(credentials_file):
-            from .constants import CONFIG_DIR_NAME
-            credentials_file = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), CONFIG_DIR_NAME, credentials_file
-            )
-        if not credentials_file or not os.path.exists(credentials_file):
-            logger.warning("%s tracking unavailable: credentials file not found", service_name)
-            continue
-
-        if not google_sheets_client:
-            google_sheets_client = GoogleSheetsClient(credentials_file)
-
-        globals()[var_name] = service_class(google_sheets_client)
-        logger.info("%s tracking initialized", service_name)
+    global _active_google_id
+    with _active_user_lock:
+        _active_google_id = google_id
+    session_manager.set_user(google_id)
 
 
-_initialize_google_sheets_services()
+def get_active_user() -> str | None:
+    """Return the active user's Google ID."""
+    with _active_user_lock:
+        return _active_google_id
+
+
+def get_active_accounts() -> List[Dict[str, str]]:
+    """Return Zerodha account configs for the active user from Firebase.
+
+    Returns an empty list when no user is signed in or the user has no
+    accounts configured.
+    """
+    gid = get_active_user()
+    if not gid:
+        return []
+    try:
+        from .firebase_store import get_zerodha_accounts
+        return get_zerodha_accounts(gid)
+    except Exception:
+        logger.exception("Failed to fetch Zerodha accounts for user %s", gid)
+        return []
+
+
+def get_authenticated_accounts() -> List[Dict[str, str]]:
+    """Return Zerodha accounts that currently have valid sessions.
+
+    Pre-filters accounts so callers only receive accounts that are ready
+    for data fetching (no login required).
+    """
+    accounts = get_active_accounts()
+    return [acc for acc in accounts if session_manager.is_valid(acc["name"])]
 
 
 # --------------------------
 # STATUS HELPERS
 # --------------------------
-
-def _all_sessions_valid() -> bool:
-    """Check if all account sessions are valid."""
-    return all(session_manager.is_valid(acc["name"]) for acc in app_config.accounts)
 
 
 def _build_status_response() -> Dict[str, Any]:
@@ -100,14 +91,43 @@ def _build_status_response() -> Dict[str, Any]:
 
     Returns:
         Dictionary containing application state, timestamps, and session info.
+        Key fields:
+        - has_zerodha_accounts:    whether the user has any Zerodha accounts
+        - authenticated_accounts:  list of account names with valid sessions
+        - unauthenticated_accounts: list of dicts {name, login_url} needing login
+        - session_validity:        {name: bool} map (kept for settings drawer)
+        - login_urls:              {name: url} for expired accounts
     """
-    all_account_names = [acc["name"] for acc in app_config.accounts]
+    accounts = get_active_accounts()
+
+    authenticated = []
+    unauthenticated = []
+    login_urls = {}
+    session_validity = {}
+
+    for acc in accounts:
+        name = acc["name"]
+        if session_manager.is_valid(name):
+            authenticated.append(name)
+            session_validity[name] = True
+        else:
+            try:
+                from kiteconnect import KiteConnect
+                login_url = KiteConnect(api_key=acc["api_key"]).login_url()
+            except Exception:
+                login_url = None
+            unauthenticated.append({"name": name, "login_url": login_url})
+            login_urls[name] = login_url
+            session_validity[name] = False
 
     response = {
         "last_error": state_manager.last_error,
         "market_open": is_market_open_ist(),
-        "session_validity": session_manager.get_validity(all_account_names),
-        "waiting_for_login": state_manager.waiting_for_login,
+        "has_zerodha_accounts": len(accounts) > 0,
+        "authenticated_accounts": authenticated,
+        "unauthenticated_accounts": unauthenticated,
+        "session_validity": session_validity,
+        "login_urls": login_urls,
     }
     for st in StateManager.STATE_TYPES:
         response[f"{st}_state"] = getattr(state_manager, f"{st}_state")
@@ -119,8 +139,11 @@ def _build_status_response() -> Dict[str, Any]:
 
 def broadcast_state_change() -> None:
     """Broadcast current state to all connected SSE clients."""
-    message = json.dumps(_build_status_response())
-    sse_manager.broadcast(message)
+    try:
+        message = json.dumps(_build_status_response())
+        sse_manager.broadcast(message)
+    except Exception:
+        logger.exception("Error broadcasting state change")
 
 
 # Register state change listener for automatic broadcasting

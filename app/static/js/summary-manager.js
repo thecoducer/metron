@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Summary Module */
+/* Metron - Summary Module */
 
 import { Formatter } from './utils.js';
 
@@ -27,6 +27,12 @@ const ELEMENT_IDS = {
     CURRENT: 'gold_etf_current_value',
     PL: 'gold_etf_total_pl',
     PL_PCT: 'gold_etf_total_pl_pct'
+  },
+  GOLD_SGB: {
+    INVESTED: 'gold_sgb_total_invested',
+    CURRENT: 'gold_sgb_current_value',
+    PL: 'gold_sgb_total_pl',
+    PL_PCT: 'gold_sgb_total_pl_pct'
   },
   GOLD_PHYSICAL: {
     INVESTED: 'gold_physical_total_invested',
@@ -62,12 +68,13 @@ const ELEMENT_IDS = {
 
 class SummaryManager {
   constructor() {
-    // track whether breakdown mode is active
-    this.showGoldBreakdown = false;
-    // store last totals so toggle can re-render without new data fetch
+    // track whether gold breakdown drawer is open
+    this.goldDrawerOpen = false;
+    // store last totals so drawer can render without new data fetch
     this._lastCombinedGold = { invested: 0, current: 0, pl: 0, plPct: 0 };
     this._lastGoldBreakdown = {
       etf: { invested: 0, current: 0, pl: 0, plPct: 0 },
+      sgb: { invested: 0, current: 0, pl: 0, plPct: 0 },
       physical: { invested: 0, current: 0, pl: 0, plPct: 0 }
     };
   }
@@ -82,9 +89,10 @@ class SummaryManager {
    * @param {Object} fdTotals - { invested, maturity, returns, returnsPct }
    * @param {boolean} isUpdating - Whether refresh/update is in progress
    * @param {Object|null} goldETFTotals - (optional) ETF portion of gold
+   * @param {Object|null} sgbTotals - (optional) SGB portion of gold
    * @param {Object|null} physicalGoldTotals - (optional) physical gold portion
    */
-  updateAllSummaries(stockTotals, etfTotals, goldTotals, silverTotals, mfTotals, fdTotals, isUpdating = false, goldETFTotals = null, physicalGoldTotals = null) {
+  updateAllSummaries(stockTotals, etfTotals, goldTotals, silverTotals, mfTotals, fdTotals, isUpdating = false, goldETFTotals = null, sgbTotals = null, physicalGoldTotals = null) {
     // Provide default values if undefined
     const stock = stockTotals || { invested: 0, current: 0, pl: 0, plPct: 0 };
     const etf = etfTotals || { invested: 0, current: 0, pl: 0, plPct: 0 };
@@ -115,10 +123,11 @@ class SummaryManager {
     this._updateAllocationPercentage('mf_allocation_pct', mfAllocation);
     this._updateAllocationPercentage('fd_allocation_pct', fdAllocation);
 
-    // remember totals so toggle can re-render later
+    // remember totals so drawer can re-render later
     this._lastCombinedGold = gold;
     this._lastGoldBreakdown = {
       etf: goldETFTotals || { invested:0, current:0, pl:0, plPct:0 },
+      sgb: sgbTotals || { invested:0, current:0, pl:0, plPct:0 },
       physical: physicalGoldTotals || { invested:0, current:0, pl:0, plPct:0 }
     };
 
@@ -197,14 +206,21 @@ class SummaryManager {
     );
   }
 
-  _updateGoldBreakdown(etfTotals, physicalTotals) {
-    // update individual ETF and physical rows
+  _updateGoldBreakdown(etfTotals, sgbTotals, physicalTotals) {
+    // update individual ETF, SGB, and physical rows in the drawer
     this._updateCard(
       ELEMENT_IDS.GOLD_ETF.INVESTED,
       ELEMENT_IDS.GOLD_ETF.CURRENT,
       ELEMENT_IDS.GOLD_ETF.PL,
       ELEMENT_IDS.GOLD_ETF.PL_PCT,
       etfTotals
+    );
+    this._updateCard(
+      ELEMENT_IDS.GOLD_SGB.INVESTED,
+      ELEMENT_IDS.GOLD_SGB.CURRENT,
+      ELEMENT_IDS.GOLD_SGB.PL,
+      ELEMENT_IDS.GOLD_SGB.PL_PCT,
+      sgbTotals
     );
     this._updateCard(
       ELEMENT_IDS.GOLD_PHYSICAL.INVESTED,
@@ -216,24 +232,31 @@ class SummaryManager {
   }
 
   _refreshGoldCard() {
-    if (this.showGoldBreakdown) {
-      this._updateGoldBreakdown(this._lastGoldBreakdown.etf, this._lastGoldBreakdown.physical);
-    } else {
-      this._updateGoldCard(this._lastCombinedGold);
-    }
+    // always show combined totals on the card
+    this._updateGoldCard(this._lastCombinedGold);
+    // always update the drawer breakdown values
+    this._updateGoldBreakdown(
+      this._lastGoldBreakdown.etf,
+      this._lastGoldBreakdown.sgb,
+      this._lastGoldBreakdown.physical
+    );
   }
 
   /**
-   * Toggle whether the gold card shows separate ETF / physical values.
-   * @param {boolean} enable
+   * Toggle the gold breakdown drawer open/closed.
    */
-  setGoldBreakdownMode(enable) {
-    this.showGoldBreakdown = !!enable;
+  toggleGoldDrawer() {
+    this.goldDrawerOpen = !this.goldDrawerOpen;
     const card = document.getElementById('gold_summary');
+    const drawer = document.getElementById('gold_breakdown_drawer');
     if (card) {
-      card.classList.toggle('breakdown-mode', this.showGoldBreakdown);
+      card.classList.toggle('drawer-open', this.goldDrawerOpen);
+      card.setAttribute('aria-expanded', this.goldDrawerOpen);
     }
-    this._refreshGoldCard();
+    if (drawer) {
+      drawer.classList.toggle('open', this.goldDrawerOpen);
+      drawer.setAttribute('aria-hidden', !this.goldDrawerOpen);
+    }
   }
 
   _updateSilverCard(totals) {

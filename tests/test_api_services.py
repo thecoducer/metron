@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 
 from app.api.auth import AuthenticationManager
 from app.api.holdings import HoldingsService
-from app.constants import DEFAULT_REQUEST_TOKEN_TIMEOUT
 
 
 class MockKiteConnect:
@@ -232,14 +231,7 @@ class TestAuthenticationManager(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         self.session_manager = Mock()
-        self.auth_manager = AuthenticationManager(self.session_manager, request_token_timeout=DEFAULT_REQUEST_TOKEN_TIMEOUT)
-    
-    def test_set_and_get_request_token(self):
-        """Test setting and getting request token"""
-        self.auth_manager.set_request_token("test_token")
-        with self.auth_manager.request_token_lock:
-            token = self.auth_manager.request_token_holder.get("token")
-        self.assertEqual(token, "test_token")
+        self.auth_manager = AuthenticationManager(self.session_manager)
     
     def test_try_cached_token_valid(self):
         """Test using valid cached token with KiteConnect"""
@@ -274,17 +266,6 @@ class TestAuthenticationManager(unittest.TestCase):
         self.assertTrue(result)
         self.assertEqual(mock_kite._access_token, "some_token")
     
-    def test_wait_for_request_token_timeout(self):
-        """Test timeout when waiting for request token"""
-        # Set very short timeout for test
-        self.auth_manager.request_token_timeout = 0.1
-        
-        # Don't set any request token, so it will timeout
-        with self.assertRaises(TimeoutError) as context:
-            self.auth_manager._wait_for_request_token("TestAccount")
-        
-        self.assertIn("Timed out", str(context.exception))
-    
     def test_generate_session_mock(self):
         """Test mocked session generation"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
@@ -304,24 +285,7 @@ class TestAuthenticationManager(unittest.TestCase):
         self.assertIn("access_token", renewed_data)
         self.assertIn("old_refresh_token", renewed_data["access_token"])
     
-    def test_perform_full_login(self):
-        """Test full login flow"""
-        mock_kite = MockKiteConnect(api_key="test_api_key")
-        
-        # Mock both _wait_for_request_token and webbrowser.open
-        with patch.object(self.auth_manager, '_wait_for_request_token') as mock_wait, \
-             patch('app.api.auth.webbrowser.open') as mock_browser:
-            mock_wait.return_value = "test_request_token"
-            
-            access_token = self.auth_manager._perform_full_login(
-                mock_kite, "TestAccount", "test_secret"
-            )
-            
-            self.assertIsNotNone(access_token)
-            self.assertIn("test_request_token", access_token)
-            mock_wait.assert_called_once_with("TestAccount")
-            mock_browser.assert_called_once()
-    
+
     def test_validate_token_with_api_call_success(self):
         """Test successful token validation"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
@@ -392,31 +356,29 @@ class TestAuthenticationManager(unittest.TestCase):
             "api_secret": "test_api_secret"
         }
         
-        kite = self.auth_manager.authenticate(account_config, force_login=False)
+        kite = self.auth_manager.authenticate(account_config)
         
         self.assertIsNotNone(kite)
         self.assertEqual(kite._access_token, "cached_token")
     
     @patch('app.api.auth.KiteConnect')
-    def test_authenticate_with_force_login(self, mock_kite_class):
-        """Test authenticate with force_login=True"""
+    def test_authenticate_raises_when_no_valid_session(self, mock_kite_class):
+        """Test authenticate raises RuntimeError when cached + renewal fail"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
         mock_kite_class.return_value = mock_kite
         
-        # Mock the _perform_full_login to avoid waiting for request token
-        with patch.object(self.auth_manager, '_perform_full_login') as mock_login:
-            mock_login.return_value = "force_login_token"
-            
-            account_config = {
-                "name": "TestAccount",
-                "api_key": "test_api_key",
-                "api_secret": "test_api_secret"
-            }
-            
-            kite = self.auth_manager.authenticate(account_config, force_login=True)
-            
-            self.assertIsNotNone(kite)
-            mock_login.assert_called_once()
+        self.session_manager.is_valid.return_value = False
+        self.session_manager.get_token.return_value = None
+        
+        account_config = {
+            "name": "TestAccount",
+            "api_key": "test_api_key",
+            "api_secret": "test_api_secret"
+        }
+        
+        with self.assertRaises(RuntimeError) as ctx:
+            self.auth_manager.authenticate(account_config)
+        self.assertIn("Session expired", str(ctx.exception))
 
 
 class TestSIPService(unittest.TestCase):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test runner script for Investment Portfolio Tracker
+Test runner script for Metron
 """
 import os
 import sys

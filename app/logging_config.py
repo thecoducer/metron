@@ -5,7 +5,7 @@ from typing import Optional
 # defining `logging.getLogger(__name__)` in every file. This logger uses a
 # common name so handlers/formatters apply consistently across modules.
 
-logger = logging.getLogger("portfolio_tracker")
+logger = logging.getLogger("metron")
 
 
 def configure(level: int = logging.INFO, fmt: Optional[str] = None) -> None:
@@ -15,7 +15,7 @@ def configure(level: int = logging.INFO, fmt: Optional[str] = None) -> None:
     """
     if fmt is None:
         # Use comma-separated milliseconds to match the example format:
-        # 2025-11-29 20:34:42,819 INFO portfolio_tracker: message
+        # 2025-11-29 20:34:42,819 INFO metron: message
         fmt = "%(asctime)s,%(msecs)03d %(levelname)s %(name)s: %(message)s"
     # Provide a datefmt so asctime contains the date/time without msecs;
     # msecs are inserted via %(msecs)03d in the format above.

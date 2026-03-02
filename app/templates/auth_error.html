@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #faf8f5;
+    color: #2d2621;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .error-card {
+    text-align: center;
+    max-width: 480px;
+    padding: 48px 36px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.06);
+  }
+  .error-icon { font-size: 48px; margin-bottom: 16px; }
+  .error-card h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #c44;
+  }
+  .error-card p {
+    font-size: 14px;
+    color: #5d4e42;
+    line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  .error-detail {
+    background: #f5f0ea;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #7a6857;
+    text-align: left;
+    word-break: break-word;
+    margin-top: 16px;
+  }
+  .back-btn {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 10px 24px;
+    background: #5d4e42;
+    color: #fff;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .back-btn:hover { background: #7a6857; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1714; color: #e5ddd5; }
+    .error-card { background: #23201d; box-shadow: 0 4px 24px rgba(0,0,0,.25); }
+    .error-card h1 { color: #e57373; }
+    .error-card p { color: #c4b8a8; }
+    .error-detail { background: #2d2a26; color: #a89888; }
+  }
+</style>
+</head>
+<body>
+<div class="error-card">
+  <div class="error-icon">⚠️</div>
+  <h1>{{ error_title or "Something went wrong" }}</h1>
+  <p>{{ error_message or "An unexpected error occurred. Please try again." }}</p>
+  {% if error_detail %}
+  <div class="error-detail">{{ error_detail }}</div>
+  {% endif %}
+  <a href="/" class="back-btn">Back to Home</a>
+</div>
+</body>
+</html>

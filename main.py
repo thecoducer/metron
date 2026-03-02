@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Investment Portfolio Tracker — Entry point.
+Metron — Entry point.
 
 Usage:
     python main.py

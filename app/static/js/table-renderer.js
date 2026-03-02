@@ -1,6 +1,6 @@
-/* Portfolio Tracker - Table Rendering Module */
+/* Metron - Table Rendering Module */
 
-import { Formatter, Calculator, isGoldInstrument, isSilverInstrument, isETFInstrument } from './utils.js';
+import { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, isETFInstrument } from './utils.js';
 import PaginationManager from './pagination.js';
 
 class TableRenderer {
@@ -118,6 +118,8 @@ class TableRenderer {
     let totalCurrent = 0;
     let goldInvested = 0;
     let goldCurrent = 0;
+    let sgbInvested = 0;
+    let sgbCurrent = 0;
     let silverInvested = 0;
     let silverCurrent = 0;
     let filteredHoldings = [];
@@ -129,6 +131,7 @@ class TableRenderer {
       const isin = holding.isin || '';
       const text = (symbol + holding.account).toLowerCase();
       const isGold = isGoldInstrument(symbol);
+      const isSGB = isSGBInstrument(symbol);
       const isSilver = isSilverInstrument(symbol);
       const isETF = isETFInstrument(symbol, isin);
       
@@ -139,8 +142,12 @@ class TableRenderer {
         filteredHoldings.push(holding);  // Add non-ETF holdings to display
         const metrics = Calculator.calculateStockMetrics(holding);
         
-        if (isGold) {
-          // Accumulate Gold totals separately (not in Stocks summary)
+        if (isSGB) {
+          // SGBs tracked separately within gold
+          sgbInvested += metrics.invested;
+          sgbCurrent += metrics.current;
+        } else if (isGold) {
+          // Non-SGB gold stocks (e.g. gold futures)
           goldInvested += metrics.invested;
           goldCurrent += metrics.current;
         } else if (isSilver) {
@@ -228,6 +235,13 @@ class TableRenderer {
       pl: goldCurrent - goldInvested,
       plPct: goldInvested ? ((goldCurrent - goldInvested) / goldInvested * 100) : 0
     };
+
+    const sgbTotals = {
+      invested: sgbInvested,
+      current: sgbCurrent,
+      pl: sgbCurrent - sgbInvested,
+      plPct: sgbInvested ? ((sgbCurrent - sgbInvested) / sgbInvested * 100) : 0
+    };
     
     const silverTotals = {
       invested: silverInvested,
@@ -236,7 +250,7 @@ class TableRenderer {
       plPct: silverInvested ? ((silverCurrent - silverInvested) / silverInvested * 100) : 0
     };
 
-    return { stockTotals, goldTotals, silverTotals };
+    return { stockTotals, goldTotals, sgbTotals, silverTotals };
   }
 
   renderMFTable(mfHoldings, status) {

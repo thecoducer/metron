@@ -1,5 +1,5 @@
 """
-Constants used throughout the portfolio tracker application.
+Constants used throughout the Metron application.
 
 This module is the single source of truth for all default values,
 timeouts, paths, and tunables used across the application.
@@ -30,7 +30,6 @@ DEFAULT_UI_HOST = "127.0.0.1"
 DEFAULT_UI_PORT = 8000
 
 # File / directory paths
-SESSION_CACHE_FILENAME = ".session_cache.json"
 CONFIG_FILENAME = "config.json"
 CONFIG_DIR_NAME = "config"  # directory that houses config.json and credentials
 
@@ -47,7 +46,6 @@ IBJA_GOLD_PRICE_TIMEOUT = 20
 
 # Server startup / UI timing (seconds)
 SERVER_STARTUP_DELAY = 0.5
-BROWSER_OPEN_DELAY = 1.5
 SSE_KEEPALIVE_INTERVAL = 30  # SSE client keepalive interval
 TOKEN_WAIT_POLL_INTERVAL = 5  # interval for polling request token
 
@@ -62,8 +60,14 @@ MARKET_INDEX_CACHE_TTL = 15  # seconds
 # External service purities (gold)
 IBJA_GOLD_PURITIES = ['999', '995', '916', '750', '585']
 
-# Google Sheets OAuth scopes
-GOOGLE_SHEETS_SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+# Per-user Google OAuth scopes (drive.file covers sheet create + read/write
+# for files created by this app only — no access to user's other sheets)
+GOOGLE_USER_SCOPES = [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/drive.file",
+]
 
 # Nifty 50 configuration
 NIFTY50_FALLBACK_SYMBOLS = [

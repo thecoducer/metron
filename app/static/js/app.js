@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Main Application Controller */
+/* Metron - Main Application Controller */
 
 import DataManager from './data-manager.js';
 import TableRenderer from './table-renderer.js';
@@ -26,8 +26,7 @@ class PortfolioApp {
     this.lastPortfolioUpdatedAt = null;
     this.relativeStatusTimer = null;
     this.searchTimeout = null;
-    // _wasUpdating and _wasWaitingForLogin intentionally left undefined
-    // to detect first status update on page load
+    // _wasUpdating intentionally left undefined to detect first SSE on page load
   }
 
   async init() {
@@ -38,10 +37,20 @@ class PortfolioApp {
     this._setupEventListeners();
     
     this._hideLoadingIndicators();
-    this._renderEmptyStates();
+
+    // If the server embedded cached data in the page, render it immediately
+    // (zero network round-trips). Otherwise fall back to empty states + fetch.
+    const inlined = window.__INITIAL_DATA__;
+    if (inlined) {
+      delete window.__INITIAL_DATA__;
+      this._applyData(inlined);
+      this._hasInitialData = true;
+    } else {
+      this._renderEmptyStates();
+      this._hasInitialData = false;
+    }
     
-    // Connect SSE without fetching initial data
-    // Data will be fetched only on manual refresh or when auto-refresh completes
+    // Connect SSE for live status updates
     this.connectEventSource();
     
     // Start live market index ticker (NIFTY 50 / SENSEX)
@@ -61,8 +70,7 @@ class PortfolioApp {
     if (!statusText) return;
     if (!this.lastStatus) return;
     const isUpdating = this._isStatusUpdating(this.lastStatus);
-    const waitingForLogin = this.lastStatus.waiting_for_login === true;
-    if (isUpdating || waitingForLogin || this.lastStatus.portfolio_state === null) return;
+    if (isUpdating || this.lastStatus.portfolio_state === null) return;
     statusText.innerText = this._formatStatusUpdatedText();
   }
 
@@ -116,8 +124,17 @@ class PortfolioApp {
 
   _updateCompactFormatIcon() {
     const icon = document.getElementById('compact_toggle_icon');
+    const btn = document.getElementById('compact_toggle_btn');
+    if (btn) {
+      btn.classList.toggle('active', Formatter.isCompactFormat);
+    }
     if (icon) {
-      icon.textContent = Formatter.isCompactFormat ? '🔤' : '🔢';
+      // Switch between 'Tt' (compact) and 'T' (full) icon paths
+      if (Formatter.isCompactFormat) {
+        icon.innerHTML = '<line x1="4" y1="4" x2="4" y2="20"/><line x1="4" y1="4" x2="13" y2="4"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="15" y1="10" x2="15" y2="20"/><line x1="12" y1="10" x2="18" y2="10"/>';
+      } else {
+        icon.innerHTML = '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>';
+      }
     }
   }
 
@@ -138,13 +155,17 @@ class PortfolioApp {
       this.handleSearch();
     };
     window.triggerRefresh = () => this.handleRefresh();
-    // gold breakdown toggle (icon button)
-    const goldToggle = document.getElementById('gold_breakdown_toggle');
-    if (goldToggle) {
-      goldToggle.addEventListener('click', () => {
-        const newMode = !this.summaryManager.showGoldBreakdown;
-        this.summaryManager.setGoldBreakdownMode(newMode);
-        goldToggle.classList.toggle('active', newMode);
+    // gold card click → toggle breakdown drawer
+    const goldCard = document.getElementById('gold_summary');
+    if (goldCard) {
+      goldCard.addEventListener('click', () => {
+        this.summaryManager.toggleGoldDrawer();
+      });
+      goldCard.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.summaryManager.toggleGoldDrawer();
+        }
       });
     }
     // Sort handlers
@@ -401,78 +422,74 @@ class PortfolioApp {
     const statusTag = document.getElementById('status_tag');
     const statusText = document.getElementById('status_text');
     const isUpdating = this._isStatusUpdating(status);
-    const waitingForLogin = status.waiting_for_login === true;
+    const isFirstSSE = this._wasUpdating === undefined;
 
     this.lastStatus = status;
 
-    const physicalGoldWasUpdating = this._physicalGoldWasUpdating || false;
-    const physicalGoldIsUpdating = status.physical_gold_state === 'updating';
-    const physicalGoldJustCompleted = physicalGoldWasUpdating && !physicalGoldIsUpdating && status.physical_gold_state === 'updated';
-    this._physicalGoldWasUpdating = physicalGoldIsUpdating;
+    // ── Derive login state from new response fields ──
+    const unauthenticated = status.unauthenticated_accounts || [];
+    const hasAuthenticatedAccounts = (status.authenticated_accounts || []).length > 0;
+    const hasUnauthenticated = unauthenticated.length > 0;
 
-    const fixedDepositsWasUpdating = this._fixedDepositsWasUpdating || false;
-    const fixedDepositsIsUpdating = status.fixed_deposits_state === 'updating';
-    const fixedDepositsJustCompleted = fixedDepositsWasUpdating && !fixedDepositsIsUpdating && status.fixed_deposits_state === 'updated';
-    this._fixedDepositsWasUpdating = fixedDepositsIsUpdating;
-
-    const portfolioWasUpdating = this._portfolioWasUpdating || false;
-    const portfolioIsUpdating = status.portfolio_state === 'updating';
-    const portfolioJustCompleted = portfolioWasUpdating && !portfolioIsUpdating && (status.portfolio_state === 'updated' || status.portfolio_state === 'error');
-    this._portfolioWasUpdating = portfolioIsUpdating;
-
-    const sessionValidity = status.session_validity || {};
-    const anyAccountInvalid = Object.keys(sessionValidity).length > 0 && 
-                              Object.values(sessionValidity).some(valid => !valid);
-    this.needsLogin = anyAccountInvalid && !isUpdating && !waitingForLogin;
-
+    // ── Status tag: reflects ACTUAL data-fetching, never login wait ──
     const isNotLoaded = status.portfolio_state === null;
-    statusTag.classList.toggle('updating', isUpdating || waitingForLogin);
-    statusTag.classList.toggle('updated', !isUpdating && !waitingForLogin && !isNotLoaded);
-    statusTag.classList.toggle('not-loaded', isNotLoaded);
+    statusTag.classList.toggle('updating', isUpdating);
+    statusTag.classList.toggle('updated', !isUpdating && !isNotLoaded);
+    statusTag.classList.toggle('not-loaded', isNotLoaded && !isUpdating);
     statusTag.classList.toggle('market_closed', status.market_open === false);
-    statusTag.classList.toggle('needs-login', this.needsLogin);
+    statusTag.classList.toggle('needs-login', hasUnauthenticated && !isUpdating);
 
-    if (waitingForLogin) {
-      statusText.innerText = 'waiting for login';
-    } else if (isUpdating) {
+    if (isUpdating) {
       statusText.innerText = 'updating';
-    } else if (status.portfolio_state === null) {
+    } else if (isNotLoaded) {
       statusText.innerText = '';
     } else {
       this.lastPortfolioUpdatedAt = status.portfolio_last_updated || null;
       statusText.innerText = this._formatStatusUpdatedText();
     }
 
-    this._updateRefreshButton(isUpdating || waitingForLogin, this.needsLogin);
+    // ── Login banner (floating toast for unauthenticated accounts) ──
+    this._updateLoginBanner(unauthenticated, isUpdating);
 
-    // Fetch data when:
-    // 1. First SSE status after page load (server cache may have partial data)
-    // 2. State changed from 'updating' to 'updated' (normal refresh complete)
-    // 3. Login just completed (was waiting, now not waiting)
-    // 4. Individual data source just completed fetching (partial update)
-    const shouldFetchData = this._wasUpdating === undefined ||
-                           (!isUpdating && this._wasUpdating) ||
-                           (this._wasWaitingForLogin && !waitingForLogin && !isUpdating) ||
-                           portfolioJustCompleted ||
-                           physicalGoldJustCompleted ||
-                           fixedDepositsJustCompleted;
+    // ── Refresh button: spins only during actual data fetch ──
+    this._updateRefreshButton(isUpdating);
+
+    // ── Refresh settings drawer pills if drawer is open ──
+    if (typeof window.loadDrawerAccounts === 'function') {
+      const drawer = document.getElementById('settingsDrawer');
+      if (drawer && drawer.classList.contains('open')) {
+        window.loadDrawerAccounts();
+      }
+    }
+
+    // ── Auto-refresh on first load ──
+    // Trigger when: first SSE, server hasn't fetched yet, and at least
+    // one Zerodha account is authenticated (or user has no accounts at all
+    // and just needs a gold/nifty refresh with no cached data).
+    if (isFirstSSE && !isUpdating && status.portfolio_state === null) {
+      if (hasAuthenticatedAccounts || (!status.has_zerodha_accounts && !this._hasInitialData)) {
+        this.handleRefresh();
+        this._wasUpdating = isUpdating;
+        return;
+      }
+    }
+
+    // ── Fetch data on real state transitions ──
+    // 1. First SSE after page load WITHOUT inlined data
+    // 2. Transition from updating → done (refresh complete)
+    const shouldFetchData = (isFirstSSE && !this._hasInitialData) ||
+                           (!isUpdating && this._wasUpdating);
 
     if (shouldFetchData) {
-      // Let updateData() fetch fresh data and handle full rendering
-      // (including overview cards) — avoids overwriting with stale in-memory data
       this.updateData();
     } else {
-      // No new data to fetch — re-render tables and overview cards
-      // with current in-memory data (e.g. to toggle updating CSS classes)
       const hasData = this.dataManager.getStocks().length > 0 ||
                       this.dataManager.getMFHoldings().length > 0 ||
                       this.dataManager.getSIPs().length > 0;
-
-      this._renderTablesAndSummary(hasData, status, isUpdating || waitingForLogin);
+      this._renderTablesAndSummary(hasData, status, isUpdating);
     }
 
     this._wasUpdating = isUpdating;
-    this._wasWaitingForLogin = waitingForLogin;
   }
 
   _renderTablesAndSummary(hasData, status, isUpdating) {
@@ -488,59 +505,35 @@ class PortfolioApp {
     );
     const fdTotals = this.tableRenderer.renderFixedDepositsTable(sortedFixedDeposits);
 
-    const zeroTotals = { invested: 0, current: 0, pl: 0, plPct: 0 };
+    const Z = { invested: 0, current: 0, pl: 0, plPct: 0 };
+
+    let stockTotals = Z, etfTotals = Z, mfTotals = Z;
+    let goldTotals = Z, goldETFTotals = Z, sgbTotals = Z;
+    let silverTotals = Z, silverETFTotals = Z;
 
     if (hasData) {
-      const sortedHoldings = this.sortManager.sortStocks(
-        this.dataManager.getStocks(),
-        this.sortManager.getStocksSortOrder()
-      );
-      const sortedETFHoldings = this.sortManager.sortETFs(
-        this.dataManager.getStocks(),
-        this.sortManager.getETFSortOrder()
-      );
-      const sortedMFHoldings = this.sortManager.sortMF(
-        this.dataManager.getMFHoldings(),
-        this.sortManager.getMFSortOrder()
-      );
+      const sortedHoldings = this.sortManager.sortStocks(this.dataManager.getStocks(), this.sortManager.getStocksSortOrder());
+      const sortedETF = this.sortManager.sortETFs(this.dataManager.getStocks(), this.sortManager.getETFSortOrder());
+      const sortedMF = this.sortManager.sortMF(this.dataManager.getMFHoldings(), this.sortManager.getMFSortOrder());
 
-      const { stockTotals, goldTotals, silverTotals } = this.tableRenderer.renderStocksTable(sortedHoldings, status);
-      const { etfTotals, goldETFTotals, silverETFTotals } = this.tableRenderer.renderETFTable(sortedETFHoldings, status);
-      const mfTotals = this.tableRenderer.renderMFTable(sortedMFHoldings, status);
+      ({ stockTotals, goldTotals, sgbTotals, silverTotals } = this.tableRenderer.renderStocksTable(sortedHoldings, status));
+      ({ etfTotals, goldETFTotals, silverETFTotals } = this.tableRenderer.renderETFTable(sortedETF, status));
+      mfTotals = this.tableRenderer.renderMFTable(sortedMF, status);
       this.tableRenderer.renderSIPsTable(this.dataManager.getSIPs(), status);
-      
-      const combinedGoldTotals = this._combineTotals(goldTotals, goldETFTotals, physicalGoldTotals);
-      const combinedSilverTotals = this._combineTotals(silverTotals, silverETFTotals);
-      
-      this.summaryManager.updateAllSummaries(
-        stockTotals,
-        etfTotals,
-        combinedGoldTotals,
-        combinedSilverTotals,
-        mfTotals,
-        fdTotals,
-        isUpdating,
-        goldETFTotals,
-        physicalGoldTotals
-      );
-    } else {
-      const combinedGoldTotals = this._combineTotals(
-        zeroTotals,
-        zeroTotals,
-        physicalGoldTotals
-      );
-      this.summaryManager.updateAllSummaries(
-        zeroTotals,
-        zeroTotals,
-        combinedGoldTotals,
-        zeroTotals,
-        zeroTotals,
-        fdTotals,
-        isUpdating,
-        { invested:0, current:0, pl:0, plPct:0 },
-        physicalGoldTotals
-      );
     }
+
+    this.summaryManager.updateAllSummaries(
+      stockTotals,
+      etfTotals,
+      this._combineTotals(goldTotals, goldETFTotals, sgbTotals, physicalGoldTotals),
+      this._combineTotals(silverTotals, silverETFTotals),
+      mfTotals,
+      fdTotals,
+      isUpdating,
+      goldETFTotals,
+      sgbTotals,
+      physicalGoldTotals
+    );
   }
 
   /**
@@ -574,7 +567,7 @@ class PortfolioApp {
       this.sortManager.getFixedDepositsSortOrder()
     );
 
-    const { stockTotals, goldTotals, silverTotals } = this.tableRenderer.renderStocksTable(sortedHoldings, status);
+    const { stockTotals, goldTotals, sgbTotals, silverTotals } = this.tableRenderer.renderStocksTable(sortedHoldings, status);
     const { etfTotals, goldETFTotals, silverETFTotals } = this.tableRenderer.renderETFTable(sortedETFHoldings, status);
     const mfTotals = this.tableRenderer.renderMFTable(sortedMFHoldings, status);
     if (renderSIPs) {
@@ -587,7 +580,7 @@ class PortfolioApp {
       this.tableRenderer.renderFDSummaryTable(fdSummaryData);
     }
 
-    const combinedGoldTotals = this._combineTotals(goldTotals, goldETFTotals, physicalGoldTotals);
+    const combinedGoldTotals = this._combineTotals(goldTotals, goldETFTotals, sgbTotals, physicalGoldTotals);
     const combinedSilverTotals = this._combineTotals(silverTotals, silverETFTotals);
 
     this.summaryManager.updateAllSummaries(
@@ -599,6 +592,7 @@ class PortfolioApp {
       fdTotals,
       isUpdating,
       goldETFTotals,
+      sgbTotals,
       physicalGoldTotals
     );
   }
@@ -610,30 +604,38 @@ class PortfolioApp {
     this._renderAllAndUpdateSummaries(this.lastStatus || {}, { renderSIPs: true });
   }
 
+  /**
+   * Apply a data payload (inlined or fetched) to the data manager and render.
+   */
+  _applyData({ stocks, mfHoldings, sips, physicalGold, fixedDeposits, fdSummary, status }) {
+    const searchEl = document.getElementById('search');
+    const searchQuery = searchEl ? searchEl.value : '';
+    const forceUpdate = searchQuery !== '';
+
+    this.dataManager.updateStocks(stocks || [], forceUpdate);
+    this.dataManager.updateMFHoldings(mfHoldings || [], forceUpdate);
+    this.dataManager.updateSIPs(sips || [], forceUpdate);
+    this.dataManager.updatePhysicalGold(physicalGold || [], forceUpdate);
+    this.dataManager.updateFixedDeposits(fixedDeposits || [], forceUpdate);
+    const computedSummary = (fdSummary && fdSummary.length)
+      ? fdSummary
+      : this.dataManager._computeFDSummary(fixedDeposits || []);
+    this.dataManager.updateFDSummary(computedSummary, forceUpdate);
+
+    this.tableRenderer.setSearchQuery(searchQuery);
+
+    this._renderAllAndUpdateSummaries(status || {}, {
+      renderSIPs: true,
+      isUpdating: this._isStatusUpdating(status || {}),
+      fdSummaryData: this.dataManager.getFDSummary()
+    });
+  }
+
   async updateData() {
     try {
-      const { stocks, mfHoldings, sips, physicalGold, fixedDeposits, fdSummary, status } = await this.dataManager.fetchAllData();
-
+      const data = await this.dataManager.fetchAllData();
       this._hideLoadingIndicators();
-
-      const searchEl = document.getElementById('search');
-      const searchQuery = searchEl ? searchEl.value : '';
-      const forceUpdate = searchQuery !== '';
-      
-      this.dataManager.updateStocks(stocks, forceUpdate);
-      this.dataManager.updateMFHoldings(mfHoldings, forceUpdate);
-      this.dataManager.updateSIPs(sips, forceUpdate);
-      this.dataManager.updatePhysicalGold(physicalGold, forceUpdate);
-      this.dataManager.updateFixedDeposits(fixedDeposits, forceUpdate);
-      this.dataManager.updateFDSummary(fdSummary, forceUpdate);
-
-      this.tableRenderer.setSearchQuery(searchQuery);
-
-      this._renderAllAndUpdateSummaries(status, {
-        renderSIPs: true,
-        isUpdating: this._isStatusUpdating(status),
-        fdSummaryData: this.dataManager.getFDSummary()
-      });
+      this._applyData(data);
     } catch (error) {
       console.error('Error updating data:', error);
     }
@@ -698,20 +700,51 @@ class PortfolioApp {
     statusTag.className = 'updating';
     statusText.innerText = 'updating';
     this._updateRefreshButton(true);
+    // Ensure the next SSE transition triggers a data fetch
+    this._wasUpdating = true;
 
     try {
       await this.dataManager.triggerRefresh();
     } catch (error) {
       alert('Error triggering refresh: ' + error.message);
+      this._updateRefreshButton(false);
     }
   }
 
-  _updateRefreshButton(isUpdating, needsLogin = false) {
-    const btnText = document.getElementById('refresh_btn_text');
+  _updateRefreshButton(isUpdating) {
+    const btn = document.getElementById('refresh_btn');
     if (isUpdating) {
-      btnText.innerHTML = '<span class="spinner"></span>';
+      btn.classList.add('loading');
+      btn.disabled = true;
     } else {
-      btnText.textContent = needsLogin ? 'Login' : 'Refresh';
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  _escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  _updateLoginBanner(unauthenticatedAccounts, isUpdating) {
+    const banner = document.getElementById('loginBanner');
+    const bannerText = document.getElementById('loginBannerText');
+    if (!banner || !bannerText) return;
+
+    // Show banner when accounts need login and we're not mid-fetch
+    if (unauthenticatedAccounts.length > 0 && !isUpdating) {
+      const parts = unauthenticatedAccounts.map(acc => {
+        if (acc.login_url) {
+          return '<a href="' + acc.login_url + '" target="_blank" rel="noopener" class="login-banner-link">' + this._escapeHtml(acc.name) + '</a>';
+        }
+        return '<strong>' + this._escapeHtml(acc.name) + '</strong>';
+      });
+      bannerText.innerHTML = 'Session expired for ' + parts.join(', ') + '. Click to log in.';
+      banner.style.display = '';
+    } else {
+      banner.style.display = 'none';
     }
   }
 

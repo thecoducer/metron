@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Investment Portfolio Tracker Server — Application entry point.
+Metron Server — Application entry point.
 
 Usage:
     1. Set up environment: pip install -r requirements.txt
@@ -10,17 +10,14 @@ Usage:
 
 import threading
 import time
-import webbrowser
 
 from flask import Flask
 
 from .config import app_config
-from .constants import BROWSER_OPEN_DELAY, SERVER_STARTUP_DELAY
+from .constants import SERVER_STARTUP_DELAY
 from .fetchers import fetch_nifty50_data, run_auto_refresh
 from .logging_config import configure, logger
 from .routes import app_callback, app_ui
-from .services import session_manager
-from .utils import validate_accounts
 
 # --------------------------
 # SERVER MANAGEMENT
@@ -52,23 +49,19 @@ def _start_auto_refresh_service() -> None:
 
 
 def main() -> None:
-    """Initialize and start the Investment Portfolio Tracker application.
+    """Initialize and start the Metron application.
 
     1. Configures logging.
     2. Loads cached authentication sessions.
     3. Validates account configuration.
     4. Starts callback and UI Flask servers.
-    5. Opens the dashboard in a web browser.
-    6. Triggers initial data fetch.
-    7. Starts the auto-refresh service.
-    8. Keeps the application running.
+    5. Triggers initial data fetch.
+    6. Starts the auto-refresh service.
+    7. Keeps the application running.
     """
     try:
         configure()
-        logger.info("Starting Investment Portfolio Tracker...")
-
-        session_manager.load()
-        validate_accounts(app_config.accounts)
+        logger.info("Starting Metron...")
 
         logger.info("Starting callback server at %s", app_config.redirect_url)
         start_server(app_callback, app_config.callback_host, app_config.callback_port)
@@ -78,9 +71,6 @@ def main() -> None:
         start_server(app_ui, app_config.ui_host, app_config.ui_port)
 
         logger.info("Servers ready. Press CTRL+C to stop.")
-
-        logger.info("Opening dashboard in browser...")
-        threading.Timer(BROWSER_OPEN_DELAY, lambda: webbrowser.open(dashboard_url)).start()
 
         logger.info("Fetching initial Nifty50 data...")
         fetch_nifty50_data()

@@ -1,4 +1,4 @@
-# Investment Portfolio Tracker
+# Metron
 
 [![Tests](https://github.com/thecoducer/investment-portfolio-tracker/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/thecoducer/investment-portfolio-tracker/actions/workflows/tests.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -55,7 +55,7 @@ The `start.sh` script automatically creates a virtual environment, installs depe
 2. Sign in with your Zerodha credentials
 3. Click **Create new app** (or use an existing one)
 4. Fill in the app details:
-   - **App Name**: Any name (e.g., `Portfolio Tracker`)
+   - **App Name**: Any name (e.g., `Metron`)
    - **Redirect URL**: `http://127.0.0.1:5000/callback`
    - **Postback URL**: Leave blank
    - **Description**: Optional
@@ -171,7 +171,7 @@ Physical Gold and Fixed Deposits tracking both use Google Sheets as the data sou
 
 1. Go to **APIs & Services** → **Credentials**
 2. Click **Create Credentials** → **Service Account**
-3. Enter a name (e.g., `portfolio-tracker`) → Click **Create and Continue**
+3. Enter a name (e.g., `metron`) → Click **Create and Continue**
 4. Skip optional permissions → Click **Done**
 
 ### Step 3: Download the Credentials Key
@@ -185,7 +185,7 @@ Physical Gold and Fixed Deposits tracking both use Google Sheets as the data sou
 
 1. Open your Google Sheet
 2. Click **Share**
-3. Add the service account email (found in the JSON file as `client_email`, looks like `portfolio-tracker@project-name.iam.gserviceaccount.com`)
+3. Add the service account email (found in the JSON file as `client_email`, looks like `metron@project-name.iam.gserviceaccount.com`)
 4. Set permission to **Viewer** (read-only is sufficient)
 5. Copy the **Spreadsheet ID** from the URL: `https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit`
 
@@ -347,7 +347,7 @@ Create a sheet (e.g., named `FixedDeposits`) with the following structure. The f
 │   │   ├── zerodha_client.py      # Multi-account data fetcher
 │   │   ├── holdings.py            # Stock & MF holdings service
 │   │   ├── sips.py                # SIP service
-│   │   ├── nse_client.py          # NSE API client (Nifty 50)
+│   │   ├── market_data.py          # Market data client (NSE, Yahoo Finance)
 │   │   ├── google_sheets_client.py # Google Sheets client
 │   │   ├── ibja_gold_price.py     # IBJA gold price scraper
 │   │   ├── physical_gold.py       # Gold P/L enrichment

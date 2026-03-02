@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Test Runner Script for Investment Portfolio Tracker
+# Test Runner Script for Metron
 # 
 # This script:
 # - Creates/activates virtual environment
@@ -107,7 +107,7 @@ done
 # Print header
 echo ""
 echo -e "${BOLD}${CYAN}════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BOLD}${CYAN}  Investment Portfolio Tracker - Test Suite Runner${NC}"
+echo -e "${BOLD}${CYAN}  Metron - Test Suite Runner${NC}"
 echo -e "${BOLD}${CYAN}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 

@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Reusable Pagination Component */
+/* Metron - Reusable Pagination Component */
 
 class PaginationManager {
   constructor(pageSize = 10, currentPage = 1) {
@@ -98,7 +98,7 @@ class PaginationManager {
     if (totalItems > 0) {
       infoDiv.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalItems} ${itemName}`;
     } else {
-      infoDiv.innerHTML = '<span class="spinner"></span> Loading data...';
+      infoDiv.innerHTML = '<span class="loading-dots">Loading data</span>';
     }
 
     // Update buttons

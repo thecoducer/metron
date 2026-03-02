@@ -1,4 +1,4 @@
-# Portfolio Tracker - Ignore cached tokens and environment files
+# Metron - Ignore cached tokens and environment files
 config/.session_cache.json
 .env
 .env.local

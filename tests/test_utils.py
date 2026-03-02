@@ -6,12 +6,12 @@ import os
 import tempfile
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from zoneinfo import ZoneInfo
 
 from app.constants import STATE_ERROR, STATE_UPDATED, STATE_UPDATING
 from app.utils import (SessionManager, StateManager, format_timestamp,
-                       is_market_open_ist, load_config, validate_accounts)
+                       is_market_open_ist, load_config)
 
 
 class TestSessionManager(unittest.TestCase):
@@ -19,14 +19,7 @@ class TestSessionManager(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json')
-        self.temp_file.close()
-        self.session_manager = SessionManager(self.temp_file.name)
-    
-    def tearDown(self):
-        """Clean up test files"""
-        if os.path.exists(self.temp_file.name):
-            os.unlink(self.temp_file.name)
+        self.session_manager = SessionManager()
     
     def test_get_token_empty_cache(self):
         """Test getting token from empty cache"""
@@ -73,14 +66,118 @@ class TestSessionManager(unittest.TestCase):
         self.assertEqual(self.session_manager.get_token("account1"), "token1")
         self.assertEqual(self.session_manager.get_token("account2"), "token2")
     
-    def test_corrupted_cache_file(self):
-        """Test handling of corrupted cache file"""
-        with open(self.temp_file.name, 'w') as f:
-            f.write("invalid json {]}")
-        
-        # Should handle gracefully and return None
-        token = self.session_manager.get_token("test_account")
-        self.assertIsNone(token)
+    def test_set_user_loads_sessions(self):
+        """Test that set_user loads sessions from Firestore"""
+        with patch('app.utils.SessionManager.load') as mock_load:
+            sm = SessionManager()
+            sm.set_user("user123")
+            mock_load.assert_called_once()
+            self.assertEqual(sm._google_id, "user123")
+    
+    def test_set_user_noop_same_user(self):
+        """Test that set_user is a no-op when the same user is already set"""
+        with patch('app.utils.SessionManager.load') as mock_load:
+            sm = SessionManager()
+            sm._google_id = "user123"
+            sm.set_user("user123")
+            mock_load.assert_not_called()
+    
+    def test_set_user_empty_string(self):
+        """Test that set_user ignores empty google_id"""
+        with patch('app.utils.SessionManager.load') as mock_load:
+            sm = SessionManager()
+            sm.set_user("")
+            mock_load.assert_not_called()
+            self.assertIsNone(sm._google_id)
+    
+    @patch('app.firebase_store.get_zerodha_sessions')
+    def test_load_from_firestore(self, mock_get_sessions):
+        """Test loading encrypted sessions from Firestore"""
+        sm = SessionManager()
+        sm._google_id = "user123"
+
+        # Encrypt a token using the same cipher
+        encrypted = sm._encrypt_token("my_access_token")
+        mock_get_sessions.return_value = {
+            "Account1": {
+                "access_token": encrypted,
+                "expiry": (datetime.now(datetime.now().astimezone().tzinfo) + timedelta(hours=23)).isoformat(),
+            }
+        }
+
+        sm.load()
+
+        self.assertEqual(sm.get_token("Account1"), "my_access_token")
+        self.assertTrue(sm.is_valid("Account1"))
+    
+    @patch('app.firebase_store.save_zerodha_sessions')
+    def test_save_to_firestore(self, mock_save):
+        """Test saving encrypted sessions to Firestore"""
+        sm = SessionManager()
+        sm._google_id = "user123"
+        sm.set_token("Account1", "token_abc")
+
+        sm.save()
+
+        mock_save.assert_called_once()
+        call_args = mock_save.call_args
+        self.assertEqual(call_args[0][0], "user123")
+        stored = call_args[0][1]
+        self.assertIn("Account1", stored)
+        # Token should be encrypted (not plaintext)
+        self.assertNotEqual(stored["Account1"]["access_token"], "token_abc")
+    
+    def test_save_without_user_warns(self):
+        """Test that save warns when no user is set"""
+        sm = SessionManager()
+        sm.set_token("Account1", "token_abc")
+        # Should not raise, just warn
+        sm.save()
+    
+    def test_get_validity(self):
+        """Test get_validity returns correct status for all accounts"""
+        from datetime import timezone
+        sm = SessionManager()
+        sm.set_token("valid_account", "token1")
+        sm.sessions["expired_account"] = {
+            "access_token": "token2",
+            "expiry": datetime.now(timezone.utc) - timedelta(hours=1),
+        }
+
+        result = sm.get_validity(["valid_account", "expired_account", "missing_account"])
+        self.assertTrue(result["valid_account"])
+        self.assertFalse(result["expired_account"])
+        self.assertFalse(result["missing_account"])
+    
+    @patch('app.firebase_store.save_zerodha_sessions')
+    def test_invalidate_saves_to_firestore(self, mock_save):
+        """Test that invalidate removes token and persists to Firestore"""
+        sm = SessionManager()
+        sm._google_id = "user123"
+        sm.set_token("Account1", "token_abc")
+
+        sm.invalidate("Account1")
+
+        self.assertIsNone(sm.get_token("Account1"))
+        mock_save.assert_called_once()
+    
+    def test_encrypt_decrypt_roundtrip(self):
+        """Test that encrypt/decrypt is a symmetric roundtrip"""
+        sm = SessionManager()
+        original = "super_secret_token_12345"
+        encrypted = sm._encrypt_token(original)
+        self.assertNotEqual(encrypted, original)
+        decrypted = sm._decrypt_token(encrypted)
+        self.assertEqual(decrypted, original)
+    
+    @patch.dict(os.environ, {"ZERODHA_TOKEN_SECRET": "my_production_secret"})
+    def test_cipher_uses_env_var(self):
+        """Test that cipher uses ZERODHA_TOKEN_SECRET when available"""
+        sm = SessionManager()
+        # Should not raise and should produce a working cipher
+        encrypted = sm._encrypt_token("test_token")
+        decrypted = sm._decrypt_token(encrypted)
+        self.assertEqual(decrypted, "test_token")
 
 
 class TestStateManager(unittest.TestCase):
@@ -199,38 +296,6 @@ class TestConfigLoader(unittest.TestCase):
         """Test loading non-existent config file"""
         result = load_config("nonexistent_config.json")
         self.assertEqual(result, {})
-    
-    def test_validate_accounts_valid(self):
-        """Test validating valid accounts"""
-        accounts = [
-            {"name": "Account1", "api_key": "key1", "api_secret": "secret1"}
-        ]
-        # Should not raise exception
-        validate_accounts(accounts)
-    
-    def test_validate_accounts_missing_name(self):
-        """Test validating account without name"""
-        accounts = [
-            {"api_key": "key1", "api_secret": "secret1"}
-        ]
-        # Should not raise since name is optional, only api_key/secret are checked
-        try:
-            validate_accounts(accounts)
-        except RuntimeError:
-            pass  # Expected if credentials missing
-    
-    def test_validate_accounts_missing_api_key(self):
-        """Test validating account without api_key"""
-        accounts = [
-            {"name": "Account1", "api_secret": "secret1"}
-        ]
-        with self.assertRaises(RuntimeError):
-            validate_accounts(accounts)
-    
-    def test_validate_accounts_empty_list(self):
-        """Test validating empty accounts list"""
-        # Empty list doesn't raise, only missing credentials do
-        validate_accounts([])
     
     def test_load_config_json_parse_error(self):
         """Test loading config with invalid JSON"""
@@ -398,16 +463,7 @@ class TestSessionManagerEdgeCases(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-            self.temp_file = f.name
-        self.session_manager = SessionManager(self.temp_file)
-    
-    def tearDown(self):
-        """Clean up test fixtures"""
-        try:
-            os.remove(self.temp_file)
-        except FileNotFoundError:
-            pass
+        self.session_manager = SessionManager()
     
     def test_is_valid_nonexistent_account(self):
         """Test is_valid with account that doesn't exist"""

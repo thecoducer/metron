@@ -1,4 +1,4 @@
-/* Portfolio Tracker - Sort Manager Module */
+/* Metron - Sort Manager Module */
 
 import { Calculator } from './utils.js';
 
