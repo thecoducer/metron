@@ -59,6 +59,11 @@ class PortfolioCacheManager:
     def clear_fetch_in_progress(self, google_id: str) -> None:
         self._get_event(google_id).clear()
 
+    def clear(self, google_id: str) -> None:
+        """Remove all cached portfolio data for *google_id*."""
+        with self._lock:
+            self._user_data.pop(google_id, None)
+
     def active_user_ids(self) -> List[str]:
         with self._lock:
             return list(self._user_data.keys())

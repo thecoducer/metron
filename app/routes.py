@@ -914,11 +914,16 @@ def add_zerodha():
 def remove_zerodha(account_name):
     """Remove a Zerodha account by name."""
     user = _current_user()
+    google_id = user["google_id"]
     from .firebase_store import remove_zerodha_account
     try:
-        remove_zerodha_account(user["google_id"], account_name)
+        remove_zerodha_account(google_id, account_name)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 404
+
+    # Clean up session token and cached portfolio data for the removed account
+    session_manager.invalidate(google_id, account_name)
+    portfolio_cache.clear(google_id)
 
     return jsonify({"status": "removed"})
 

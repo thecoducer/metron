@@ -225,6 +225,36 @@ class TestUIServerRoutes(unittest.TestCase):
             is_manual=True, accounts=[], google_id="test123"
         )
 
+    def test_remove_zerodha_account_success(self):
+        """Deleting a Zerodha account clears session and portfolio cache."""
+        with patch('app.firebase_store.remove_zerodha_account') as mock_remove, \
+             patch('app.routes.session_manager') as mock_session, \
+             patch('app.routes.portfolio_cache') as mock_pcache:
+
+            _inject_user(self.client)
+            response = self.client.delete(
+                '/api/settings/zerodha/MyAccount', headers=_APP_HEADERS)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data['status'], 'removed')
+        mock_remove.assert_called_once_with("test123", "MyAccount")
+        mock_session.invalidate.assert_called_once_with("test123", "MyAccount")
+        mock_pcache.clear.assert_called_once_with("test123")
+
+    def test_remove_zerodha_account_not_found(self):
+        """Deleting a non-existent account returns 404."""
+        with patch('app.firebase_store.remove_zerodha_account',
+                   side_effect=ValueError("Account 'Bad' not found")):
+
+            _inject_user(self.client)
+            response = self.client.delete(
+                '/api/settings/zerodha/Bad', headers=_APP_HEADERS)
+
+        self.assertEqual(response.status_code, 404)
+        data = json.loads(response.data)
+        self.assertIn('error', data)
+
 
 class TestSSE(unittest.TestCase):
     """Test Server-Sent Events functionality."""

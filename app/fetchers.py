@@ -146,6 +146,8 @@ def run_background_fetch(
 
         # If no portfolio fetch ran, mark updated now that market data is done
         if google_id and not has_portfolio_fetch:
+            # No authenticated accounts — clear stale portfolio data
+            portfolio_cache.clear(google_id)
             state_manager.set_portfolio_updated(google_id=google_id)
 
         if on_complete:

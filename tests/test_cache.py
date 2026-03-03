@@ -107,6 +107,27 @@ class TestPortfolioCacheManager(unittest.TestCase):
         self.assertIn("user1", ids)
         self.assertIn("user2", ids)
 
+    def test_clear_removes_user_data(self):
+        """clear() removes cached portfolio data for the user."""
+        self.manager.set("user1", stocks=[{"s": 1}], mf_holdings=[{"m": 1}])
+        self.manager.clear("user1")
+        # After clear, get() should return fresh empty data
+        data = self.manager.get("user1")
+        self.assertEqual(data.stocks, [])
+        self.assertEqual(data.mf_holdings, [])
+        self.assertEqual(data.sips, [])
+
+    def test_clear_does_not_affect_other_users(self):
+        """clear() for one user must not affect another."""
+        self.manager.set("user1", stocks=[{"u1": True}])
+        self.manager.set("user2", stocks=[{"u2": True}])
+        self.manager.clear("user1")
+        self.assertEqual(self.manager.get("user2").stocks, [{"u2": True}])
+
+    def test_clear_nonexistent_user_no_error(self):
+        """clear() on a user with no cached data should not raise."""
+        self.manager.clear("nonexistent")
+
     def test_global_portfolio_cache_is_instance(self):
         self.assertIsInstance(portfolio_cache, PortfolioCacheManager)
 
