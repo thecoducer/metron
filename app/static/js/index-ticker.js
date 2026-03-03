@@ -29,10 +29,6 @@ class IndexTicker {
     this.timer = setInterval(() => this.fetchAndRender(), this.refreshInterval);
   }
 
-  stopAutoRefresh() {
-    if (this.timer) { clearInterval(this.timer); this.timer = null; }
-  }
-
   async fetchAndRender() {
     try {
       const res = await fetch('/market_indices');

@@ -6,7 +6,6 @@ to create/read spreadsheets in *their* Google Drive.
 """
 
 import os
-from typing import Optional, Tuple
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -68,7 +67,6 @@ def exchange_code_for_credentials(code: str, redirect_uri: str) -> Credentials:
     flow = build_oauth_flow(redirect_uri)
     # Allow Google to return fewer scopes than requested (e.g. user
     # unchecked optional scopes on the consent screen).
-    import os
     os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
     flow.fetch_token(code=code)
     return flow.credentials

@@ -41,10 +41,6 @@ class DataManager {
     return this._fetchEndpoint('/fixed_deposits_data');
   }
 
-  async fetchFDSummary() {
-    return this._fetchEndpoint('/fd_summary_data');
-  }
-
   async fetchStatus() {
     return this._fetchEndpoint('/status');
   }

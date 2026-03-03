@@ -6,8 +6,6 @@ class SSEConnectionManager {
     this.reconnectDelay = reconnectDelay;
     this.eventSource = null;
     this.messageHandlers = [];
-    this.errorHandlers = [];
-    this.openHandlers = [];
   }
 
   /**
@@ -16,22 +14,6 @@ class SSEConnectionManager {
    */
   onMessage(handler) {
     this.messageHandlers.push(handler);
-  }
-
-  /**
-   * Add an error handler callback
-   * @param {Function} handler - Callback function that receives error event
-   */
-  onError(handler) {
-    this.errorHandlers.push(handler);
-  }
-
-  /**
-   * Add an open handler callback
-   * @param {Function} handler - Callback function called when connection opens
-   */
-  onOpen(handler) {
-    this.openHandlers.push(handler);
   }
 
   /**
@@ -66,14 +48,6 @@ class SSEConnectionManager {
     // Handle errors
     this.eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
-      
-      this.errorHandlers.forEach(handler => {
-        try {
-          handler(error);
-        } catch (err) {
-          console.error('Error in SSE error handler:', err);
-        }
-      });
 
       // Attempt to reconnect after delay if connection is closed
       if (this.eventSource.readyState === EventSource.CLOSED) {
@@ -85,13 +59,6 @@ class SSEConnectionManager {
     // Handle connection open
     this.eventSource.onopen = () => {
       console.log('SSE connection established');
-      this.openHandlers.forEach(handler => {
-        try {
-          handler();
-        } catch (error) {
-          console.error('Error in SSE open handler:', error);
-        }
-      });
     };
   }
 
@@ -104,23 +71,6 @@ class SSEConnectionManager {
       this.eventSource = null;
       console.log('SSE connection closed');
     }
-  }
-
-  /**
-   * Check if currently connected
-   * @returns {boolean} True if connected
-   */
-  isConnected() {
-    return this.eventSource && this.eventSource.readyState === EventSource.OPEN;
-  }
-
-  /**
-   * Clear all handlers
-   */
-  clearHandlers() {
-    this.messageHandlers = [];
-    this.errorHandlers = [];
-    this.openHandlers = [];
   }
 }
 

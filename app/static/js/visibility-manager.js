@@ -39,10 +39,6 @@ class PrivacyManager {
       }
     }
   }
-
-  getPrivacyMode() {
-    return this.isPrivacyMode;
-  }
 }
 
 export default PrivacyManager;

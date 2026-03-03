@@ -317,33 +317,6 @@ class Calculator {
       plPct
     };
   }
-
-  /**
-   * Calculate aggregated totals from holdings array.
-   * @param {Array} holdings - Array of holdings
-   * @param {function} calculator - Calculator function for the holding type
-   * @returns {object} Aggregated totals with invested, current, pl, plPct
-   */
-  static calculateTotalMetrics(holdings, calculator) {
-    let totalInvested = 0;
-    let totalCurrent = 0;
-
-    holdings.forEach(holding => {
-      const metrics = calculator(holding);
-      totalInvested += metrics.invested;
-      totalCurrent += metrics.current;
-    });
-
-    const totalPL = totalCurrent - totalInvested;
-    const totalPLPct = totalInvested ? (totalPL / totalInvested * 100) : 0;
-
-    return {
-      totalInvested,
-      totalCurrent,
-      totalPL,
-      totalPLPct
-    };
-  }
 }
 
 // Constants

@@ -23,14 +23,6 @@ class TableRenderer {
     return isUpdating ? 'updating-field' : '';
   }
 
-  _applyUpdatingClass(element, isUpdating) {
-    if (isUpdating) {
-      element.classList.add('updating-field');
-    } else {
-      element.classList.remove('updating-field');
-    }
-  }
-
   /**
    * Toggle visibility of a table section based on whether it has data.
    * @param {Object} opts - Elements to toggle
@@ -557,7 +549,7 @@ class TableRenderer {
       `<span class="expand-toggle" data-group-id="${classes.groupId}" onclick="toggleGroupExpand(event, '${classes.groupId}')" style="cursor:pointer;margin-right:8px;">▶</span>` : 
       `<span style="display:inline-block;width:20px;margin-right:8px;"></span>`;
     
-    const symbol = classes.isGroupRow ? holding.tradingsymbol : holding.tradingsymbol;
+    const symbol = holding.tradingsymbol;
     const accountDisplay = classes.hasMultipleAccounts ? '> 1' : (holding.account || '-');
     
     return `<tr class="${classes.groupId ? `group-row ${classes.groupId}` : ''}" style="background-color:${Formatter.rowColor(pl)}">
@@ -1109,7 +1101,7 @@ class TableRenderer {
   }
 
   _buildFixedDepositRow(deposit, metrics, classes) {
-    const { originalAmount, reinvestedAmount, interestRate, currentValue, pl } = metrics;
+    const { originalAmount, reinvestedAmount, interestRate, currentValue } = metrics;
     const accountDisplay = classes.hasMultipleAccounts ? '> 1' : (deposit.account || '-');
     
     const expandBtn = classes.hasMultipleAccounts ? 
@@ -1135,7 +1127,7 @@ class TableRenderer {
   }
 
   _buildFixedDepositBreakdownRow(deposit, metrics, groupId) {
-    const { originalAmount, reinvestedAmount, interestRate, currentValue, pl } = metrics;
+    const { originalAmount, reinvestedAmount, interestRate, currentValue } = metrics;
     
     const reinvestedDisplay = (reinvestedAmount && Number(reinvestedAmount) > 0)
       ? Formatter.formatCurrency(reinvestedAmount)

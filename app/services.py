@@ -11,7 +11,6 @@ from typing import Any, Dict, List
 
 from .api import (AuthenticationManager, HoldingsService, SIPService,
                   ZerodhaAPIClient)
-from .config import app_config
 from .logging_config import logger
 from .sse import sse_manager
 from .utils import (SessionManager, StateManager, format_timestamp,

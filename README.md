@@ -56,7 +56,7 @@ The `start.sh` script automatically creates a virtual environment, installs depe
 3. Click **Create new app** (or use an existing one)
 4. Fill in the app details:
    - **App Name**: Any name (e.g., `Metron`)
-   - **Redirect URL**: `http://127.0.0.1:5000/callback`
+   - **Redirect URL**: `http://127.0.0.1:8000/callback`
    - **Postback URL**: Leave blank
    - **Description**: Optional
 5. Click **Create**

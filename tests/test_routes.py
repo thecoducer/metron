@@ -5,46 +5,7 @@ import json
 import unittest
 from unittest.mock import Mock, PropertyMock, patch
 
-from app.routes import _create_json_response_no_cache, app_callback, app_ui
-
-
-class TestCallbackServer(unittest.TestCase):
-    """Test callback server endpoints."""
-
-    def setUp(self):
-        self.client = app_callback.test_client()
-        app_callback.testing = True
-
-    def test_callback_success_direct_login(self):
-        """Test OAuth callback completing auth directly."""
-        mock_kite_cls = Mock()
-        mock_kite = Mock()
-        mock_kite_cls.return_value = mock_kite
-        mock_kite.generate_session.return_value = {"access_token": "new_token"}
-
-        with patch('app.services.state_manager') as mock_state, \
-             patch('app.services.session_manager') as mock_session, \
-             patch('app.routes.get_active_accounts', return_value=[
-                 {"name": "Mine", "api_key": "key1", "api_secret": "sec1"}
-             ]), \
-             patch('app.routes.fetch_in_progress') as mock_fetch_event, \
-             patch('kiteconnect.KiteConnect', mock_kite_cls):
-            mock_session.is_valid.return_value = False
-            mock_fetch_event.is_set.return_value = False
-
-            response = self.client.get('/callback?request_token=test_token_123')
-
-            self.assertEqual(response.status_code, 200)
-            self.assertIn(b'success', response.data.lower())
-            mock_session.set_token.assert_called_once_with("Mine", "new_token")
-            mock_session.save.assert_called_once()
-
-    def test_callback_error(self):
-        """Test OAuth callback without request token."""
-        response = self.client.get('/callback')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'error', response.data.lower())
+from app.routes import _create_json_response_no_cache, app_ui
 
 
 class TestUIServerRoutes(unittest.TestCase):

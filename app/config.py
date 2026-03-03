@@ -15,8 +15,6 @@ from .utils import load_config
 @dataclass
 class AppConfig:
     """Application configuration loaded from config.json."""
-    # callback_host, callback_port, callback_path removed
-    redirect_url: str
     ui_host: str
     ui_port: int
     request_token_timeout: int
@@ -33,10 +31,7 @@ class AppConfig:
         timeouts = config.get("timeouts", {})
         features = config.get("features", {})
 
-
-
         return cls(
-            redirect_url="http://127.0.0.1:8000/callback",  # hardcoded or refactor as needed
             ui_host=server.get("ui_host", DEFAULT_UI_HOST),
             ui_port=server.get("ui_port", DEFAULT_UI_PORT),
             request_token_timeout=timeouts.get("request_token_timeout_seconds", DEFAULT_REQUEST_TOKEN_TIMEOUT),

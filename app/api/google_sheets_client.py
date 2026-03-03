@@ -1,7 +1,7 @@
 """
 Google Sheets API client for fetching portfolio data.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from ..constants import GOOGLE_SHEETS_TIMEOUT
 from ..error_handler import (APIError, DataError, ErrorHandler, NetworkError,
@@ -10,7 +10,6 @@ from ..logging_config import logger
 
 try:
     import httplib2
-    from google.oauth2.credentials import Credentials as UserCredentials
     from google_auth_httplib2 import AuthorizedHttp
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError

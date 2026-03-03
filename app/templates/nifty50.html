@@ -80,23 +80,7 @@ Note: Data is sourced from NSE India and refreshes automatically with your portf
 </div>
 </div>
 
-<script>
-// Navigation menu toggle
-function toggleNavMenu(event) {
-  event.stopPropagation();
-  const menu = document.getElementById('navMenu');
-  menu.classList.toggle('active');
-}
-
-// Close menu when clicking outside
-document.addEventListener('click', function(event) {
-  const menu = document.getElementById('navMenu');
-  if (menu && !menu.contains(event.target)) {
-    menu.classList.remove('active');
-  }
-});
-</script>
-
+<script src="/static/js/nav.js"></script>
 <script type="module" src="/static/js/nifty50.js"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@ import ThemeManager from './theme-manager.js';
 import PrivacyManager from './visibility-manager.js';
 import SSEConnectionManager from './sse-manager.js';
 import PaginationManager from './pagination.js';
-import { Formatter, Calculator } from './utils.js';
+import { Formatter } from './utils.js';
 import IndexTicker from './index-ticker.js';
 
 class PortfolioApp {

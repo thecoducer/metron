@@ -6,8 +6,6 @@ with the exact sheet/column layout that ``PhysicalGoldService`` and
 ``FixedDepositsService`` expect.
 """
 
-from typing import Optional
-
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build as google_build
 

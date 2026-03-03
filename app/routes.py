@@ -1,7 +1,5 @@
 """
 Flask application creation and route definitions.
-
-
 """
 
 import json
@@ -12,15 +10,14 @@ from queue import Empty, Queue
 from typing import Any, Dict, List, Optional
 
 from flask import (Flask, Response, jsonify, make_response, redirect,
-                   render_template, request, session, url_for)
+                   render_template, request, session)
 
 from .api.physical_gold import enrich_holdings_with_prices
 from .cache import cache, fetch_in_progress, user_sheets_cache
-from .config import app_config
 from .constants import HTTP_ACCEPTED, HTTP_CONFLICT, MARKET_INDEX_CACHE_TTL, SSE_KEEPALIVE_INTERVAL
 from .logging_config import logger
 from .services import (_build_status_response,
-                       auth_manager, set_active_user, get_active_accounts,
+                       set_active_user,
                        get_authenticated_accounts, sse_manager)
 
 # --------------------------
