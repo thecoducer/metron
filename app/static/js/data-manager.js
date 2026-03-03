@@ -23,38 +23,37 @@ class DataManager {
   }
 
   async fetchStocks() {
-    return this._fetchEndpoint('/stocks_data');
+    return this._fetchEndpoint('/api/stocks_data');
   }
 
   async fetchMFHoldings() {
-    return this._fetchEndpoint('/mf_holdings_data');
+    return this._fetchEndpoint('/api/mf_holdings_data');
   }
 
   async fetchSIPs() {
-    return this._fetchEndpoint('/sips_data');
+    return this._fetchEndpoint('/api/sips_data');
   }
 
   async fetchPhysicalGold() {
-    return this._fetchEndpoint('/physical_gold_data');
+    return this._fetchEndpoint('/api/physical_gold_data');
   }
 
   async fetchFixedDeposits() {
-    return this._fetchEndpoint('/fixed_deposits_data');
+    return this._fetchEndpoint('/api/fixed_deposits_data');
   }
 
   async fetchStatus() {
-    return this._fetchEndpoint('/status');
+    return this._fetchEndpoint('/api/status');
   }
 
   async fetchAllData() {
-    const [stocks, mfHoldings, sips, physicalGold, fixedDeposits, status] = await Promise.all([
-      this.fetchStocks(),
-      this.fetchMFHoldings(),
-      this.fetchSIPs(),
-      this.fetchPhysicalGold(),
-      this.fetchFixedDeposits(),
-      this.fetchStatus()
-    ]);
+    const resp = await this._fetchEndpoint('/api/all_data');
+    const stocks = resp.stocks || [];
+    const mfHoldings = resp.mfHoldings || [];
+    const sips = resp.sips || [];
+    const physicalGold = resp.physicalGold || [];
+    const fixedDeposits = resp.fixedDeposits || [];
+    const status = resp.status || {};
     const fdSummary = this._computeFDSummary(fixedDeposits);
     return { stocks, mfHoldings, sips, physicalGold, fixedDeposits, fdSummary, status };
   }
@@ -163,7 +162,7 @@ class DataManager {
   }
 
   async triggerRefresh() {
-    const response = await metronFetch('/refresh', { method: 'POST' });
+    const response = await metronFetch('/api/refresh', { method: 'POST' });
     if (response.status !== 202) {
       const data = await response.json();
       throw new Error(data.error || 'Unknown error');

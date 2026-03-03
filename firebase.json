@@ -11,7 +11,7 @@
     ],
     "headers": [
       {
-        "source": "/events",
+        "source": "/api/events",
         "headers": [
           {
             "key": "Cache-Control",

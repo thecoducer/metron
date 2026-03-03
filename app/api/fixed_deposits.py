@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from ..error_handler import DataError
 from ..logging_config import logger
 
 
@@ -60,83 +59,64 @@ def calculate_current_value(fixed_deposits: List[Dict[str, Any]]) -> List[Dict[s
         deposit_date = None
 
         if deposit_date_str:
-            try:
-                deposit_date = datetime.strptime(deposit_date_str, "%B %d, %Y")
-            except (ValueError, TypeError):
-                # Fallback to year/month/day fields if main date parsing fails
-                year = deposit.get('deposit_year')
-                month = deposit.get('deposit_month')
-                day = deposit.get('deposit_day')
+            # Try multiple date formats (Google Sheets may store dates differently)
+            for fmt in ("%B %d, %Y", "%m/%d/%Y", "%Y-%m-%d"):
+                try:
+                    deposit_date = datetime.strptime(deposit_date_str, fmt)
+                    break
+                except (ValueError, TypeError):
+                    continue
 
-                if year and month and day:
-                    try:
-                        deposit_date = datetime(int(year), int(month), int(day))
-                    except (ValueError, TypeError) as e:
-                        logger.warning("Error creating deposit date from year/month/day: %s", e)
+            if deposit_date is None:
+                logger.warning(
+                    "Cannot parse deposit date '%s' for %s — skipping",
+                    deposit_date_str, deposit.get('bank_name', 'unknown'),
+                )
+                continue
         
-        #Calculate maturity date from deposit period
-        if deposit_date and deposit.get('deposit_year', 0) > 0:
-            try:
-                # Calculate maturity date by adding the deposit period
-                total_days = int(deposit['deposit_year'] * 365)
-                total_days += int(deposit.get('deposit_month', 0) * 30)
-                total_days += int(deposit.get('deposit_day', 0))
-                
-                maturity_date = deposit_date + timedelta(days=total_days)
-                maturity_date_str = maturity_date.strftime("%B %d, %Y")
-                deposit_copy['maturity_date'] = maturity_date_str
-                
-                logger.debug(
-                    "Calculated maturity date for %s: %s (Period: %dy %dm %dd)",
-                    deposit['bank_name'],
-                    maturity_date_str,
-                    int(deposit['deposit_year']),
-                    int(deposit.get('deposit_month', 0)),
-                    int(deposit.get('deposit_day', 0))
-                )
-            except Exception as e:
-                logger.error("Error calculating maturity date for %s: %s", deposit['bank_name'], e)
-                raise DataError(
-                    f"Cannot calculate maturity date for deposit at {deposit['bank_name']}: "
-                    f"deposit period provided but calculation failed"
-                )
-        else:
-            # Neither maturity date nor valid deposit period provided
-            raise DataError(
-                f"Missing maturity date for deposit at {deposit['bank_name']}: "
-                f"provide either maturity date (Till column) or deposit period (Year/Month/Day)"
-            )
+        # Calculate maturity date from deposit tenure (year/month/day)
+        deposit_year = deposit.get('deposit_year', 0)
+        deposit_month = deposit.get('deposit_month', 0)
+        deposit_day_val = deposit.get('deposit_day', 0)
+
+        # Calculate maturity date by adding the deposit period
+        total_days = int(deposit_year * 365)
+        total_days += int(deposit_month * 30)
+        total_days += int(deposit_day_val)
+        
+        maturity_date = deposit_date + timedelta(days=total_days)
+        maturity_date_str = maturity_date.strftime("%B %d, %Y")
+        deposit_copy['maturity_date'] = maturity_date_str
+        
+        logger.debug(
+            "Calculated maturity date for %s: %s (Period: %dy %dm %dd)",
+            deposit['bank_name'],
+            maturity_date_str,
+            int(deposit_year),
+            int(deposit_month),
+            int(deposit_day_val),
+        )
         
         # Get principal and interest rate
         principal = deposit.get('reinvested_amount', 0) or deposit.get('original_amount', 0)
         annual_rate = deposit.get('interest_rate', 0)
         
-        if deposit_date and principal > 0 and annual_rate > 0:
-            # Calculate till today since non-redeemed deposits are auto-reinvested
-            days_elapsed = (datetime.now() - deposit_date).days
-            years_elapsed = days_elapsed / 365.0
-            
-            # Calculate current value with quarterly compound interest
-            current_value = calculate_compound_interest(
-                principal, 
-                annual_rate, 
-                years_elapsed, 
-                compounding_frequency=4
-            )
-            
-            deposit_copy['current_value'] = current_value
-            deposit_copy['estimated_returns'] = current_value - principal
-            
-            enriched_deposits.append(deposit_copy)
-        else:
-            # Raise error if calculation not possible
-            bank_name = deposit.get('bank_name', 'unknown')
-            if not deposit_date:
-                raise DataError(f"Missing deposit date for fixed deposit at {bank_name}")
-            elif principal <= 0:
-                raise DataError(f"Invalid principal amount ({principal}) for fixed deposit at {bank_name}")
-            elif annual_rate <= 0:
-                raise DataError(f"Invalid interest rate ({annual_rate}) for fixed deposit at {bank_name}")
+        # Calculate till today since non-redeemed deposits are auto-reinvested
+        days_elapsed = (datetime.now() - deposit_date).days
+        years_elapsed = days_elapsed / 365.0
+        
+        # Calculate current value with quarterly compound interest
+        current_value = calculate_compound_interest(
+            principal, 
+            annual_rate, 
+            years_elapsed, 
+            compounding_frequency=4
+        )
+        
+        deposit_copy['current_value'] = current_value
+        deposit_copy['estimated_returns'] = current_value - principal
+        
+        enriched_deposits.append(deposit_copy)
 
     # Sort by maturity date in ascending order
     enriched_deposits.sort(

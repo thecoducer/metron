@@ -37,7 +37,7 @@ class TestUIServerRoutes(unittest.TestCase):
         app_ui.testing = True
 
     def test_status_endpoint(self):
-        """Test /status endpoint returns correct structure."""
+        """Test /api/status endpoint returns correct structure."""
         with patch('app.services.state_manager') as mock_state, \
              patch('app.services.session_manager') as mock_session, \
              patch('app.services.format_timestamp') as mock_format, \
@@ -59,7 +59,7 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_market.return_value = False
 
             _inject_user(self.client)
-            response = self.client.get('/status', headers=_APP_HEADERS)
+            response = self.client.get('/api/status', headers=_APP_HEADERS)
 
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data)
@@ -86,7 +86,7 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_pcache.get.return_value = mock_data
 
             _inject_user(self.client)
-            response = self.client.get('/stocks_data', headers=_APP_HEADERS)
+            response = self.client.get('/api/stocks_data', headers=_APP_HEADERS)
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
@@ -95,7 +95,7 @@ class TestUIServerRoutes(unittest.TestCase):
 
     def test_stocks_data_unauthenticated(self):
         """Unauthenticated user gets 401."""
-        response = self.client.get('/stocks_data', headers=_APP_HEADERS)
+        response = self.client.get('/api/stocks_data', headers=_APP_HEADERS)
         self.assertEqual(response.status_code, 401)
 
     def test_mf_holdings_data_endpoint(self):
@@ -110,7 +110,7 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_pcache.get.return_value = mock_data
 
             _inject_user(self.client)
-            response = self.client.get('/mf_holdings_data', headers=_APP_HEADERS)
+            response = self.client.get('/api/mf_holdings_data', headers=_APP_HEADERS)
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
@@ -129,7 +129,7 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_pcache.get.return_value = mock_data
 
             _inject_user(self.client)
-            response = self.client.get('/sips_data', headers=_APP_HEADERS)
+            response = self.client.get('/api/sips_data', headers=_APP_HEADERS)
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
@@ -140,7 +140,7 @@ class TestUIServerRoutes(unittest.TestCase):
         """Nifty 50 is global — no user context needed."""
         with patch('app.routes.market_cache') as mock_mc:
             mock_mc.nifty50 = [{"symbol": "TCS", "ltp": 3500}]
-            response = self.client.get('/nifty50_data', headers=_APP_HEADERS)
+            response = self.client.get('/api/nifty50_data', headers=_APP_HEADERS)
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
@@ -174,7 +174,7 @@ class TestUIServerRoutes(unittest.TestCase):
         self.assertIn(b'html', response.data.lower())
 
     def test_refresh_route_success(self):
-        """Test /refresh endpoint triggers per-user refresh."""
+        """Test /api/refresh endpoint triggers per-user refresh."""
         with patch('app.routes.portfolio_cache') as mock_pcache, \
              patch('app.routes.ensure_user_loaded'), \
              patch('app.routes.user_sheets_cache') as mock_usc, \
@@ -184,7 +184,7 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_pcache.is_fetch_in_progress.return_value = False
 
             _inject_user(self.client)
-            response = self.client.post('/refresh', headers=_APP_HEADERS)
+            response = self.client.post('/api/refresh', headers=_APP_HEADERS)
 
         self.assertEqual(response.status_code, 202)
         data = json.loads(response.data)
@@ -194,12 +194,12 @@ class TestUIServerRoutes(unittest.TestCase):
         )
 
     def test_refresh_route_conflict(self):
-        """Test /refresh returns conflict when fetch in progress for this user."""
+        """Test /api/refresh returns conflict when fetch in progress for this user."""
         with patch('app.routes.portfolio_cache') as mock_pcache:
             mock_pcache.is_fetch_in_progress.return_value = True
 
             _inject_user(self.client)
-            response = self.client.post('/refresh', headers=_APP_HEADERS)
+            response = self.client.post('/api/refresh', headers=_APP_HEADERS)
 
         self.assertEqual(response.status_code, 409)
         data = json.loads(response.data)
@@ -216,7 +216,7 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_pcache.is_fetch_in_progress.return_value = False
 
             _inject_user(self.client)
-            response = self.client.post('/refresh', headers=_APP_HEADERS)
+            response = self.client.post('/api/refresh', headers=_APP_HEADERS)
 
         self.assertEqual(response.status_code, 202)
         data = json.loads(response.data)
@@ -234,7 +234,7 @@ class TestSSE(unittest.TestCase):
         app_ui.testing = True
 
     def test_events_endpoint(self):
-        """Test /events SSE endpoint returns text/event-stream with production headers."""
+        """Test /api/events SSE endpoint returns text/event-stream with production headers."""
         with patch('app.services.state_manager') as mock_state, \
              patch('app.services.session_manager') as mock_session, \
              patch('app.services.format_timestamp', return_value=None), \
@@ -254,7 +254,7 @@ class TestSSE(unittest.TestCase):
             mock_session.is_valid.return_value = True
 
             _inject_user(self.client)
-            response = self.client.get('/events')
+            response = self.client.get('/api/events')
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('text/event-stream', response.content_type)
@@ -266,8 +266,8 @@ class TestSSE(unittest.TestCase):
         self.assertEqual(response.headers.get('X-Content-Type-Options'), 'nosniff')
 
     def test_events_unauthenticated(self):
-        """Unauthenticated request to /events returns 401."""
-        response = self.client.get('/events')
+        """Unauthenticated request to /api/events returns 401."""
+        response = self.client.get('/api/events')
         self.assertEqual(response.status_code, 401)
 
 

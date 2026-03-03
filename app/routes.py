@@ -200,39 +200,132 @@ def _fetch_user_sheets_data(user):
     if not spreadsheet_id or not creds_dict:
         return None, None
 
+    # Batch-fetch populates *all* sheet types into the cache in one API call.
+    _prefetch_all_user_sheets(user)
+
     cached = user_sheets_cache.get(google_id)
     if cached:
         return cached.physical_gold, cached.fixed_deposits
+    return None, None
+
+
+def _fetch_manual_entries(user, sheet_type):
+    """Fetch manual entries from a Google Sheet tab, returning a list of dicts.
+
+    Results are cached per-user with the same TTL as gold/FD data.
+    """
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS.get(sheet_type)
+    if not cfg:
+        return []
+
+    google_id = user.get("google_id", "")
+    spreadsheet_id = user.get("spreadsheet_id")
+    creds_dict = user.get("google_credentials")
+    if not spreadsheet_id or not creds_dict:
+        return []
+
+    # Batch-fetch populates *all* sheet types into the cache in one API call.
+    _prefetch_all_user_sheets(user)
+
+    cached = user_sheets_cache.get_manual(google_id, sheet_type)
+    return cached if cached is not None else []
+
+
+def _prefetch_all_user_sheets(user):
+    """Batch-fetch all 6 sheet tabs in a single Google Sheets API call.
+
+    On a cache miss this acquires the per-user lock, double-checks the
+    cache, and issues one ``batchGet`` request for Gold, FixedDeposits,
+    Stocks, ETFs, MutualFunds, and SIPs.  The parsed results are stored
+    in `user_sheets_cache` so that subsequent calls (from concurrent HTTP
+    requests) find data already cached.
+    """
+    google_id = user.get("google_id", "")
+    spreadsheet_id = user.get("spreadsheet_id")
+    creds_dict = user.get("google_credentials")
+    if not spreadsheet_id or not creds_dict:
+        return
+
+    # Fast path — everything already in cache.
+    if user_sheets_cache.is_fully_cached(google_id):
+        return
 
     with _get_user_fetch_lock(google_id):
-        cached = user_sheets_cache.get(google_id)
-        if cached:
-            return cached.physical_gold, cached.fixed_deposits
+        # Double-check after acquiring lock.
+        if user_sheets_cache.is_fully_cached(google_id):
+            return
 
         try:
             from .api.google_auth import credentials_from_dict
-            from .api.google_sheets_client import GoogleSheetsClient, PhysicalGoldService, FixedDepositsService
+            from .api.google_sheets_client import (
+                GoogleSheetsClient, PhysicalGoldService, FixedDepositsService,
+            )
             from .api.fixed_deposits import calculate_current_value
+            from .api.user_sheets import SHEET_CONFIGS
 
             creds = credentials_from_dict(creds_dict)
             client = GoogleSheetsClient(user_credentials=creds)
-            gold = PhysicalGoldService(client).fetch_holdings(spreadsheet_id, "Gold!A:F")
+
+            # Ensure all manual tabs exist (single metadata call + create
+            # any missing tabs) before the batch read.
+            for stype in ("stocks", "etfs", "mutual_funds", "sips"):
+                cfg = SHEET_CONFIGS[stype]
+                client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
+
+            # All 6 sheet names to fetch.
+            sheet_names = [
+                "Gold", "FixedDeposits",
+                *(SHEET_CONFIGS[st]["sheet_name"] for st in ("stocks", "etfs", "mutual_funds", "sips")),
+            ]
+
+            batch = client.batch_fetch_sheet_data_until_blank(spreadsheet_id, sheet_names)
+
+            # ── Parse gold & FD using existing service parsers ──
+            gold_svc = PhysicalGoldService(client)
+            fd_svc = FixedDepositsService(client)
+            gold = gold_svc._parse_batch_data(batch.get("Gold", []))
             deposits = calculate_current_value(
-                FixedDepositsService(client).fetch_deposits(spreadsheet_id, "FixedDeposits!A:K"))
+                fd_svc._parse_batch_data(batch.get("FixedDeposits", []))
+            )
 
-            user_sheets_cache.put(google_id, physical_gold=gold, fixed_deposits=deposits)
-            return gold, deposits
+            # ── Parse manual entry tabs ──
+            manual: dict = {}
+            for sheet_type in ("stocks", "etfs", "mutual_funds", "sips"):
+                cfg = SHEET_CONFIGS[sheet_type]
+                raw = batch.get(cfg["sheet_name"], [])
+                if not raw or len(raw) < 2:
+                    manual[sheet_type] = []
+                    continue
+                fields = cfg["fields"]
+                rows = []
+                for idx, row in enumerate(raw[1:], start=2):
+                    if not row or all(not v or str(v).strip() == "" for v in row):
+                        break
+                    entry = {"row_number": idx, "source": "manual"}
+                    for fi, fname in enumerate(fields):
+                        entry[fname] = row[fi] if fi < len(row) else ""
+                    rows.append(entry)
+                manual[sheet_type] = rows
+
+            # Store everything in one atomic cache write.
+            user_sheets_cache.put_all(
+                google_id,
+                physical_gold=gold,
+                fixed_deposits=deposits,
+                manual=manual,
+            )
         except Exception:
-            logger.exception("Error fetching Sheets data")
-            return None, None
+            logger.exception("Error batch-fetching all Sheets data")
 
-@app_ui.route("/auth/google/login", methods=["GET"])
+@app_ui.route("/api/auth/google/login", methods=["GET"])
 def google_login():
     """Redirect to Google OAuth consent screen."""
     from .api.google_auth import build_oauth_flow
 
     try:
-        redirect_uri = request.url_root.rstrip("/") + "/auth/google/callback"
+        redirect_uri = request.url_root.rstrip("/") + "/api/auth/google/callback"
         logger.info("OAuth redirect_uri: %s", redirect_uri)
         flow = build_oauth_flow(redirect_uri)
         authorization_url, state = flow.authorization_url(
@@ -254,7 +347,7 @@ def google_login():
                                error_message=str(e)), 500
 
 
-@app_ui.route("/auth/google/callback", methods=["GET"])
+@app_ui.route("/api/auth/google/callback", methods=["GET"])
 def google_callback():
     """Handle the OAuth 2.0 callback from Google."""
     from .api.google_auth import (
@@ -269,7 +362,7 @@ def google_callback():
     if not code:
         return render_template("callback_error.html"), 400
 
-    redirect_uri = request.url_root.rstrip("/") + "/auth/google/callback"
+    redirect_uri = request.url_root.rstrip("/") + "/api/auth/google/callback"
 
     try:
         credentials = exchange_code_for_credentials(code, redirect_uri)
@@ -323,7 +416,7 @@ def google_callback():
         return render_template("callback_error.html"), 500
 
 
-@app_ui.route("/auth/me", methods=["GET"])
+@app_ui.route("/api/auth/me", methods=["GET"])
 def auth_me():
     """Return current user info (or 401 if not signed in)."""
     user = _current_user()
@@ -338,7 +431,7 @@ def auth_me():
     })
 
 
-@app_ui.route("/auth/logout", methods=["POST"])
+@app_ui.route("/api/auth/logout", methods=["POST"])
 @app_only
 def auth_logout():
     """Sign out the current user."""
@@ -361,7 +454,7 @@ def sse_token():
     return resp
 
 
-@app_ui.route("/callback", methods=["GET"])
+@app_ui.route("/api/callback", methods=["GET"])
 def zerodha_callback():
     """Handle Zerodha KiteConnect OAuth callback."""
     req_token = request.args.get("request_token")
@@ -408,7 +501,7 @@ def zerodha_callback():
 
 
 
-@app_ui.route("/status", methods=["GET"])
+@app_ui.route("/api/status", methods=["GET"])
 @protected_api
 def status():
     user = _current_user()
@@ -418,7 +511,7 @@ def status():
     return response
 
 
-@app_ui.route("/events", methods=["GET", "OPTIONS"])
+@app_ui.route("/api/events", methods=["GET", "OPTIONS"])
 def events():
     """SSE endpoint for real-time per-user status updates.
 
@@ -518,64 +611,174 @@ def events():
     return _add_cors_headers(resp)
 
 
-@app_ui.route("/stocks_data", methods=["GET"])
+def _build_stocks_data(user):
+    """Build merged broker + manual stocks list."""
+    user_data = portfolio_cache.get(user["google_id"])
+    broker_stocks = list(user_data.stocks)
+
+    for sheet_type in ("stocks", "etfs"):
+        manual = _fetch_manual_entries(user, sheet_type)
+        for m in manual:
+            qty = float(m.get("qty") or 0)
+            avg = float(m.get("avg_price") or 0)
+            broker_stocks.append({
+                "tradingsymbol": (m.get("symbol") or "").upper(),
+                "quantity": qty,
+                "average_price": avg,
+                "last_price": avg,
+                "invested": qty * avg,
+                "exchange": m.get("exchange", "NSE"),
+                "account": m.get("account", "Manual"),
+                "day_change": 0,
+                "day_change_percentage": 0,
+                "isin": "",
+                "source": "manual",
+                "row_number": m.get("row_number"),
+                "manual_type": sheet_type,
+            })
+    return sorted(broker_stocks, key=lambda x: x.get("tradingsymbol", ""))
+
+
+def _build_mf_data(user):
+    """Build merged broker + manual mutual fund holdings list."""
+    user_data = portfolio_cache.get(user["google_id"])
+    broker_mf = list(user_data.mf_holdings)
+
+    manual = _fetch_manual_entries(user, "mutual_funds")
+    for m in manual:
+        qty = float(m.get("qty") or 0)
+        avg = float(m.get("avg_nav") or 0)
+        broker_mf.append({
+            "fund": (m.get("fund") or "").upper(),
+            "tradingsymbol": (m.get("fund") or "").upper(),
+            "quantity": qty,
+            "average_price": avg,
+            "last_price": avg,
+            "invested": qty * avg,
+            "account": m.get("account", "Manual"),
+            "last_price_date": None,
+            "source": "manual",
+            "row_number": m.get("row_number"),
+        })
+    return sorted(broker_mf, key=lambda x: x.get("fund", ""))
+
+
+def _build_sips_data(user):
+    """Build merged broker + manual SIPs list."""
+    user_data = portfolio_cache.get(user["google_id"])
+    broker_sips = list(user_data.sips)
+
+    manual = _fetch_manual_entries(user, "sips")
+    for m in manual:
+        broker_sips.append({
+            "fund": (m.get("fund") or "").upper(),
+            "tradingsymbol": (m.get("fund") or "").upper(),
+            "instalment_amount": float(m.get("amount") or 0),
+            "frequency": m.get("frequency", "MONTHLY"),
+            "instalments": int(m.get("installments") or -1),
+            "completed_instalments": int(m.get("completed") or 0),
+            "status": (m.get("status") or "ACTIVE").upper(),
+            "next_instalment": m.get("next_due", ""),
+            "account": m.get("account", "Manual"),
+            "source": "manual",
+            "row_number": m.get("row_number"),
+        })
+    return sorted(broker_sips, key=lambda x: x.get("status", ""))
+
+
+def _build_gold_data(user):
+    """Build enriched physical gold holdings list."""
+    gold, _ = _fetch_user_sheets_data(user)
+    if gold is not None:
+        enriched = enrich_holdings_with_prices(gold, market_cache.gold_prices)
+        return sorted(enriched, key=lambda x: x.get("date", ""))
+    return []
+
+
+def _build_fd_data(user):
+    """Build fixed deposits list."""
+    _, deposits = _fetch_user_sheets_data(user)
+    if deposits is not None:
+        return sorted(deposits, key=lambda x: x.get("deposited_on", ""))
+    return []
+
+
+@app_ui.route("/api/stocks_data", methods=["GET"])
 @protected_api
 def stocks_data():
     user = _current_user()
-    user_data = portfolio_cache.get(user["google_id"])
-    return _json_response(user_data.stocks, sort_key="tradingsymbol")
+    return _json_response(_build_stocks_data(user))
 
 
-@app_ui.route("/mf_holdings_data", methods=["GET"])
+@app_ui.route("/api/mf_holdings_data", methods=["GET"])
 @protected_api
 def mf_holdings_data():
     user = _current_user()
-    user_data = portfolio_cache.get(user["google_id"])
-    return _json_response(user_data.mf_holdings, sort_key="fund")
+    return _json_response(_build_mf_data(user))
 
 
-@app_ui.route("/sips_data", methods=["GET"])
+@app_ui.route("/api/sips_data", methods=["GET"])
 @protected_api
 def sips_data():
     user = _current_user()
-    user_data = portfolio_cache.get(user["google_id"])
-    return _json_response(user_data.sips, sort_key="status")
+    return _json_response(_build_sips_data(user))
 
 
-@app_ui.route("/nifty50_data", methods=["GET"])
+@app_ui.route("/api/nifty50_data", methods=["GET"])
 @app_only
 def nifty50_data():
     return _json_response(market_cache.nifty50, sort_key="symbol")
 
 
-@app_ui.route("/physical_gold_data", methods=["GET"])
+@app_ui.route("/api/physical_gold_data", methods=["GET"])
 @protected_api
 def physical_gold_data():
     user = _current_user()
-    gold, _ = _fetch_user_sheets_data(user)
-    if gold is not None:
-        enriched = enrich_holdings_with_prices(gold, market_cache.gold_prices)
-        return _json_response(enriched, sort_key="date")
-    return _json_response([], sort_key="date")
+    return _json_response(_build_gold_data(user))
 
 
-@app_ui.route("/fixed_deposits_data", methods=["GET"])
+@app_ui.route("/api/fixed_deposits_data", methods=["GET"])
 @protected_api
 def fixed_deposits_data():
     user = _current_user()
-    _, deposits = _fetch_user_sheets_data(user)
-    if deposits is not None:
-        return _json_response(deposits, sort_key="deposited_on")
-    return _json_response([], sort_key="deposited_on")
+    return _json_response(_build_fd_data(user))
 
 
-@app_ui.route("/fd_summary_data", methods=["GET"])
+@app_ui.route("/api/all_data", methods=["GET"])
+@protected_api
+def all_data():
+    """Return all portfolio data in a single response.
+
+    Replaces the need for 6 separate endpoint calls from the frontend.
+    The backend batch-fetches all Google Sheets tabs in one API call,
+    then assembles and returns the combined payload.
+    """
+    user = _current_user()
+    google_id = user["google_id"]
+
+    # Pre-populate the sheets cache (single batchGet) so the
+    # individual _build_*_data helpers all hit cache.
+    _prefetch_all_user_sheets(user)
+
+    resp = jsonify({
+        "stocks": _build_stocks_data(user),
+        "mfHoldings": _build_mf_data(user),
+        "sips": _build_sips_data(user),
+        "physicalGold": _build_gold_data(user),
+        "fixedDeposits": _build_fd_data(user),
+        "status": _build_status_response(google_id),
+    })
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+@app_ui.route("/api/fd_summary_data", methods=["GET"])
 @protected_api
 def fd_summary_data():
     return _json_response([])
 
 
-@app_ui.route("/market_indices", methods=["GET"])
+@app_ui.route("/api/market_indices", methods=["GET"])
 @app_only
 def market_indices():
     from datetime import datetime, timedelta
@@ -597,7 +800,7 @@ def market_indices():
     return response
 
 
-@app_ui.route("/refresh", methods=["POST"])
+@app_ui.route("/api/refresh", methods=["POST"])
 @protected_api
 def refresh_route():
     """Trigger manual data refresh for the signed-in user."""
@@ -628,13 +831,15 @@ def portfolio_page():
     google_id = user.get("google_id", "")
     ensure_user_loaded(google_id)
 
-    user_data = portfolio_cache.get(google_id)
+    # Pre-populate the sheets cache once so _build helpers all hit cache.
+    _prefetch_all_user_sheets(user)
+
     initial_data = {
-        "stocks": sorted(user_data.stocks, key=lambda x: x.get("tradingsymbol", "")),
-        "mfHoldings": sorted(user_data.mf_holdings, key=lambda x: x.get("fund", "")),
-        "sips": sorted(user_data.sips, key=lambda x: x.get("status", "")),
-        "physicalGold": [],
-        "fixedDeposits": [],
+        "stocks": _build_stocks_data(user),
+        "mfHoldings": _build_mf_data(user),
+        "sips": _build_sips_data(user),
+        "physicalGold": _build_gold_data(user),
+        "fixedDeposits": _build_fd_data(user),
         "fdSummary": [],
         "status": _build_status_response(google_id),
     }
@@ -716,3 +921,252 @@ def remove_zerodha(account_name):
         return jsonify({"error": str(exc)}), 404
 
     return jsonify({"status": "removed"})
+
+
+# ---------------------------------------------------------------------------
+# Manual-entry CRUD  (Google Sheets backed)
+# ---------------------------------------------------------------------------
+
+def _get_sheets_client():
+    """Return an authenticated GoogleSheetsClient for the current user."""
+    from .api.google_auth import credentials_from_dict
+    from .api.google_sheets_client import GoogleSheetsClient
+
+    user = _current_user()
+    creds_dict = user.get("google_credentials")
+    if not creds_dict:
+        return None, None, "Google credentials not available"
+    creds = credentials_from_dict(creds_dict)
+    client = GoogleSheetsClient(user_credentials=creds)
+    spreadsheet_id = user.get("spreadsheet_id")
+    if not spreadsheet_id:
+        return None, None, "No spreadsheet linked"
+    return client, spreadsheet_id, None
+
+
+# Mapping: sheet_type → frontend data key for CRUD response
+_SHEET_TYPE_DATA_KEY = {
+    "stocks": "stocks",
+    "etfs": "stocks",           # ETFs merge into the stocks table
+    "mutual_funds": "mfHoldings",
+    "sips": "sips",
+    "physical_gold": "physicalGold",
+    "fixed_deposits": "fixedDeposits",
+}
+
+
+def _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type):
+    """Re-fetch and re-cache a single sheet type after a CRUD mutation.
+
+    Reads only the affected sheet from Google Sheets (not all 6),
+    preserving cache entries for every other type.
+    """
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS.get(sheet_type)
+    if not cfg:
+        return
+
+    try:
+        raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
+    except Exception:
+        logger.exception("Error re-reading %s after CRUD", sheet_type)
+        user_sheets_cache.invalidate(google_id)
+        return
+
+    if sheet_type == "physical_gold":
+        from .api.google_sheets_client import PhysicalGoldService
+        svc = PhysicalGoldService(client)
+        parsed = svc._parse_batch_data(raw)
+        user_sheets_cache.put(google_id, physical_gold=parsed)
+
+    elif sheet_type == "fixed_deposits":
+        from .api.google_sheets_client import FixedDepositsService
+        from .api.fixed_deposits import calculate_current_value
+        svc = FixedDepositsService(client)
+        parsed = calculate_current_value(svc._parse_batch_data(raw))
+        user_sheets_cache.put(google_id, fixed_deposits=parsed)
+
+    else:
+        # Manual types: stocks, etfs, mutual_funds, sips
+        rows = []
+        if raw and len(raw) >= 2:
+            fields = cfg["fields"]
+            for idx, row in enumerate(raw[1:], start=2):
+                if not row or all(not v or str(v).strip() == "" for v in row):
+                    break
+                entry = {"row_number": idx, "source": "manual"}
+                for fi, fname in enumerate(fields):
+                    entry[fname] = row[fi] if fi < len(row) else ""
+                rows.append(entry)
+        user_sheets_cache.put_manual(google_id, sheet_type, rows)
+
+
+def _build_data_for_type(user, sheet_type):
+    """Build and return ``{data_key: [rows]}`` for a single sheet type.
+
+    Called after a CRUD mutation so the response can carry the refreshed
+    dataset and the frontend can skip a full ``/api/all_data`` call.
+    """
+    data_key = _SHEET_TYPE_DATA_KEY.get(sheet_type)
+    if not data_key:
+        return {}
+
+    builders = {
+        "stocks": _build_stocks_data,
+        "mfHoldings": _build_mf_data,
+        "sips": _build_sips_data,
+        "physicalGold": _build_gold_data,
+        "fixedDeposits": _build_fd_data,
+    }
+    builder = builders.get(data_key)
+    if not builder:
+        return {}
+
+    try:
+        return {data_key: builder(user)}
+    except Exception:
+        logger.exception("Error building data for %s after CRUD", sheet_type)
+        return {}
+
+
+@app_ui.route("/api/sheets/<sheet_type>", methods=["GET"])
+@protected_api
+def sheets_list(sheet_type):
+    """List all rows from a manual-entry sheet tab."""
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS.get(sheet_type)
+    if not cfg:
+        return jsonify({"error": "Unknown sheet type"}), 400
+
+    client, spreadsheet_id, err = _get_sheets_client()
+    if err:
+        return jsonify({"error": err}), 400
+
+    try:
+        client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
+        raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
+    except Exception as e:
+        logger.exception("Error listing %s", sheet_type)
+        return jsonify({"error": str(e)}), 500
+
+    if not raw or len(raw) < 2:
+        return jsonify([])
+
+    fields = cfg["fields"]
+    rows = []
+    for idx, row in enumerate(raw[1:], start=2):
+        if not row or all(not v or str(v).strip() == "" for v in row):
+            break
+        entry = {"row_number": idx}
+        for fi, fname in enumerate(fields):
+            entry[fname] = row[fi] if fi < len(row) else ""
+        rows.append(entry)
+    return jsonify(rows)
+
+
+@app_ui.route("/api/sheets/<sheet_type>", methods=["POST"])
+@protected_api
+def sheets_add(sheet_type):
+    """Add a new row to a manual-entry sheet tab."""
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS.get(sheet_type)
+    if not cfg:
+        return jsonify({"error": "Unknown sheet type"}), 400
+
+    client, spreadsheet_id, err = _get_sheets_client()
+    if err:
+        return jsonify({"error": err}), 400
+
+    data = request.get_json(silent=True) or {}
+    values = [data.get(f, "") for f in cfg["fields"]]
+
+    try:
+        client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
+        row_num = client.append_row(spreadsheet_id, cfg["sheet_name"], values)
+        # Refresh only the changed sheet in cache (not all 6).
+        user = _current_user()
+        google_id = user.get("google_id", "")
+        _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
+    except Exception as e:
+        logger.exception("Error adding %s row", sheet_type)
+        return jsonify({"error": str(e)}), 500
+
+    result = {"status": "added", "row_number": row_num}
+    refreshed = _build_data_for_type(user, sheet_type)
+    if refreshed:
+        result["data"] = refreshed
+    return jsonify(result)
+
+
+@app_ui.route("/api/sheets/<sheet_type>/<int:row_number>", methods=["PUT"])
+@protected_api
+def sheets_update(sheet_type, row_number):
+    """Update a specific row in a manual-entry sheet tab."""
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS.get(sheet_type)
+    if not cfg:
+        return jsonify({"error": "Unknown sheet type"}), 400
+
+    if row_number < 2:
+        return jsonify({"error": "Cannot edit header row"}), 400
+
+    client, spreadsheet_id, err = _get_sheets_client()
+    if err:
+        return jsonify({"error": err}), 400
+
+    data = request.get_json(silent=True) or {}
+    values = [data.get(f, "") for f in cfg["fields"]]
+
+    try:
+        client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)
+        # Refresh only the changed sheet in cache (not all 6).
+        user = _current_user()
+        google_id = user.get("google_id", "")
+        _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
+    except Exception as e:
+        logger.exception("Error updating %s row %d", sheet_type, row_number)
+        return jsonify({"error": str(e)}), 500
+
+    result = {"status": "updated"}
+    refreshed = _build_data_for_type(user, sheet_type)
+    if refreshed:
+        result["data"] = refreshed
+    return jsonify(result)
+
+
+@app_ui.route("/api/sheets/<sheet_type>/<int:row_number>", methods=["DELETE"])
+@protected_api
+def sheets_delete(sheet_type, row_number):
+    """Delete a specific row from a manual-entry sheet tab."""
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS.get(sheet_type)
+    if not cfg:
+        return jsonify({"error": "Unknown sheet type"}), 400
+
+    if row_number < 2:
+        return jsonify({"error": "Cannot delete header row"}), 400
+
+    client, spreadsheet_id, err = _get_sheets_client()
+    if err:
+        return jsonify({"error": err}), 400
+
+    try:
+        client.delete_row(spreadsheet_id, cfg["sheet_name"], row_number)
+        # Refresh only the changed sheet in cache (not all 6).
+        user = _current_user()
+        google_id = user.get("google_id", "")
+        _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
+    except Exception as e:
+        logger.exception("Error deleting %s row %d", sheet_type, row_number)
+        return jsonify({"error": str(e)}), 500
+
+    result = {"status": "deleted"}
+    refreshed = _build_data_for_type(user, sheet_type)
+    if refreshed:
+        result["data"] = refreshed
+    return jsonify(result)

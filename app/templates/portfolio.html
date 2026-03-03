@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/styles.css">
 <link rel="modulepreload" href="/static/js/app.js">
+<link rel="modulepreload" href="/static/js/crud-manager.js">
 </head>
 <body>
 <script>
@@ -252,6 +253,10 @@
 <div class="section-header">
 <h2>Stocks</h2>
 <div class="controls-container">
+<button class="crud-add-btn" onclick="window.crudAdd('stocks')" title="Add stock manually">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+<span>Add</span>
+</button>
 <div class="pagination-controls">
 <label for="stocks_page_size">Show:</label>
 <select id="stocks_page_size" onchange="window.changeStocksPageSize(this.value)">
@@ -274,7 +279,6 @@
 </tbody>
 </table>
 </div>
-<div class="empty-state-message" id="stocks_empty_state" style="display:none;">No stocks data available</div>
 <div class="pagination-info" id="stocks_pagination_info"></div>
 <div class="pagination-buttons" id="stocks_pagination_buttons"></div>
 </div>
@@ -283,6 +287,10 @@
 <div class="section-header">
 <h2>ETFs</h2>
 <div class="controls-container">
+<button class="crud-add-btn" onclick="window.crudAdd('etfs')" title="Add ETF manually">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+<span>Add</span>
+</button>
 <div class="pagination-controls">
 <label for="etf_page_size">Show:</label>
 <select id="etf_page_size" onchange="window.changeETFPageSize(this.value)">
@@ -305,7 +313,6 @@
 </tbody>
 </table>
 </div>
-<div class="empty-state-message" id="etf_empty_state" style="display:none;">No ETF data available</div>
 <div class="pagination-info" id="etf_pagination_info"></div>
 <div class="pagination-buttons" id="etf_pagination_buttons"></div>
 </div>
@@ -314,6 +321,10 @@
 <div class="section-header">
 <h2>Mutual Funds</h2>
 <div class="controls-container">
+<button class="crud-add-btn" onclick="window.crudAdd('mutual_funds')" title="Add mutual fund manually">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+<span>Add</span>
+</button>
 <div class="pagination-controls">
 <label for="mf_page_size">Show:</label>
 <select id="mf_page_size" onchange="window.changeMFPageSize(this.value)">
@@ -336,7 +347,6 @@
 </tbody>
 </table>
 </div>
-<div class="empty-state-message" id="mf_empty_state" style="display:none;">No mutual funds data available</div>
 <div class="pagination-info" id="mf_pagination_info"></div>
 <div class="pagination-buttons" id="mf_pagination_buttons"></div>
 </div>
@@ -347,6 +357,10 @@
 <div class="section-header">
 <h2>Physical Gold</h2>
 <div class="controls-container">
+<button class="crud-add-btn" onclick="window.crudAdd('physical_gold')" title="Add physical gold">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+<span>Add</span>
+</button>
 <div class="pagination-controls">
 <label for="physical_gold_page_size">Show:</label>
 <select id="physical_gold_page_size" onchange="window.changePhysicalGoldPageSize(this.value)">
@@ -376,7 +390,6 @@
 </tbody>
 </table>
 </div>
-<div class="empty-state-message" id="physical_gold_empty_state" style="display:none;">No physical gold holdings available</div>
 <div class="pagination-info" id="physical_gold_pagination_info"></div>
 <div class="pagination-buttons" id="physical_gold_pagination_buttons"></div>
 </div>
@@ -388,6 +401,10 @@
 <div class="section-header">
 <h2>Fixed Deposits</h2>
 <div class="controls-container fd-header-controls">
+<button class="crud-add-btn" onclick="window.crudAdd('fixed_deposits')" title="Add fixed deposit">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+<span>Add</span>
+</button>
 <div class="pagination-controls active" id="fixed_deposits_header_control">
 <label for="fixed_deposits_page_size">Show:</label>
 <select id="fixed_deposits_page_size" onchange="window.changeFixedDepositsPageSize(this.value)">
@@ -440,7 +457,6 @@ By Bank
 </tbody>
 </table>
 </div>
-<div class="empty-state-message" id="fixed_deposits_empty_state" style="display:none;">No fixed deposits available</div>
 <div class="pagination-info" id="fixed_deposits_pagination_info"></div>
 <div class="pagination-buttons" id="fixed_deposits_pagination_buttons"></div>
 </div>
@@ -472,6 +488,12 @@ By Bank
 <div class="section-wrapper" id="sips-section">
 <div class="section-header">
 <h2>SIPs</h2>
+<div class="controls-container">
+<button class="crud-add-btn" onclick="window.crudAdd('sips')" title="Add SIP manually">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+<span>Add</span>
+</button>
+</div>
 </div>
 <div class="table-scroll-wrapper">
 <table aria-label="SIPs table">
@@ -484,7 +506,6 @@ By Bank
 </tbody>
 </table>
 </div>
-<div class="empty-state-message" id="sips_empty_state" style="display:none;">No SIPs available</div>
 </div>
 
 </div>

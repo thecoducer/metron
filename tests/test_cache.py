@@ -148,6 +148,53 @@ class TestUserSheetsCache(unittest.TestCase):
     def test_global_instance(self):
         self.assertIsInstance(user_sheets_cache, UserSheetsCache)
 
+    # ── is_fully_cached ──
+
+    def test_is_fully_cached_false_when_empty(self):
+        usc = UserSheetsCache(ttl=60)
+        self.assertFalse(usc.is_fully_cached("user1"))
+
+    def test_is_fully_cached_false_with_only_gold_fd(self):
+        usc = UserSheetsCache(ttl=60)
+        usc.put("user1", physical_gold=[{"g": 1}], fixed_deposits=[{"fd": 1}])
+        self.assertFalse(usc.is_fully_cached("user1"))
+
+    def test_is_fully_cached_true_after_put_all(self):
+        usc = UserSheetsCache(ttl=60)
+        usc.put_all("user1",
+                     physical_gold=[{"g": 1}],
+                     fixed_deposits=[{"fd": 1}],
+                     manual={"stocks": [{"s": 1}], "etfs": [],
+                             "mutual_funds": [], "sips": []})
+        self.assertTrue(usc.is_fully_cached("user1"))
+
+    def test_is_fully_cached_false_after_ttl(self):
+        usc = UserSheetsCache(ttl=0)
+        usc.put_all("user1",
+                     physical_gold=[], fixed_deposits=[],
+                     manual={"stocks": [], "etfs": [],
+                             "mutual_funds": [], "sips": []})
+        time.sleep(0.01)
+        self.assertFalse(usc.is_fully_cached("user1"))
+
+    # ── put_all ──
+
+    def test_put_all_populates_gold_fd_and_manual(self):
+        usc = UserSheetsCache(ttl=60)
+        usc.put_all("user1",
+                     physical_gold=[{"g": 1}],
+                     fixed_deposits=[{"fd": 1}],
+                     manual={"stocks": [{"s": 1}], "etfs": [{"e": 1}],
+                             "mutual_funds": [{"m": 1}], "sips": [{"p": 1}]})
+        entry = usc.get("user1")
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.physical_gold, [{"g": 1}])
+        self.assertEqual(entry.fixed_deposits, [{"fd": 1}])
+        self.assertEqual(usc.get_manual("user1", "stocks"), [{"s": 1}])
+        self.assertEqual(usc.get_manual("user1", "etfs"), [{"e": 1}])
+        self.assertEqual(usc.get_manual("user1", "mutual_funds"), [{"m": 1}])
+        self.assertEqual(usc.get_manual("user1", "sips"), [{"p": 1}])
+
 
 class TestGlobalThreadEvents(unittest.TestCase):
 

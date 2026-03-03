@@ -75,7 +75,13 @@ _SHEETS_CACHE_TTL = 300  # seconds
 class _UserCacheEntry:
     physical_gold: List[Dict[str, Any]] = field(default_factory=list)
     fixed_deposits: List[Dict[str, Any]] = field(default_factory=list)
+    stocks: List[Dict[str, Any]] = field(default_factory=list)
+    etfs: List[Dict[str, Any]] = field(default_factory=list)
+    mutual_funds: List[Dict[str, Any]] = field(default_factory=list)
+    sips: List[Dict[str, Any]] = field(default_factory=list)
     timestamp: float = 0.0
+    # Track which sheet types have actually been fetched vs just default-empty
+    _fetched_sheets: set = field(default_factory=set)
 
 
 class UserSheetsCache:
@@ -103,6 +109,71 @@ class UserSheetsCache:
             if fixed_deposits is not None:
                 entry.fixed_deposits = fixed_deposits
                 entry.timestamp = now
+
+    # ── Sheet-entry helpers (stocks / etfs / mutual_funds / sips) ──
+
+    _SHEET_ATTR = {
+        "stocks": "stocks",
+        "etfs": "etfs",
+        "mutual_funds": "mutual_funds",
+        "sips": "sips",
+    }
+
+    def get_manual(self, google_id: str, sheet_type: str) -> Optional[List]:
+        """Return cached entries for *sheet_type*, or None on miss."""
+        attr = self._SHEET_ATTR.get(sheet_type)
+        if not attr:
+            return None
+        with self._lock:
+            entry = self._store.get(google_id)
+            if entry and (time.monotonic() - entry.timestamp) < self._ttl:
+                if sheet_type in entry._fetched_sheets:
+                    return getattr(entry, attr)
+            return None
+
+    def put_manual(self, google_id: str, sheet_type: str, rows: List) -> None:
+        """Cache entries for *sheet_type*."""
+        attr = self._SHEET_ATTR.get(sheet_type)
+        if not attr:
+            return
+        with self._lock:
+            now = time.monotonic()
+            entry = self._store.setdefault(google_id, _UserCacheEntry(timestamp=now))
+            setattr(entry, attr, rows)
+            entry._fetched_sheets.add(sheet_type)
+            entry.timestamp = now
+
+    # ── Batch helpers ──
+
+    _ALL_MANUAL_TYPES = frozenset(_SHEET_ATTR)
+
+    def is_fully_cached(self, google_id: str) -> bool:
+        """Return True when gold, FDs, and all 4 manual sheet types are cached."""
+        with self._lock:
+            entry = self._store.get(google_id)
+            if not entry or (time.monotonic() - entry.timestamp) >= self._ttl:
+                return False
+            return self._ALL_MANUAL_TYPES.issubset(entry._fetched_sheets)
+
+    def put_all(self, google_id: str, *,
+                physical_gold: List = None,
+                fixed_deposits: List = None,
+                manual: Dict[str, List] = None) -> None:
+        """Cache gold, FDs, and all manual sheet types in one call."""
+        with self._lock:
+            now = time.monotonic()
+            entry = self._store.setdefault(google_id, _UserCacheEntry(timestamp=now))
+            if physical_gold is not None:
+                entry.physical_gold = physical_gold
+            if fixed_deposits is not None:
+                entry.fixed_deposits = fixed_deposits
+            if manual:
+                for sheet_type, rows in manual.items():
+                    attr = self._SHEET_ATTR.get(sheet_type)
+                    if attr:
+                        setattr(entry, attr, rows)
+                        entry._fetched_sheets.add(sheet_type)
+            entry.timestamp = now
 
     def invalidate(self, google_id: str) -> None:
         with self._lock:

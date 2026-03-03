@@ -12,7 +12,7 @@
 
 // Sign-out handler
 function handleLogout() {
-  window.metronFetch('/auth/logout', { method: 'POST' })
+  window.metronFetch('/api/auth/logout', { method: 'POST' })
     .then(() => { window.location.href = '/'; })
     .catch(() => { window.location.href = '/'; });
 }

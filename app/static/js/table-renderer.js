@@ -3,6 +3,25 @@
 import { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, isETFInstrument } from './utils.js';
 import PaginationManager from './pagination.js';
 
+/**
+ * Build inline edit + delete action buttons for a manual-entry row.
+ * @param {string} schemaKey - CRUD schema key (e.g. 'stocks', 'physical_gold')
+ * @param {number} rowNumber - Sheet row number
+ * @param {Object} values - Current field values for pre-populating the edit form
+ * @returns {string} HTML string with action icons
+ */
+function buildCrudActions(schemaKey, rowNumber, values) {
+  const encoded = encodeURIComponent(JSON.stringify(values));
+  return `<span class="crud-row-actions">` +
+    `<button class="crud-action-btn crud-edit-btn" onclick="event.stopPropagation();crudEdit('${schemaKey}',${rowNumber},'${encoded}')" title="Edit">` +
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>` +
+    `</button>` +
+    `<button class="crud-action-btn crud-delete-btn" onclick="event.stopPropagation();crudDelete('${schemaKey}',${rowNumber})" title="Delete">` +
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>` +
+    `</button>` +
+    `</span>`;
+}
+
 class TableRenderer {
   constructor() {
     this.searchQuery = '';
@@ -34,21 +53,42 @@ class TableRenderer {
    * @param {boolean} hasData - Whether the section has data to display
    */
   _toggleSectionVisibility({ table, emptyState, controls, paginationInfo, paginationButtons, tabs }, hasData) {
+    // Table and controls are always visible (headers + Add button stay accessible)
+    if (table) table.style.display = 'table';
+    if (controls) controls.style.display = 'flex';
+    if (emptyState) emptyState.style.display = 'none'; // replaced by in-table CTA
+
     if (hasData) {
-      if (table) table.style.display = 'table';
-      if (emptyState) emptyState.style.display = 'none';
-      if (controls) controls.style.display = 'flex';
       if (paginationInfo) paginationInfo.style.display = 'block';
       if (paginationButtons) paginationButtons.style.display = 'flex';
       if (tabs) tabs.style.display = 'flex';
     } else {
-      if (table) table.style.display = 'none';
-      if (emptyState) emptyState.style.display = 'block';
-      if (controls) controls.style.display = 'none';
       if (paginationInfo) paginationInfo.style.display = 'none';
       if (paginationButtons) paginationButtons.style.display = 'none';
       if (tabs) tabs.style.display = 'none';
     }
+  }
+
+  /**
+   * Render an in-table empty-state CTA row.
+   * @param {HTMLElement} tbody - Target tbody
+   * @param {string} schemaKey - CRUD schema key for the Add button
+   * @param {string} label - Human-readable type label
+   * @param {number} colCount - Number of columns for colspan
+   */
+  _renderEmptyCta(tbody, schemaKey, label, colCount) {
+    tbody.innerHTML = `<tr class="crud-empty-cta-row">
+      <td colspan="${colCount}">
+        <div class="crud-empty-cta">
+          <svg class="crud-empty-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+          <span class="crud-empty-text">No ${label} added yet</span>
+          <button class="crud-empty-add-btn" onclick="window.crudAdd('${schemaKey}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            Add ${label}
+          </button>
+        </div>
+      </td>
+    </tr>`;
   }
 
   /**
@@ -190,12 +230,16 @@ class TableRenderer {
         });
       }
     });
-    tbody.innerHTML = rowsHTML;
+    if (filteredHoldings.length === 0 && holdings.length === 0) {
+      this._renderEmptyCta(tbody, 'stocks', 'stocks', 10);
+    } else {
+      tbody.innerHTML = rowsHTML;
+    }
 
     // Show/hide table and empty state
     this._toggleSectionVisibility({
       table: section.querySelector('table'),
-      emptyState: document.getElementById('stocks_empty_state'),
+      emptyState: null,
       controls: section.querySelector('.controls-container'),
       paginationInfo: document.getElementById('stocks_pagination_info'),
       paginationButtons: document.getElementById('stocks_pagination_buttons')
@@ -302,12 +346,16 @@ class TableRenderer {
         });
       }
     });
-    tbody.innerHTML = rowsHTML;
+    if (filteredHoldings.length === 0 && mfHoldings.length === 0) {
+      this._renderEmptyCta(tbody, 'mutual_funds', 'mutual funds', 8);
+    } else {
+      tbody.innerHTML = rowsHTML;
+    }
 
     // Show/hide table and empty state
     this._toggleSectionVisibility({
       table: section.querySelector('table'),
-      emptyState: document.getElementById('mf_empty_state'),
+      emptyState: null,
       controls: section.querySelector('.controls-container'),
       paginationInfo: document.getElementById('mf_pagination_info'),
       paginationButtons: document.getElementById('mf_pagination_buttons')
@@ -367,20 +415,16 @@ class TableRenderer {
       }
     });
 
-    rowsHTML += this._buildSIPTotalRow(totalMonthlyAmount, dataClass);
-    tbody.innerHTML = rowsHTML;
-    
-    // Show/hide table and empty state
-    const table = section.querySelector('table');
-    const emptyState = document.getElementById('sips_empty_state');
-    
-    if (visibleCount === 0) {
-      table.style.display = 'none';
-      emptyState.style.display = 'block';
+    if (visibleCount === 0 && sips.length === 0) {
+      this._renderEmptyCta(tbody, 'sips', 'SIPs', 7);
     } else {
-      table.style.display = 'table';
-      emptyState.style.display = 'none';
+      rowsHTML += this._buildSIPTotalRow(totalMonthlyAmount, dataClass);
+      tbody.innerHTML = rowsHTML;
     }
+    
+    // Always show table with headers; hide old empty state
+    const table = section.querySelector('table');
+    if (table) table.style.display = 'table';
   }
 
   _buildSIPTotalRow(totalAmount, dataClass) {
@@ -551,9 +595,17 @@ class TableRenderer {
     
     const symbol = holding.tradingsymbol;
     const accountDisplay = classes.hasMultipleAccounts ? '> 1' : (holding.account || '-');
+    const isManual = holding.source === 'manual';
+    const manualBadge = isManual ? '<span class="crud-manual-badge">Manual</span>' : '';
+    const crudType = (isManual && holding.manual_type === 'etfs') ? 'etfs' : 'stocks';
+    const actions = isManual ? buildCrudActions(crudType, holding.row_number, {
+      symbol: holding.tradingsymbol, qty: holding.quantity,
+      avg_price: holding.average_price, exchange: holding.exchange, account: holding.account
+    }) : '';
+    const manualAttrs = isManual ? ` data-manual-row="${holding.row_number}" data-schema="${crudType}"` : '';
     
-    return `<tr class="${classes.groupId ? `group-row ${classes.groupId}` : ''}" style="background-color:${Formatter.rowColor(pl)}">
-  ${this._buildCell(expandBtn + symbol, classes.symbolClass)}
+    return `<tr${manualAttrs} class="${classes.groupId ? `group-row ${classes.groupId}` : ''}" style="background-color:${Formatter.rowColor(pl)}">
+  ${this._buildCell(expandBtn + symbol + manualBadge, classes.symbolClass)}
   ${this._buildCell(qty.toLocaleString(), classes.qtyClass)}
   ${this._buildCell(Formatter.formatCurrency(avg), classes.avgClass)}
   ${this._buildCell(Formatter.formatCurrency(invested), classes.investedClass)}
@@ -562,7 +614,7 @@ class TableRenderer {
   ${this._buildPLCell(pl, classes.plClass)}
   ${this._buildChangeCell(dayChange, dayChangePct, classes.dayChangeClass)}
   ${this._buildCell(holding.exchange, classes.exchangeClass)}
-  ${this._buildCell(accountDisplay, classes.accountClass)}
+  ${this._buildCell(accountDisplay + actions, classes.accountClass)}
   </tr>`;
   }
 
@@ -601,16 +653,23 @@ class TableRenderer {
     }
 
     const mfNameCell = `<span class="mf-fund-cell"><span class="mf-fund-label">${fundName}</span></span>`;
+    const isManual = mf.source === 'manual';
+    const manualBadge = isManual ? '<span class="crud-manual-badge">Manual</span>' : '';
+    const crudActions = isManual ? buildCrudActions('mutual_funds', mf.row_number, {
+      fund: mf.fund || mf.tradingsymbol, qty: mf.quantity,
+      avg_nav: mf.average_price, account: mf.account
+    }) : '';
     
-    return `<tr class="${classes.groupId ? `group-row ${classes.groupId}` : ''}" style="background-color:${Formatter.rowColor(pl)}">
-  ${this._buildCell(expandBtn + mfNameCell, classes.fundClass)}
+    const manualAttrs = isManual ? ` data-manual-row="${mf.row_number}" data-schema="mutual_funds"` : '';
+    return `<tr${manualAttrs} class="${classes.groupId ? `group-row ${classes.groupId}` : ''}" style="background-color:${Formatter.rowColor(pl)}">
+  ${this._buildCell(expandBtn + mfNameCell + manualBadge, classes.fundClass)}
   ${this._buildCell(qty.toLocaleString(), classes.qtyClass)}
   ${this._buildCell(Formatter.formatCurrency(avg), classes.avgClass)}
   ${this._buildCell(Formatter.formatCurrency(invested), classes.investedClass)}
   ${this._buildValueWithPctCell(Formatter.formatCurrency(current), plPct, classes.currentClass)}
   ${this._buildCell(Formatter.formatLTP(nav) + navDateText, classes.navClass)}
   ${this._buildPLCell(pl, classes.plClass)}
-  ${this._buildCell(accountDisplay, classes.accountClass)}
+  ${this._buildCell(accountDisplay + crudActions, classes.accountClass)}
   </tr>`;
   }
 
@@ -663,14 +722,25 @@ class TableRenderer {
       nextDueText = formattedDate || sip.next_instalment;
     }
     
-    return `<tr>
-<td class="${dataClass}">${fundName}</td>
+    const isManual = sip.source === 'manual';
+    const manualBadge = isManual ? ' <span class="crud-manual-badge">Manual</span>' : '';
+    const crudActions = isManual ? buildCrudActions('sips', sip.row_number, {
+      fund: sip.fund || sip.tradingsymbol, amount: sip.instalment_amount,
+      frequency: sip.frequency || 'MONTHLY',
+      installments: sip.instalments || -1, completed: sip.completed_instalments || 0,
+      status: sip.status || 'ACTIVE', next_due: sip.next_instalment || '',
+      account: sip.account
+    }) : '';
+
+    const manualAttrs = isManual ? ` data-manual-row="${sip.row_number}" data-schema="sips"` : '';
+    return `<tr${manualAttrs}>
+<td class="${dataClass}">${fundName}${manualBadge}</td>
 <td class="${dataClass}">${Formatter.formatCurrency(sip.instalment_amount || 0)}</td>
 <td class="${dataClass}">${frequency}</td>
 <td class="${dataClass}">${installments}</td>
 <td class="${dataClass}"><span style="color:${statusColor};font-weight:600">${status}</span></td>
 <td class="${dataClass}">${nextDueText}</td>
-<td class="${dataClass}">${sip.account}</td>
+<td class="${dataClass}">${sip.account}${crudActions}</td>
 </tr>`;
   }
 
@@ -766,12 +836,16 @@ class TableRenderer {
         });
       }
     });
-    tbody.innerHTML = rowsHTML;
+    if (filteredHoldings.length === 0 && holdings.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || '')).length === 0) {
+      this._renderEmptyCta(tbody, 'etfs', 'ETFs', 10);
+    } else {
+      tbody.innerHTML = rowsHTML;
+    }
 
     // Show/hide table and empty state
     this._toggleSectionVisibility({
       table: section.querySelector('table'),
-      emptyState: document.getElementById('etf_empty_state'),
+      emptyState: null,
       controls: section.querySelector('.controls-container'),
       paginationInfo: document.getElementById('etf_pagination_info'),
       paginationButtons: document.getElementById('etf_pagination_buttons')
@@ -842,7 +916,7 @@ class TableRenderer {
 
     const sectionElements = {
       table: section ? section.querySelector('table') : null,
-      emptyState: document.getElementById('physical_gold_empty_state'),
+      emptyState: null,
       controls: section ? section.querySelector('.controls-container') : null,
       paginationInfo: document.getElementById('physical_gold_pagination_info'),
       paginationButtons: document.getElementById('physical_gold_pagination_buttons')
@@ -850,14 +924,15 @@ class TableRenderer {
 
     if (!holdings || holdings.length === 0) {
       this._toggleSectionVisibility(sectionElements, false);
+      this._renderEmptyCta(tbody, 'physical_gold', 'physical gold', 8);
       return { invested: 0, current: 0, pl: 0, plPct: 0 };
     }
-
-    this._toggleSectionVisibility(sectionElements, true);
 
     let totalPhysicalGoldInvested = 0;
     let totalPhysicalGoldCurrent = 0;
     let totalPhysicalGoldPL = 0;
+    
+    this._toggleSectionVisibility(sectionElements, true);
     
     holdings.forEach((holding) => {
       const weight = holding.weight_gms || 0;
@@ -914,7 +989,14 @@ class TableRenderer {
       plDisplay = `${plDisplay} <span class="pl_pct_small" style="color:${plColor}">${pctText}</span>`;
     }
 
-    return `<tr style="background-color:${Formatter.rowColor(pl)}">
+    const crudActions = buildCrudActions('physical_gold', holding.row_number, {
+      date: holding.date || '', type: holding.type || '',
+      retail_outlet: holding.retail_outlet || '', purity: holding.purity || '',
+      weight_gms: holding.weight_gms || 0,
+      bought_ibja_rate_per_gm: holding.bought_ibja_rate_per_gm || 0
+    });
+
+    return `<tr data-manual-row="${holding.row_number}" data-schema="physical_gold" style="background-color:${Formatter.rowColor(pl)}">
       <td>${Formatter.formatShortDate(holding.date)}</td>
       <td>${holding.type || '-'}</td>
       <td>${holding.retail_outlet || '-'}</td>
@@ -922,7 +1004,7 @@ class TableRenderer {
       <td>${weight}</td>
       <td>${ibjaRate}</td>
       <td>${latestPrice}</td>
-      <td style="color:${plColor};font-weight:600">${plDisplay}</td>
+      <td style="color:${plColor};font-weight:600">${plDisplay}${crudActions}</td>
     </tr>`;
   }
 
@@ -962,7 +1044,7 @@ class TableRenderer {
 
     const sectionElements = {
       table: section ? section.querySelector('table') : null,
-      emptyState: document.getElementById('fixed_deposits_empty_state'),
+      emptyState: null,
       controls: section ? section.querySelector('.controls-container') : null,
       paginationInfo: document.getElementById('fixed_deposits_pagination_info'),
       paginationButtons: document.getElementById('fixed_deposits_pagination_buttons'),
@@ -971,6 +1053,7 @@ class TableRenderer {
 
     if (!deposits || deposits.length === 0) {
       this._toggleSectionVisibility(sectionElements, false);
+      this._renderEmptyCta(tbody, 'fixed_deposits', 'fixed deposits', 9);
       return { invested: 0, maturity: 0, returns: 0, returnsPct: 0 };
     }
 
@@ -1113,7 +1196,22 @@ class TableRenderer {
       : '-';
     const interestRateDisplay = interestRate ? `${interestRate.toFixed(2)}%` : '-';
 
-    return `<tr class="${classes.groupId ? `group-row ${classes.groupId}` : ''}">
+    const crudActions = (deposit.row_number) ? buildCrudActions('fixed_deposits', deposit.row_number, {
+      original_investment_date: deposit.original_investment_date || '',
+      reinvested_date: deposit.reinvested_date || '',
+      bank_name: deposit.bank_name || '',
+      deposit_year: deposit.deposit_year || 0,
+      deposit_month: deposit.deposit_month || 0,
+      deposit_day: deposit.deposit_day || 0,
+      original_amount: deposit.original_amount || 0,
+      reinvested_amount: deposit.reinvested_amount || 0,
+      interest_rate: deposit.interest_rate || 0,
+      redeemed: deposit.redeemed ? 'Yes' : 'No',
+      account: deposit.account || ''
+    }) : '';
+
+    const manualAttrs = deposit.row_number ? ` data-manual-row="${deposit.row_number}" data-schema="fixed_deposits"` : '';
+    return `<tr${manualAttrs} class="${classes.groupId ? `group-row ${classes.groupId}` : ''}">
       <td>${expandBtn}${Formatter.formatShortDate(deposit.original_investment_date)}</td>
       <td>${Formatter.formatShortDate(deposit.reinvested_date)}</td>
       <td>${deposit.bank_name || '-'}</td>
@@ -1122,7 +1220,7 @@ class TableRenderer {
       <td style="color:#3498db;font-weight:600">${interestRateDisplay}</td>
       <td>${Formatter.formatShortDate(deposit.maturity_date)}</td>
       <td>${Formatter.formatCurrency(currentValue)}</td>
-      <td>${accountDisplay}</td>
+      <td>${accountDisplay}${crudActions}</td>
     </tr>`;
   }
 

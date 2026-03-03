@@ -12,7 +12,7 @@
  */
 
 class SSEConnectionManager {
-  constructor(eventUrl = '/events', {
+  constructor(eventUrl = '/api/events', {
     baseReconnectDelay = 1000,   // initial reconnect delay (ms)
     maxReconnectDelay  = 30000,  // cap on backoff (ms)
     maxRetries         = 50,     // give up after this many consecutive failures
@@ -198,7 +198,7 @@ class SSEConnectionManager {
   /** If the connection was rejected, check whether the user is still authenticated. */
   async _handleAuthCheck() {
     try {
-      const resp = await fetch('/auth/me', {
+      const resp = await fetch('/api/auth/me', {
         headers: { 'X-Requested-With': 'MetronApp' },
         credentials: 'same-origin',
       });

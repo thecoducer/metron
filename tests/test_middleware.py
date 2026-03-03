@@ -48,7 +48,7 @@ class TestLoginRequired(unittest.TestCase):
     def test_unauthenticated_returns_401(self):
         """Unauthenticated request to a protected endpoint returns 401."""
         response = self.client.get(
-            "/stocks_data",
+            "/api/stocks_data",
             headers=_APP_HEADERS,
         )
         self.assertEqual(response.status_code, 401)
@@ -65,7 +65,7 @@ class TestLoginRequired(unittest.TestCase):
             )
             _inject_user(self.client)
             response = self.client.get(
-                "/stocks_data",
+                "/api/stocks_data",
                 headers=_APP_HEADERS,
             )
 
@@ -82,7 +82,7 @@ class TestAppOnly(unittest.TestCase):
 
     def test_no_header_returns_403(self):
         """Request without X-Requested-With header returns 403."""
-        response = self.client.get("/nifty50_data")
+        response = self.client.get("/api/nifty50_data")
         self.assertEqual(response.status_code, 403)
         data = json.loads(response.data)
         self.assertEqual(data["error"], "Forbidden")
@@ -90,7 +90,7 @@ class TestAppOnly(unittest.TestCase):
     def test_wrong_header_value_returns_403(self):
         """Request with wrong X-Requested-With value returns 403."""
         response = self.client.get(
-            "/nifty50_data",
+            "/api/nifty50_data",
             headers={APP_REQUEST_HEADER: "SomeOtherApp"},
         )
         self.assertEqual(response.status_code, 403)
@@ -100,7 +100,7 @@ class TestAppOnly(unittest.TestCase):
         with patch("app.routes.market_cache") as mock_mc:
             mock_mc.nifty50 = [{"symbol": "TCS", "ltp": 3500}]
             response = self.client.get(
-                "/nifty50_data",
+                "/api/nifty50_data",
                 headers=_APP_HEADERS,
             )
 
@@ -111,7 +111,7 @@ class TestAppOnly(unittest.TestCase):
         with patch("app.routes.market_cache") as mock_mc:
             mock_mc.nifty50 = [{"symbol": "TCS", "ltp": 3500}]
             response = self.client.get(
-                "/nifty50_data",
+                "/api/nifty50_data",
                 headers={"Sec-Fetch-Mode": "same-origin"},
             )
 
@@ -122,7 +122,7 @@ class TestAppOnly(unittest.TestCase):
         with patch("app.routes.market_cache") as mock_mc:
             mock_mc.nifty50 = [{"symbol": "TCS", "ltp": 3500}]
             response = self.client.get(
-                "/nifty50_data",
+                "/api/nifty50_data",
                 headers={"Sec-Fetch-Mode": "cors"},
             )
 
@@ -131,7 +131,7 @@ class TestAppOnly(unittest.TestCase):
     def test_sec_fetch_mode_navigate_blocked(self):
         """Request with Sec-Fetch-Mode: navigate is blocked (direct browser access)."""
         response = self.client.get(
-            "/nifty50_data",
+            "/api/nifty50_data",
             headers={"Sec-Fetch-Mode": "navigate"},
         )
         self.assertEqual(response.status_code, 403)
@@ -143,7 +143,7 @@ class TestAppOnly(unittest.TestCase):
         with patch("app.routes.market_cache") as mock_mc:
             mock_mc.nifty50 = [{"symbol": "TCS", "ltp": 3500}]
             # No special headers — simulates direct browser access
-            response = self.client.get("/nifty50_data")
+            response = self.client.get("/api/nifty50_data")
 
         self.assertEqual(response.status_code, 200)
 
@@ -151,7 +151,7 @@ class TestAppOnly(unittest.TestCase):
     def test_debug_flag_false_enforces_check(self, mock_config):
         """When allow_browser_api_access is False, direct access is blocked."""
         mock_config.features = {"allow_browser_api_access": False}
-        response = self.client.get("/nifty50_data")
+        response = self.client.get("/api/nifty50_data")
         self.assertEqual(response.status_code, 403)
 
 
@@ -165,13 +165,13 @@ class TestProtectedApi(unittest.TestCase):
 
     def test_unauthenticated_without_header_returns_401(self):
         """Auth check runs first — 401 before 403."""
-        response = self.client.get("/stocks_data")
+        response = self.client.get("/api/stocks_data")
         self.assertEqual(response.status_code, 401)
 
     def test_unauthenticated_with_header_returns_401(self):
         """Even with the app header, unauthenticated gets 401."""
         response = self.client.get(
-            "/stocks_data",
+            "/api/stocks_data",
             headers=_APP_HEADERS,
         )
         self.assertEqual(response.status_code, 401)
@@ -179,7 +179,7 @@ class TestProtectedApi(unittest.TestCase):
     def test_authenticated_without_header_returns_403(self):
         """Authenticated but without app header gets 403."""
         _inject_user(self.client)
-        response = self.client.get("/stocks_data")
+        response = self.client.get("/api/stocks_data")
         self.assertEqual(response.status_code, 403)
 
     def test_authenticated_with_header_passes(self):
@@ -192,7 +192,7 @@ class TestProtectedApi(unittest.TestCase):
             )
             _inject_user(self.client)
             response = self.client.get(
-                "/stocks_data",
+                "/api/stocks_data",
                 headers=_APP_HEADERS,
             )
 
@@ -210,7 +210,7 @@ class TestProtectedApi(unittest.TestCase):
             )
             _inject_user(self.client)
             # No X-Requested-With header, simulating browser access
-            response = self.client.get("/stocks_data")
+            response = self.client.get("/api/stocks_data")
 
         self.assertEqual(response.status_code, 200)
 
@@ -218,7 +218,7 @@ class TestProtectedApi(unittest.TestCase):
     def test_unauthenticated_debug_flag_still_requires_auth(self, mock_config):
         """Debug flag does NOT bypass authentication."""
         mock_config.features = {"allow_browser_api_access": True}
-        response = self.client.get("/stocks_data")
+        response = self.client.get("/api/stocks_data")
         self.assertEqual(response.status_code, 401)
 
 
@@ -233,14 +233,14 @@ class TestProtectedEndpoints(unittest.TestCase):
     def test_protected_get_endpoints_require_auth(self):
         """All user-data GET endpoints return 401 without session."""
         protected_gets = [
-            "/stocks_data",
-            "/mf_holdings_data",
-            "/sips_data",
-            "/physical_gold_data",
-            "/fixed_deposits_data",
-            "/fd_summary_data",
-            "/status",
-            "/events",
+            "/api/stocks_data",
+            "/api/mf_holdings_data",
+            "/api/sips_data",
+            "/api/physical_gold_data",
+            "/api/fixed_deposits_data",
+            "/api/fd_summary_data",
+            "/api/status",
+            "/api/events",
             "/api/settings",
         ]
         for endpoint in protected_gets:
@@ -253,7 +253,7 @@ class TestProtectedEndpoints(unittest.TestCase):
 
     def test_protected_post_endpoints_require_auth(self):
         """POST endpoints return 401 without session."""
-        response = self.client.post("/refresh", headers=_APP_HEADERS)
+        response = self.client.post("/api/refresh", headers=_APP_HEADERS)
         self.assertEqual(response.status_code, 401)
 
         response = self.client.post(
@@ -274,8 +274,8 @@ class TestProtectedEndpoints(unittest.TestCase):
     def test_app_only_endpoints_reject_direct_access(self):
         """Market data endpoints reject requests without app header."""
         app_only_endpoints = [
-            "/nifty50_data",
-            "/market_indices",
+            "/api/nifty50_data",
+            "/api/market_indices",
         ]
         for endpoint in app_only_endpoints:
             response = self.client.get(endpoint)
@@ -304,7 +304,7 @@ class TestPublicEndpoints(unittest.TestCase):
 
     def test_auth_me_accessible(self):
         """auth/me should return 401 body but not be blocked by middleware."""
-        response = self.client.get("/auth/me")
+        response = self.client.get("/api/auth/me")
         self.assertEqual(response.status_code, 401)
         data = json.loads(response.data)
         self.assertFalse(data["authenticated"])

@@ -165,7 +165,7 @@ class Nifty50App {
 
   async updateNifty50() {
     try {
-      const response = await metronFetch('/nifty50_data');
+      const response = await metronFetch('/api/nifty50_data');
       if (!response.ok) throw new Error('Failed to fetch Nifty 50 data');
       
       const nifty50Data = await response.json();
@@ -316,7 +316,7 @@ window.triggerRefresh = async function() {
   if (refreshBtn.disabled) return;
 
   try {
-    const response = await metronFetch('/refresh', { method: 'POST' });
+    const response = await metronFetch('/api/refresh', { method: 'POST' });
     if (!response.ok) {
       console.error('Refresh failed:', response.status);
     }

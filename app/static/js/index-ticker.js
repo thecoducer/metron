@@ -32,7 +32,7 @@ class IndexTicker {
 
   async fetchAndRender() {
     try {
-      const res = await metronFetch('/market_indices');
+      const res = await metronFetch('/api/market_indices');
       if (!res.ok) return;
       const data = await res.json();
       this._ensureDOM(data);

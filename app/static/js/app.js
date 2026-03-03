@@ -10,6 +10,7 @@ import SSEConnectionManager from './sse-manager.js';
 import PaginationManager from './pagination.js';
 import { Formatter } from './utils.js';
 import IndexTicker from './index-ticker.js';
+import CrudManager from './crud-manager.js';
 
 class PortfolioApp {
   constructor() {
@@ -21,6 +22,7 @@ class PortfolioApp {
     this.privacyManager = new PrivacyManager();
     this.sseManager = new SSEConnectionManager();
     this.indexTicker = new IndexTicker();
+    this.crudManager = new CrudManager((partialData) => this._handleCrudChange(partialData));
     this.needsLogin = false;
     this.lastStatus = null;
     this.lastPortfolioUpdatedAt = null;
@@ -159,6 +161,16 @@ class PortfolioApp {
       this.handleSearch();
     };
     window.triggerRefresh = () => this.handleRefresh();
+
+    // CRUD handlers (used by Add buttons in section headers and action icons in rows)
+    window.crudAdd = (schemaKey) => this.crudManager.openAdd(schemaKey);
+    window.crudEdit = (schemaKey, rowNumber, valuesJSON) => {
+      try {
+        const values = JSON.parse(decodeURIComponent(valuesJSON));
+        this.crudManager.openEdit(schemaKey, rowNumber, values);
+      } catch { /* ignore bad JSON */ }
+    };
+    window.crudDelete = (schemaKey, rowNumber) => this.crudManager.confirmDelete(schemaKey, rowNumber);
     // gold card click → toggle breakdown drawer
     const goldCard = document.getElementById('gold_summary');
     if (goldCard) {
@@ -465,7 +477,14 @@ class PortfolioApp {
     if (isFirstSSE && !isUpdating && status.portfolio_state === null) {
       if (hasAuthenticatedAccounts || (!status.has_zerodha_accounts && !this._hasInitialData)) {
         this.handleRefresh();
-        this._wasUpdating = isUpdating;
+        // Don't overwrite _wasUpdating here — handleRefresh() already
+        // sets it to true synchronously before await.  Overwriting with
+        // false causes a race where a fast updating→idle transition is
+        // missed and data never loads.
+        // Still fetch sheet-only data (gold, FD) that isn't part of the
+        // broker refresh so they render on first load.
+        this.updateData();
+        this._wasUpdating = true;
         return;
       }
     }
@@ -650,6 +669,30 @@ class PortfolioApp {
       this._applyData(data);
     } catch (error) {
       console.error('Error updating data:', error);
+    }
+  }
+
+  /**
+   * Handle a CRUD mutation.  If the response carried refreshed data for
+   * the affected table type, merge it with the current state and re-render
+   * without hitting the server again.  Falls back to a full updateData()
+   * when no data was provided (e.g. if the backend refresh failed).
+   */
+  _handleCrudChange(partialData) {
+    if (partialData && typeof partialData === 'object' && Object.keys(partialData).length > 0) {
+      const merged = {
+        stocks: partialData.stocks ?? this.dataManager.getStocks(),
+        mfHoldings: partialData.mfHoldings ?? this.dataManager.getMFHoldings(),
+        sips: partialData.sips ?? this.dataManager.getSIPs(),
+        physicalGold: partialData.physicalGold ?? this.dataManager.getPhysicalGold(),
+        fixedDeposits: partialData.fixedDeposits ?? this.dataManager.getFixedDeposits(),
+        fdSummary: null,  // let _applyData recompute from fixedDeposits
+        status: this.lastStatus || {},
+      };
+      this._applyData(merged);
+    } else {
+      // Fallback: no data in response — do a full refresh.
+      this.updateData();
     }
   }
 
