@@ -13,7 +13,6 @@ _firestore_client = None
 _CREDENTIALS_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "config", "firebase-credentials.json"
 )
-_DATABASE_ID = "investment-portfolio-tracker"
 _USERS = "users"
 
 
@@ -47,9 +46,8 @@ def _db():
     _firestore_client = gc_firestore.Client(
         project=app.project_id,
         credentials=app.credential.get_credential(),
-        database=_DATABASE_ID,
     )
-    logger.info("Firestore client initialised (db=%s)", _DATABASE_ID)
+    logger.info("Firestore client initialised with project %s", app.project_id)
     return _firestore_client
 
 
