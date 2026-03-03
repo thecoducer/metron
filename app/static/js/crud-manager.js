@@ -416,8 +416,18 @@ class CrudManager {
       this._activeOriginalRow.style.display = '';
       this._activeOriginalRow = null;
     }
-    // Re-show empty CTA if the tbody is now empty
-    // (handled by next data refresh)
+    // Re-show empty CTA if the tbody has no visible data rows
+    document.querySelectorAll('.crud-empty-cta-row').forEach(row => {
+      const tbody = row.closest('tbody');
+      if (!tbody) return;
+      // Check if tbody has any visible rows other than the CTA row itself
+      const visibleDataRows = Array.from(tbody.children).filter(
+        r => r !== row && r.style.display !== 'none'
+      );
+      if (visibleDataRows.length === 0) {
+        row.style.display = '';
+      }
+    });
   }
 
   _getTbody(schemaKey) {
