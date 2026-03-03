@@ -4,6 +4,7 @@ class PrivacyManager {
   constructor() {
     this.privacyIcon = document.getElementById('privacy_toggle_icon');
     this.privacyBtn = document.getElementById('privacy_toggle_btn');
+    this.privacyLabel = document.getElementById('privacy_toggle_label');
     this.isPrivacyMode = false;
   }
 
@@ -24,6 +25,9 @@ class PrivacyManager {
     
     if (this.privacyBtn) {
       this.privacyBtn.classList.toggle('active', enabled);
+    }
+    if (this.privacyLabel) {
+      this.privacyLabel.textContent = enabled ? 'ON' : 'OFF';
     }
     if (enabled) {
       body.classList.add('privacy-mode');

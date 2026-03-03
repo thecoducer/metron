@@ -786,28 +786,17 @@ body.dark-theme .theme-toggle:hover {
 
 /* --- Base card --- */
 .card {
-  background: #fff;
+  background: rgba(255,255,255,.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04);
-  border: 1px solid #ebebeb;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.6);
+  border: 1px solid rgba(235,235,235,.7);
   transition: all 0.3s cubic-bezier(.4,0,.2,1);
   position: relative;
   overflow: hidden;
   z-index: 1;
   isolation: isolate;
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
-  background: var(--accent-color, #6366f1);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 2;
 }
 
 .card::after {
@@ -817,9 +806,9 @@ body.dark-theme .theme-toggle:hover {
   left: 0;
   height: 100%;
   width: var(--allocation-width, 0%);
-  background: var(--allocation-color, transparent);
-  opacity: 0.12;
-  transition: width 0.6s ease;
+  background: linear-gradient(135deg, var(--allocation-color, transparent), color-mix(in srgb, var(--allocation-color, transparent) 60%, transparent));
+  opacity: 0.10;
+  transition: width 0.6s ease, opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -829,13 +818,14 @@ body.dark-theme .theme-toggle:hover {
 }
 
 .card:hover {
-  border-color: rgba(99,102,241,.2);
-  box-shadow: 0 4px 20px rgba(99,102,241,.08), 0 1px 4px rgba(0,0,0,.04);
+  background: rgba(255,255,255,.8);
+  border-color: rgba(99,102,241,.18);
+  box-shadow: 0 4px 20px rgba(99,102,241,.07), 0 1px 4px rgba(0,0,0,.03), inset 0 1px 0 rgba(255,255,255,.7);
   transform: translateY(-1px);
 }
 
-.card:hover::before {
-  opacity: 1;
+.card:hover::after {
+  opacity: 0.16;
 }
 
 .card--clickable {
@@ -2229,19 +2219,21 @@ body.dark-theme .refresh-btn:disabled {
 }
 
 body.dark-theme .card {
-  background: #141414;
-  border-color: #1e1e1e;
-  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  background: rgba(20,20,20,.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(40,40,40,.7);
+  box-shadow: 0 1px 3px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.03);
 }
 
 body.dark-theme .card::after {
-  opacity: 0.15;
+  opacity: 0.12;
 }
 
 body.dark-theme .card:hover {
-  background: #181818;
-  border-color: rgba(99,102,241,.25);
-  box-shadow: 0 4px 20px rgba(99,102,241,.1), 0 1px 4px rgba(0,0,0,.2);
+  background: rgba(24,24,24,.8);
+  border-color: rgba(99,102,241,.22);
+  box-shadow: 0 4px 20px rgba(99,102,241,.08), 0 1px 4px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04);
 }
 
 body.dark-theme .card-title {
@@ -2871,9 +2863,9 @@ body.privacy-mode #physicalGoldTable tbody tr td:nth-child(7) {
   color: #111;
 }
 
-/* ── Theme label (current state) ──────────────────────── */
+/* ── Toggle status label (ON / OFF / Light / Dark) ────── */
 
-.theme-label {
+.toggle-label {
   margin-left: auto;
   font-size: 11px;
   font-weight: 500;
@@ -3000,7 +2992,7 @@ body.dark-theme .user-dropdown-toggle-btn.active .dropdown-icon {
   color: #a5b4fc;
 }
 
-body.dark-theme .theme-label {
+body.dark-theme .toggle-label {
   color: #666;
 }
 

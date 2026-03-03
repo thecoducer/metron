@@ -125,8 +125,12 @@ class PortfolioApp {
   _updateCompactFormatIcon() {
     const icon = document.getElementById('compact_toggle_icon');
     const btn = document.getElementById('compact_toggle_btn');
+    const label = document.getElementById('compact_toggle_label');
     if (btn) {
       btn.classList.toggle('active', Formatter.isCompactFormat);
+    }
+    if (label) {
+      label.textContent = Formatter.isCompactFormat ? 'ON' : 'OFF';
     }
     if (icon) {
       // Switch between 'Tt' (compact) and 'T' (full) icon paths
