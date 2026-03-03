@@ -1,13 +1,8 @@
-"""
-Service instance initialization, status helpers, and state broadcasting.
-
-This module wires together the core services used throughout the application
-and provides shared helper functions for status reporting.
-"""
+"""Service wiring, per-user lifecycle, status helpers, and state broadcasting."""
 
 import json
 import threading
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .api import (AuthenticationManager, HoldingsService, SIPService,
                   ZerodhaAPIClient)
@@ -16,10 +11,7 @@ from .sse import sse_manager
 from .utils import (SessionManager, StateManager, format_timestamp,
                     is_market_open_ist)
 
-# --------------------------
-# CORE SERVICES
-# --------------------------
-
+# Core service singletons
 session_manager = SessionManager()
 state_manager = StateManager()
 auth_manager = AuthenticationManager(session_manager)
@@ -27,134 +19,96 @@ holdings_service = HoldingsService()
 sip_service = SIPService()
 zerodha_client = ZerodhaAPIClient(auth_manager, holdings_service, sip_service)
 
-# --------------------------
-# ACTIVE USER / ACCOUNTS
-# --------------------------
-
-_active_user_lock = threading.Lock()
-_active_google_id: str | None = None
+# User lifecycle tracking
+_loaded_users_lock = threading.Lock()
+_loaded_users: set[str] = set()
 
 
-def set_active_user(google_id: str) -> None:
-    """Store the currently signed-in user's Google ID for background threads.
+def ensure_user_loaded(google_id: str) -> None:
+    """Load user's Zerodha sessions from Firestore (idempotent)."""
+    if not google_id:
+        return
+    with _loaded_users_lock:
+        if google_id in _loaded_users:
+            return
+        _loaded_users.add(google_id)
 
-    Also scopes the session manager to this user so that Zerodha tokens are
-    loaded from / saved to the correct Firestore document.
-
-    On first activation (new user sign-in or server restart), triggers a
-    background data fetch so that gold prices and market data are loaded
-    by the time the portfolio page renders.
-    """
-    global _active_google_id
-    is_new_activation = False
-    with _active_user_lock:
-        if _active_google_id != google_id:
-            is_new_activation = True
-        _active_google_id = google_id
-    session_manager.set_user(google_id)
-
-    if is_new_activation:
-        from .fetchers import run_background_fetch
-        run_background_fetch()
+    session_manager.load_user(google_id)
+    from .fetchers import run_background_fetch
+    run_background_fetch(google_id=google_id)
 
 
-def get_active_user() -> str | None:
-    """Return the active user's Google ID."""
-    with _active_user_lock:
-        return _active_google_id
-
-
-def get_active_accounts() -> List[Dict[str, str]]:
-    """Return Zerodha account configs for the active user from Firebase.
-
-    Returns an empty list when no user is signed in or the user has no
-    accounts configured.
-    """
-    gid = get_active_user()
-    if not gid:
+def get_user_accounts(google_id: str) -> List[Dict[str, str]]:
+    if not google_id:
         return []
     try:
         from .firebase_store import get_zerodha_accounts
-        return get_zerodha_accounts(gid)
+        return get_zerodha_accounts(google_id)
     except Exception:
-        logger.exception("Failed to fetch Zerodha accounts for user %s", gid)
+        logger.exception("Failed to fetch Zerodha accounts for user %s", google_id)
         return []
 
 
-def get_authenticated_accounts() -> List[Dict[str, str]]:
-    """Return Zerodha accounts that currently have valid sessions.
-
-    Pre-filters accounts so callers only receive accounts that are ready
-    for data fetching (no login required).
-    """
-    accounts = get_active_accounts()
-    return [acc for acc in accounts if session_manager.is_valid(acc["name"])]
+def get_authenticated_accounts(google_id: str) -> List[Dict[str, str]]:
+    return [acc for acc in get_user_accounts(google_id)
+            if session_manager.is_valid(google_id, acc["name"])]
 
 
-# --------------------------
-# STATUS HELPERS
-# --------------------------
+def _build_status_response(google_id: str = None) -> Dict[str, Any]:
+    """Build status dict for API and SSE, scoped to *google_id* if provided."""
+    accounts = get_user_accounts(google_id) if google_id else []
 
-
-def _build_status_response() -> Dict[str, Any]:
-    """Build comprehensive status response for API and SSE.
-
-    Returns:
-        Dictionary containing application state, timestamps, and session info.
-        Key fields:
-        - has_zerodha_accounts:    whether the user has any Zerodha accounts
-        - authenticated_accounts:  list of account names with valid sessions
-        - unauthenticated_accounts: list of dicts {name, login_url} needing login
-        - session_validity:        {name: bool} map (kept for settings drawer)
-        - login_urls:              {name: url} for expired accounts
-    """
-    accounts = get_active_accounts()
-
-    authenticated = []
-    unauthenticated = []
-    login_urls = {}
-    session_validity = {}
-
+    authenticated, unauthenticated, login_urls, session_validity = [], [], {}, {}
     for acc in accounts:
         name = acc["name"]
-        if session_manager.is_valid(name):
+        if session_manager.is_valid(google_id, name):
             authenticated.append(name)
             session_validity[name] = True
         else:
             try:
                 from kiteconnect import KiteConnect
-                login_url = KiteConnect(api_key=acc["api_key"]).login_url()
+                url = KiteConnect(api_key=acc["api_key"]).login_url()
             except Exception:
-                login_url = None
-            unauthenticated.append({"name": name, "login_url": login_url})
-            login_urls[name] = login_url
+                url = None
+            unauthenticated.append({"name": name, "login_url": url})
+            login_urls[name] = url
             session_validity[name] = False
 
+    portfolio_state = state_manager.get_portfolio_state(google_id) if google_id else None
+    portfolio_updated = state_manager.get_portfolio_last_updated(google_id) if google_id else None
+    user_error = state_manager.get_user_last_error(google_id) if google_id else None
+
     response = {
-        "last_error": state_manager.last_error,
+        "last_error": user_error or state_manager.last_error,
         "market_open": is_market_open_ist(),
         "has_zerodha_accounts": len(accounts) > 0,
         "authenticated_accounts": authenticated,
         "unauthenticated_accounts": unauthenticated,
         "session_validity": session_validity,
         "login_urls": login_urls,
+        "portfolio_state": portfolio_state,
+        "portfolio_last_updated": format_timestamp(portfolio_updated),
     }
-    for st in StateManager.STATE_TYPES:
+    for st in StateManager.GLOBAL_STATE_TYPES:
         response[f"{st}_state"] = getattr(state_manager, f"{st}_state")
         response[f"{st}_last_updated"] = format_timestamp(
-            getattr(state_manager, f"{st}_last_updated")
-        )
+            getattr(state_manager, f"{st}_last_updated"))
     return response
 
 
-def broadcast_state_change() -> None:
-    """Broadcast current state to all connected SSE clients."""
+def broadcast_state_change(google_id: str = None) -> None:
+    """Broadcast status to SSE clients (per-user if google_id given, else all)."""
     try:
-        message = json.dumps(_build_status_response())
-        sse_manager.broadcast(message)
+        if google_id:
+            sse_manager.broadcast_to_user(google_id, json.dumps(_build_status_response(google_id)))
+        else:
+            for gid in sse_manager.connected_user_ids():
+                try:
+                    sse_manager.broadcast_to_user(gid, json.dumps(_build_status_response(gid)))
+                except Exception:
+                    logger.exception("Error building state for user %s", gid)
     except Exception:
         logger.exception("Error broadcasting state change")
 
 
-# Register state change listener for automatic broadcasting
-state_manager.add_change_listener(broadcast_state_change)
+state_manager.add_change_listener(lambda google_id=None: broadcast_state_change(google_id))

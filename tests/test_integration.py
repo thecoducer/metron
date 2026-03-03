@@ -149,40 +149,41 @@ class TestIntegration(unittest.TestCase):
     def test_state_transitions(self):
         """Test state manager transitions during workflow"""
         state_manager = StateManager()
+        google_id = "test_user_123"
         
         # Initial state is None (no data fetched yet)
-        self.assertIsNone(state_manager.portfolio_state)
+        self.assertIsNone(state_manager.get_portfolio_state(google_id))
         
         # Simulate refresh workflow
-        state_manager.set_portfolio_updating()
-        self.assertTrue(state_manager.is_any_running())
+        state_manager.set_portfolio_updating(google_id=google_id)
+        self.assertTrue(state_manager.is_any_running(google_id=google_id))
         
-        state_manager.set_portfolio_updated()
+        state_manager.set_portfolio_updated(google_id=google_id)
         # After successful fetch, state should be updated
-        self.assertEqual(state_manager.portfolio_state, "updated")
+        self.assertEqual(state_manager.get_portfolio_state(google_id), "updated")
         state_manager.set_nifty50_updated()
-        self.assertFalse(state_manager.is_any_running())
+        self.assertFalse(state_manager.is_any_running(google_id=google_id))
     
     def test_session_token_workflow(self):
         """Test session token caching workflow via Firestore"""
+        google_id = "test_user_123"
         session_manager = SessionManager()
-        session_manager._google_id = "test_user_123"
 
         # Save token
-        session_manager.set_token("Account1", "token123")
+        session_manager.set_token(google_id, "Account1", "token123")
 
-        # Simulate round-trip: encrypt → store → decrypt
-        encrypted = session_manager._encrypt_token("token123")
+        # Simulate round-trip: encrypt -> store -> decrypt
+        encrypted = session_manager._encrypt("token123")
+        sessions = session_manager._sessions_for(google_id)
         stored = {"Account1": {"access_token": encrypted,
-                               "expiry": session_manager.sessions["Account1"]["expiry"].isoformat()}}
+                               "expiry": sessions["Account1"]["expiry"].isoformat()}}
 
         # New instance loads the stored data
         new_session_manager = SessionManager()
-        new_session_manager._google_id = "test_user_123"
         with patch('app.firebase_store.get_zerodha_sessions', return_value=stored):
-            new_session_manager.load()
+            new_session_manager.load_user(google_id)
 
-        retrieved_token = new_session_manager.get_token("Account1")
+        retrieved_token = new_session_manager.get_token(google_id, "Account1")
         self.assertEqual(retrieved_token, "token123")
     
     def test_error_handling_chain(self):

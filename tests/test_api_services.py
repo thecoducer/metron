@@ -239,7 +239,7 @@ class TestAuthenticationManager(unittest.TestCase):
         self.session_manager.is_valid.return_value = True
         self.session_manager.get_token.return_value = "cached_token_123"
         
-        result = self.auth_manager._try_cached_token(mock_kite, "TestAccount")
+        result = self.auth_manager._try_cached_token(mock_kite, "user123", "TestAccount")
         
         self.assertTrue(result)
         self.assertEqual(mock_kite._access_token, "cached_token_123")
@@ -249,7 +249,7 @@ class TestAuthenticationManager(unittest.TestCase):
         mock_kite = MockKiteConnect(api_key="test_api_key")
         self.session_manager.is_valid.return_value = False
         
-        result = self.auth_manager._try_cached_token(mock_kite, "TestAccount")
+        result = self.auth_manager._try_cached_token(mock_kite, "user123", "TestAccount")
         
         self.assertFalse(result)
         self.assertIsNone(mock_kite._access_token)
@@ -260,7 +260,7 @@ class TestAuthenticationManager(unittest.TestCase):
         self.session_manager.is_valid.return_value = True
         self.session_manager.get_token.return_value = "some_token"
         
-        result = self.auth_manager._try_cached_token(mock_kite, "TestAccount")
+        result = self.auth_manager._try_cached_token(mock_kite, "user123", "TestAccount")
         
         # Since implementation doesn't validate in _try_cached_token, it returns True
         self.assertTrue(result)
@@ -286,21 +286,21 @@ class TestAuthenticationManager(unittest.TestCase):
         self.assertIn("old_refresh_token", renewed_data["access_token"])
     
 
-    def test_validate_token_with_api_call_success(self):
+    def test_validate_token_success(self):
         """Test successful token validation"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
         mock_kite.set_access_token("valid_token")
         
-        result = self.auth_manager._validate_token_with_api_call(mock_kite, "TestAccount")
+        result = self.auth_manager._validate_token(mock_kite, "user123", "TestAccount")
         
         self.assertTrue(result)
     
-    def test_validate_token_with_api_call_failure(self):
+    def test_validate_token_failure(self):
         """Test failed token validation"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
         # No access token set
         
-        result = self.auth_manager._validate_token_with_api_call(mock_kite, "TestAccount")
+        result = self.auth_manager._validate_token(mock_kite, "user123", "TestAccount")
         
         self.assertFalse(result)
     
@@ -308,20 +308,20 @@ class TestAuthenticationManager(unittest.TestCase):
         """Test storing access token"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
         
-        self.auth_manager._store_token(mock_kite, "TestAccount", "new_access_token")
+        self.auth_manager._store_token(mock_kite, "user123", "TestAccount", "new_access_token")
         
         self.assertEqual(mock_kite._access_token, "new_access_token")
         self.session_manager.set_token.assert_called_once_with(
-            "TestAccount", "new_access_token"
+            "user123", "TestAccount", "new_access_token"
         )
-        self.session_manager.save.assert_called_once()
+        self.session_manager.save.assert_called_once_with("user123")
     
     def test_try_renew_token_success(self):
         """Test successful token renewal"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
         self.session_manager.get_token.return_value = "old_token"
         
-        result = self.auth_manager._try_renew_token(mock_kite, "TestAccount", "api_secret")
+        result = self.auth_manager._try_renew_token(mock_kite, "user123", "TestAccount", "api_secret")
         
         self.assertTrue(result)
         self.assertIsNotNone(mock_kite._access_token)
@@ -337,7 +337,7 @@ class TestAuthenticationManager(unittest.TestCase):
             raise Exception("Renewal failed")
         mock_kite.renew_access_token = raise_error
         
-        result = self.auth_manager._try_renew_token(mock_kite, "TestAccount", "api_secret")
+        result = self.auth_manager._try_renew_token(mock_kite, "user123", "TestAccount", "api_secret")
         
         self.assertFalse(result)
     
@@ -353,7 +353,8 @@ class TestAuthenticationManager(unittest.TestCase):
         account_config = {
             "name": "TestAccount",
             "api_key": "test_api_key",
-            "api_secret": "test_api_secret"
+            "api_secret": "test_api_secret",
+            "google_id": "user123"
         }
         
         kite = self.auth_manager.authenticate(account_config)
@@ -373,7 +374,8 @@ class TestAuthenticationManager(unittest.TestCase):
         account_config = {
             "name": "TestAccount",
             "api_key": "test_api_key",
-            "api_secret": "test_api_secret"
+            "api_secret": "test_api_secret",
+            "google_id": "user123"
         }
         
         with self.assertRaises(RuntimeError) as ctx:

@@ -1,6 +1,4 @@
-"""
-Portfolio data cache and thread synchronization.
-"""
+"""Per-user portfolio cache, global market cache, and Google Sheets TTL cache."""
 
 import threading
 import time
@@ -10,38 +8,68 @@ from typing import Any, Dict, List, Optional
 
 
 @dataclass
-class PortfolioCache:
-    """Container for all cached portfolio data."""
-    stocks: List[Dict[str, Any]] = None
-    mf_holdings: List[Dict[str, Any]] = None
-    sips: List[Dict[str, Any]] = None
-    nifty50: List[Dict[str, Any]] = None
-    gold_prices: Dict[str, Dict[str, float]] = None
+class UserPortfolioData:
+    stocks: List[Dict[str, Any]] = field(default_factory=list)
+    mf_holdings: List[Dict[str, Any]] = field(default_factory=list)
+    sips: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class MarketCache:
+    nifty50: List[Dict[str, Any]] = field(default_factory=list)
+    gold_prices: Dict[str, Dict[str, float]] = field(default_factory=dict)
     gold_prices_last_fetch: Optional[datetime] = None
-    market_indices: Dict[str, Any] = None
+    market_indices: Dict[str, Any] = field(default_factory=dict)
     market_indices_last_fetch: Optional[datetime] = None
 
-    def __post_init__(self):
-        self.stocks = self.stocks or []
-        self.mf_holdings = self.mf_holdings or []
-        self.sips = self.sips or []
-        self.nifty50 = self.nifty50 or []
-        self.gold_prices = self.gold_prices or {}
+
+class PortfolioCacheManager:
+    """Thread-safe per-user portfolio cache with fetch-in-progress tracking."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._user_data: Dict[str, UserPortfolioData] = {}
+        self._fetch_events: Dict[str, threading.Event] = {}
+
+    def get(self, google_id: str) -> UserPortfolioData:
+        with self._lock:
+            return self._user_data.setdefault(google_id, UserPortfolioData())
+
+    def set(self, google_id: str, *, stocks: List = None,
+            mf_holdings: List = None, sips: List = None) -> None:
+        with self._lock:
+            data = self._user_data.setdefault(google_id, UserPortfolioData())
+        if stocks is not None:
+            data.stocks = stocks
+        if mf_holdings is not None:
+            data.mf_holdings = mf_holdings
+        if sips is not None:
+            data.sips = sips
+
+    def _get_event(self, google_id: str) -> threading.Event:
+        with self._lock:
+            return self._fetch_events.setdefault(google_id, threading.Event())
+
+    def is_fetch_in_progress(self, google_id: str) -> bool:
+        return self._get_event(google_id).is_set()
+
+    def set_fetch_in_progress(self, google_id: str) -> None:
+        self._get_event(google_id).set()
+
+    def clear_fetch_in_progress(self, google_id: str) -> None:
+        self._get_event(google_id).clear()
+
+    def active_user_ids(self) -> List[str]:
+        with self._lock:
+            return list(self._user_data.keys())
 
 
-# Global cache instance
-cache = PortfolioCache()
-
-# Thread synchronization events
-fetch_in_progress = threading.Event()
+market_cache = MarketCache()
+portfolio_cache = PortfolioCacheManager()
 nifty50_fetch_in_progress = threading.Event()
 
 
-# ---------------------------------------------------------------------------
-# Per-user Google Sheets cache (avoids hitting Sheets on every page load)
-# ---------------------------------------------------------------------------
-
-_DEFAULT_USER_CACHE_TTL = 300  # 5 minutes
+_SHEETS_CACHE_TTL = 300  # seconds
 
 @dataclass
 class _UserCacheEntry:
@@ -51,12 +79,9 @@ class _UserCacheEntry:
 
 
 class UserSheetsCache:
-    """TTL-based per-user cache for Google Sheets data (gold & FDs).
+    """TTL-based per-user cache for Google Sheets data. Thread-safe."""
 
-    Keyed by Google user ID. Thread-safe.
-    """
-
-    def __init__(self, ttl: int = _DEFAULT_USER_CACHE_TTL):
+    def __init__(self, ttl: int = _SHEETS_CACHE_TTL):
         self._ttl = ttl
         self._store: Dict[str, _UserCacheEntry] = {}
         self._lock = threading.Lock()
@@ -70,11 +95,8 @@ class UserSheetsCache:
 
     def put(self, google_id: str, *, physical_gold: List = None, fixed_deposits: List = None) -> None:
         with self._lock:
-            entry = self._store.get(google_id)
             now = time.monotonic()
-            if entry is None:
-                entry = _UserCacheEntry(timestamp=now)
-                self._store[google_id] = entry
+            entry = self._store.setdefault(google_id, _UserCacheEntry(timestamp=now))
             if physical_gold is not None:
                 entry.physical_gold = physical_gold
                 entry.timestamp = now
