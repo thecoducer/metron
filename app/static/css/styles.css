@@ -2499,6 +2499,41 @@ body.dark-theme .fd-tab.active {
   56% { transform: scale(1); }
 }
 
+/* Dashboard footer with legal links */
+.site-footer-dashboard {
+  text-align: center;
+  padding: 20px 0 12px;
+  margin-top: 32px;
+}
+.site-footer-dashboard .footer-legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.site-footer-dashboard .footer-legal-links a {
+  font-size: 12px;
+  color: #aaa;
+  text-decoration: none;
+  transition: color .2s;
+}
+.site-footer-dashboard .footer-legal-links a:hover {
+  color: #666;
+}
+.site-footer-dashboard .footer-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d1d1d1;
+  flex-shrink: 0;
+}
+.site-footer-dashboard .made-with-love {
+  margin-top: 0;
+  padding-top: 0;
+}
+
 body.dark-theme .footer-note {
   color: #555;
   border-top-color: #1a1a1a;
@@ -2517,6 +2552,18 @@ body.dark-theme .made-with-love p {
 }
 body.dark-theme .made-with-love .heart {
   color: #e25555;
+}
+body.dark-theme .site-footer-dashboard {
+  border-top-color: #222;
+}
+body.dark-theme .site-footer-dashboard .footer-legal-links a {
+  color: #555;
+}
+body.dark-theme .site-footer-dashboard .footer-legal-links a:hover {
+  color: #888;
+}
+body.dark-theme .site-footer-dashboard .footer-dot {
+  background: #444;
 }
 
 /* ============ PRIVACY MODE ============ */

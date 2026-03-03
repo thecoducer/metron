@@ -823,26 +823,49 @@ def refresh_route():
 
 @app_ui.route("/", methods=["GET"])
 def portfolio_page():
-    """Serve landing page or portfolio dashboard with inlined data."""
+    """Serve landing page or portfolio dashboard with inlined data.
+
+    For return visits with warm caches the page is rendered with inlined
+    data (zero JS round-trips).  For first login or cold caches the page
+    is rendered immediately with empty data and the frontend fetches
+    asynchronously via SSE + ``/api/all_data``.
+    """
     user = _current_user()
     if not user:
         return render_template("landing.html")
 
     google_id = user.get("google_id", "")
-    ensure_user_loaded(google_id)
 
-    # Pre-populate the sheets cache once so _build helpers all hit cache.
-    _prefetch_all_user_sheets(user)
+    # Kick off user loading + background fetch in a non-blocking way.
+    # For return visits this is a fast no-op (idempotent).  For first
+    # login it loads Firestore sessions and starts portfolio fetch in
+    # background threads so the page renders instantly.
+    threading.Thread(
+        target=ensure_user_loaded,
+        args=(google_id,),
+        name=f"EnsureLoaded-{google_id[:8]}",
+        daemon=True,
+    ).start()
 
-    initial_data = {
-        "stocks": _build_stocks_data(user),
-        "mfHoldings": _build_mf_data(user),
-        "sips": _build_sips_data(user),
-        "physicalGold": _build_gold_data(user),
-        "fixedDeposits": _build_fd_data(user),
-        "fdSummary": [],
-        "status": _build_status_response(google_id),
-    }
+    # Try to serve inlined data from warm caches (return visits).
+    # If caches are cold (first login), skip the expensive Google Sheets
+    # batch-fetch and render immediately — the frontend will fetch data
+    # asynchronously via SSE status updates + /api/all_data.
+    initial_data = None
+    if user_sheets_cache.is_fully_cached(google_id):
+        try:
+            initial_data = {
+                "stocks": _build_stocks_data(user),
+                "mfHoldings": _build_mf_data(user),
+                "sips": _build_sips_data(user),
+                "physicalGold": _build_gold_data(user),
+                "fixedDeposits": _build_fd_data(user),
+                "fdSummary": [],
+                "status": _build_status_response(google_id),
+            }
+        except Exception:
+            logger.debug("Cache miss building initial data for %s", google_id)
+            initial_data = None
 
     # Only inject SSE direct config when the page is served through Firebase
     # Hosting (where the CDN buffers streaming responses).  When browsing
@@ -854,7 +877,7 @@ def portfolio_page():
         physical_gold_enabled=True,
         fixed_deposits_enabled=True,
         user=user,
-        initial_data_json=json.dumps(initial_data, default=str),
+        initial_data_json=json.dumps(initial_data, default=str) if initial_data else None,
         sse_base_url=sse_base_url,
     )
 
@@ -863,6 +886,24 @@ def portfolio_page():
 def nifty50_page():
     """Serve the Nifty 50 stocks page."""
     return render_template("nifty50.html")
+
+
+@app_ui.route("/privacy", methods=["GET"])
+def privacy_page():
+    """Serve the Privacy Policy page."""
+    return render_template("privacy.html")
+
+
+@app_ui.route("/terms", methods=["GET"])
+def terms_page():
+    """Serve the Terms & Conditions page."""
+    return render_template("terms.html")
+
+
+@app_ui.route("/contact", methods=["GET"])
+def contact_page():
+    """Serve the Contact Us page."""
+    return render_template("contact.html")
 
 
 @app_ui.route("/api/settings", methods=["GET"])

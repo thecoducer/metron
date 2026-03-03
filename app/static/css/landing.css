@@ -722,6 +722,29 @@ body.dark-theme .theme-toggle svg{color:#999}
 }
 .footer a:hover{color:#555;text-decoration-color:#555}
 
+/* Footer legal links */
+.footer-legal-links{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.footer-legal-links a{
+  font-size:13px;
+  color:#888;
+  text-decoration:none;
+  transition:color .2s;
+}
+.footer-legal-links a:hover{color:#555}
+.footer-dot{
+  width:3px;height:3px;
+  border-radius:50%;
+  background:#ccc;
+  flex-shrink:0;
+}
+
 /* Made with love footer */
 .made-with-love {
   margin-bottom: 24px;
@@ -835,6 +858,9 @@ body.dark-theme .cta-banner p{color:#777}
 body.dark-theme .footer p{color:#555}
 body.dark-theme .footer a{color:#777;text-decoration-color:rgba(119,119,119,.3)}
 body.dark-theme .footer a:hover{color:#aaa;text-decoration-color:#aaa}
+body.dark-theme .footer-legal-links a{color:#666}
+body.dark-theme .footer-legal-links a:hover{color:#999}
+body.dark-theme .footer-dot{background:#444}
 body.dark-theme .made-with-love p{color:#666}
 body.dark-theme .made-with-love .heart{color:#e25555}
 
