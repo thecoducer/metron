@@ -17,7 +17,7 @@ from .config import app_config
 from .constants import SERVER_STARTUP_DELAY
 from .fetchers import fetch_nifty50_data, run_auto_refresh
 from .logging_config import configure, logger
-from .routes import app_callback, app_ui
+from .routes import app_ui
 
 # --------------------------
 # SERVER MANAGEMENT
@@ -54,7 +54,7 @@ def main() -> None:
     1. Configures logging.
     2. Loads cached authentication sessions.
     3. Validates account configuration.
-    4. Starts callback and UI Flask servers.
+    4. Starts the UI Flask server.
     5. Triggers initial data fetch.
     6. Starts the auto-refresh service.
     7. Keeps the application running.
@@ -63,8 +63,6 @@ def main() -> None:
         configure()
         logger.info("Starting Metron...")
 
-        logger.info("Starting callback server at %s", app_config.redirect_url)
-        start_server(app_callback, app_config.callback_host, app_config.callback_port)
 
         dashboard_url = f"http://{app_config.ui_host}:{app_config.ui_port}/"
         logger.info("Starting UI server at %s", dashboard_url)

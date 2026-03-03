@@ -7,8 +7,7 @@ from dataclasses import dataclass
 
 from .constants import (CONFIG_DIR_NAME, CONFIG_FILENAME,
                         DEFAULT_AUTO_REFRESH_INTERVAL,
-                        DEFAULT_CALLBACK_HOST, DEFAULT_CALLBACK_PATH,
-                        DEFAULT_CALLBACK_PORT, DEFAULT_REQUEST_TOKEN_TIMEOUT,
+                        DEFAULT_REQUEST_TOKEN_TIMEOUT,
                         DEFAULT_UI_HOST, DEFAULT_UI_PORT)
 from .utils import load_config
 
@@ -16,9 +15,7 @@ from .utils import load_config
 @dataclass
 class AppConfig:
     """Application configuration loaded from config.json."""
-    callback_host: str
-    callback_port: int
-    callback_path: str
+    # callback_host, callback_port, callback_path removed
     redirect_url: str
     ui_host: str
     ui_port: int
@@ -36,15 +33,10 @@ class AppConfig:
         timeouts = config.get("timeouts", {})
         features = config.get("features", {})
 
-        callback_host = server.get("callback_host", DEFAULT_CALLBACK_HOST)
-        callback_port = server.get("callback_port", DEFAULT_CALLBACK_PORT)
-        callback_path = server.get("callback_path", DEFAULT_CALLBACK_PATH)
+
 
         return cls(
-            callback_host=callback_host,
-            callback_port=callback_port,
-            callback_path=callback_path,
-            redirect_url=f"http://{callback_host}:{callback_port}{callback_path}",
+            redirect_url="http://127.0.0.1:8000/callback",  # hardcoded or refactor as needed
             ui_host=server.get("ui_host", DEFAULT_UI_HOST),
             ui_port=server.get("ui_port", DEFAULT_UI_PORT),
             request_token_timeout=timeouts.get("request_token_timeout_seconds", DEFAULT_REQUEST_TOKEN_TIMEOUT),

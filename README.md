@@ -115,9 +115,6 @@ Full `config/config.json` reference:
     }
   ],
   "server": {
-    "callback_host": "127.0.0.1",
-    "callback_port": 5000,
-    "callback_path": "/callback",
     "ui_host": "127.0.0.1",
     "ui_port": 8000
   },
@@ -145,13 +142,13 @@ Full `config/config.json` reference:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `callback_host` / `callback_port` | `127.0.0.1:5000` | OAuth callback server (must match Kite app redirect URL) |
+| `ui_host` / `ui_port` | `127.0.0.1:8000` | Dashboard web server and OAuth callback |
 | `ui_host` / `ui_port` | `127.0.0.1:8000` | Dashboard web server |
 | `request_token_timeout_seconds` | `180` | How long to wait for OAuth login |
 | `auto_refresh_interval_seconds` | `60` | Seconds between auto-refreshes |
 | `auto_refresh_outside_market_hours` | `false` | Set `true` to refresh 24/7 |
 
-> **Important:** Your Kite app's redirect URL must exactly match `http://{callback_host}:{callback_port}{callback_path}` (default: `http://127.0.0.1:5000/callback`).
+> **Important:** Your Google and Zerodha app redirect URLs must exactly match `http://127.0.0.1:8000/callback`.
 
 ---
 
@@ -383,7 +380,7 @@ Create a sheet (e.g., named `FixedDeposits`) with the following structure. The f
 | Problem | Solution |
 |---------|----------|
 | **Session expired / Login button shown** | Click **Login** — completes Zerodha OAuth in a new tab |
-| **Port already in use** | Change `callback_port` or `ui_port` in `config/config.json` |
+| **Port already in use** | Change `ui_port` in `config/config.json` |
 | **Google Sheets not loading** | Check that the sheet is shared with the service account email |
 | **Gold prices not updating** | Prices are fetched on first load and at scheduled hours; click **Refresh** to force |
 | **Config validation errors** | Run `./start.sh` — it validates `config/config.json` before starting |

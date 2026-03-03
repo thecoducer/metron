@@ -277,8 +277,6 @@ class TestConfigLoader(unittest.TestCase):
                 }
             ],
             "server": {
-                "callback_host": "127.0.0.1",
-                "callback_port": 5000
             }
         }
         

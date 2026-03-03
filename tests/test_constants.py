@@ -28,18 +28,11 @@ class TestConstants(unittest.TestCase):
     
     def test_default_values(self):
         """Test default configuration values"""
-        from app.constants import (DEFAULT_CALLBACK_HOST,
-                                   DEFAULT_CALLBACK_PORT,
-                                   DEFAULT_REQUEST_TOKEN_TIMEOUT,
-                                   DEFAULT_UI_PORT)
-        
-        self.assertEqual(DEFAULT_CALLBACK_HOST, "127.0.0.1")
-        self.assertIsInstance(DEFAULT_CALLBACK_PORT, int)
+        from app.constants import (
+            DEFAULT_REQUEST_TOKEN_TIMEOUT,
+            DEFAULT_UI_PORT)
         self.assertIsInstance(DEFAULT_UI_PORT, int)
         self.assertIsInstance(DEFAULT_REQUEST_TOKEN_TIMEOUT, int)
-        
-        # Sanity checks on values
-        self.assertGreater(DEFAULT_CALLBACK_PORT, 0)
         self.assertGreater(DEFAULT_UI_PORT, 0)
         self.assertGreater(DEFAULT_REQUEST_TOKEN_TIMEOUT, 0)
 

@@ -1,7 +1,7 @@
 """
 Flask application creation and route definitions.
 
-Contains both the OAuth callback server and the main UI server.
+
 """
 
 import json
@@ -49,7 +49,6 @@ def _create_flask_app(name: str, enable_static: bool = False) -> Flask:
     return app
 
 
-app_callback = _create_flask_app("callback_server")
 app_ui = _create_flask_app("ui_server", enable_static=True)
 
 # Session secret — required for Flask's ``session`` cookie
@@ -159,58 +158,6 @@ def _fetch_user_sheets_data(user):
         except Exception:
             logger.exception("Error fetching per-user Sheets data")
             return None, None
-
-# --------------------------
-# CALLBACK SERVER ROUTES
-# --------------------------
-
-@app_callback.route(app_config.callback_path, methods=["GET"])
-def callback():
-    """Handle OAuth callback from KiteConnect login.
-
-    Completes authentication directly: generates a session, stores the
-    token, and kicks off a data refresh for all now-authenticated accounts.
-    """
-    from .services import session_manager, state_manager
-    req_token = request.args.get("request_token")
-    if not req_token:
-        return render_template("callback_error.html")
-
-    # Try each non-valid account until one succeeds with this request token
-    accounts = get_active_accounts()
-    authenticated_account = None
-    for acc in accounts:
-        if session_manager.is_valid(acc["name"]):
-            continue
-        try:
-            from kiteconnect import KiteConnect
-            kite = KiteConnect(api_key=acc["api_key"])
-            session_data = kite.generate_session(req_token, api_secret=acc["api_secret"])
-            access_token = session_data.get("access_token")
-            if access_token:
-                session_manager.set_token(acc["name"], access_token)
-                session_manager.save()
-                authenticated_account = acc["name"]
-                break
-        except Exception:
-            continue
-
-    if not authenticated_account:
-        return render_template("callback_error.html")
-
-    logger.info("Login succeeded for %s", authenticated_account)
-    # Broadcast updated session state to all SSE clients
-    state_manager._notify_change()
-
-    # Trigger data refresh for all now-authenticated accounts (may be a
-    # subset if other accounts still need login – that’s fine).
-    auth_accounts = [acc for acc in accounts if session_manager.is_valid(acc["name"])]
-    if auth_accounts and not fetch_in_progress.is_set():
-        from .fetchers import run_background_fetch
-        run_background_fetch(accounts=auth_accounts)
-
-    return render_template("callback_success.html")
-
 
 # --------------------------
 # GOOGLE SIGN-IN ROUTES
@@ -328,6 +275,63 @@ def auth_logout():
     """Sign out the current user."""
     session.clear()
     return jsonify({"status": "logged_out"})
+
+
+# --------------------------
+# ZERODHA OAUTH CALLBACK ROUTE
+# --------------------------
+
+@app_ui.route("/callback", methods=["GET"])
+
+def zerodha_callback():
+    """Handle OAuth callback from KiteConnect login (Zerodha)."""
+    from .services import session_manager, state_manager, get_active_accounts, set_active_user
+    from .cache import fetch_in_progress
+    req_token = request.args.get("request_token")
+    if not req_token:
+        return render_template("callback_error.html")
+
+    # Ensure Google user is set in session manager for correct session saving
+    user = session.get("user")
+    if not user or not user.get("google_id"):
+        logger.warning("No active Google user in session during Zerodha callback")
+        return render_template("callback_error.html")
+    set_active_user(user["google_id"])
+
+    # Try each non-valid account until one succeeds with this request token
+    accounts = get_active_accounts()
+    authenticated_account = None
+    for acc in accounts:
+        if session_manager.is_valid(acc["name"]):
+            continue
+        try:
+            from kiteconnect import KiteConnect
+            kite = KiteConnect(api_key=acc["api_key"])
+            session_data = kite.generate_session(req_token, api_secret=acc["api_secret"])
+            access_token = session_data.get("access_token")
+            if access_token:
+                session_manager.set_token(acc["name"], access_token)
+                session_manager.save()
+                authenticated_account = acc["name"]
+                break
+        except Exception:
+            continue
+
+    if not authenticated_account:
+        return render_template("callback_error.html")
+
+    logger.info("Login succeeded for %s", authenticated_account)
+    # Broadcast updated session state to all SSE clients
+    state_manager._notify_change()
+
+    # Trigger data refresh for all now-authenticated accounts (may be a
+    # subset if other accounts still need login – that’s fine).
+    auth_accounts = [acc for acc in accounts if session_manager.is_valid(acc["name"])]
+    if auth_accounts and not fetch_in_progress.is_set():
+        from .fetchers import run_background_fetch
+        run_background_fetch(accounts=auth_accounts)
+
+    return render_template("callback_success.html")
 
 
 # --------------------------
