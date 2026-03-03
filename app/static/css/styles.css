@@ -2452,9 +2452,9 @@ body.dark-theme .fd-tab.active {
 /* Made with love footer */
 .made-with-love {
   text-align: center;
-  padding: 24px 0;
-  margin-top: 32px;
-  margin-bottom: 24px;
+  padding: 16px 0 8px;
+  margin-top: 24px;
+  margin-bottom: 0;
 }
 .made-with-love p {
   font-size: 13px;
@@ -2465,7 +2465,6 @@ body.dark-theme .fd-tab.active {
   display: inline-block;
   color: #e25555;
   font-size: 16px;
-  animation: heartbeat 1.2s ease-in-out infinite;
   vertical-align: middle;
 }
 .made-with-love a {
