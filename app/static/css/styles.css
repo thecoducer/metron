@@ -786,17 +786,17 @@ body.dark-theme .theme-toggle:hover {
 
 /* --- Base card --- */
 .card {
-  background: rgba(255,255,255,.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.92);
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.6);
   border: 1px solid rgba(235,235,235,.7);
-  transition: all 0.3s cubic-bezier(.4,0,.2,1);
+  transition: background 0.3s cubic-bezier(.4,0,.2,1),
+              border-color 0.3s cubic-bezier(.4,0,.2,1),
+              box-shadow 0.3s cubic-bezier(.4,0,.2,1),
+              transform 0.3s cubic-bezier(.4,0,.2,1);
   position: relative;
   overflow: hidden;
   z-index: 1;
-  isolation: isolate;
 }
 
 .card::after {
@@ -808,7 +808,6 @@ body.dark-theme .theme-toggle:hover {
   width: var(--allocation-width, 0%);
   background: linear-gradient(135deg, var(--allocation-color, transparent), color-mix(in srgb, var(--allocation-color, transparent) 60%, transparent));
   opacity: 0.10;
-  transition: width 0.6s ease, opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -818,7 +817,7 @@ body.dark-theme .theme-toggle:hover {
 }
 
 .card:hover {
-  background: rgba(255,255,255,.8);
+  background: rgba(255,255,255,.97);
   border-color: rgba(99,102,241,.18);
   box-shadow: 0 4px 20px rgba(99,102,241,.07), 0 1px 4px rgba(0,0,0,.03), inset 0 1px 0 rgba(255,255,255,.7);
   transform: translateY(-1px);
@@ -2219,9 +2218,7 @@ body.dark-theme .refresh-btn:disabled {
 }
 
 body.dark-theme .card {
-  background: rgba(20,20,20,.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(20,20,20,.92);
   border-color: rgba(40,40,40,.7);
   box-shadow: 0 1px 3px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.03);
 }
@@ -2231,7 +2228,7 @@ body.dark-theme .card::after {
 }
 
 body.dark-theme .card:hover {
-  background: rgba(24,24,24,.8);
+  background: rgba(28,28,28,.97);
   border-color: rgba(99,102,241,.22);
   box-shadow: 0 4px 20px rgba(99,102,241,.08), 0 1px 4px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04);
 }
