@@ -67,16 +67,22 @@ def fetch_gold_prices(force: bool = False) -> None:
     """Fetch IBJA gold prices (global)."""
     if not force and not _should_fetch_gold_prices():
         return
-    try:
-        prices = get_gold_price_service().fetch_gold_prices()
-        if prices:
-            market_cache.gold_prices = prices
-            market_cache.gold_prices_last_fetch = datetime.now()
-            logger.info("Gold prices updated: %s", list(prices.keys()))
-        else:
-            logger.warning("Failed to fetch gold prices")
-    except Exception as e:
-        logger.error("Error fetching gold prices: %s", e)
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            prices = get_gold_price_service().fetch_gold_prices()
+            if prices:
+                market_cache.gold_prices = prices
+                market_cache.gold_prices_last_fetch = datetime.now()
+                logger.info("Gold prices updated: %s", list(prices.keys()))
+                return
+            else:
+                logger.warning(f"Attempt {attempt}: Failed to fetch gold prices (empty result)")
+        except Exception as e:
+            logger.error(f"Attempt {attempt}: Error fetching gold prices: {e}")
+        if attempt < max_retries:
+            logger.info(f"Retrying gold price fetch (attempt {attempt + 1} of {max_retries})...")
+    logger.error(f"All {max_retries} attempts to fetch gold prices failed.")
 
 
 def fetch_nifty50_data() -> None:
