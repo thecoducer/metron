@@ -70,7 +70,7 @@ class PortfolioApp {
     if (!statusText) return;
     if (!this.lastStatus) return;
     const isUpdating = this._isStatusUpdating(this.lastStatus);
-    if (isUpdating || this.lastStatus.portfolio_state === null) return;
+    if (isUpdating) return;
     statusText.innerText = this._formatStatusUpdatedText();
   }
 
@@ -436,16 +436,12 @@ class PortfolioApp {
     const hasUnauthenticated = unauthenticated.length > 0;
 
     // ── Status tag: always visible, reflects data-fetch state ──
-    const isNotLoaded = status.portfolio_state === null;
     statusTag.classList.toggle('updating', isUpdating);
-    statusTag.classList.toggle('updated', !isUpdating && !isNotLoaded);
-    statusTag.classList.toggle('not-loaded', isNotLoaded && !isUpdating);
+    statusTag.classList.toggle('updated', !isUpdating);
     statusTag.classList.toggle('market_closed', status.market_open === false);
 
     if (isUpdating) {
       statusText.innerText = 'updating';
-    } else if (isNotLoaded) {
-      statusText.innerText = 'not loaded';
     } else {
       this.lastPortfolioUpdatedAt = status.portfolio_last_updated || null;
       statusText.innerText = this._formatStatusUpdatedText();

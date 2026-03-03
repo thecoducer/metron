@@ -122,13 +122,19 @@ def run_background_fetch(
     def _run():
         force_gold = is_manual or (market_cache.gold_prices_last_fetch is None)
         threads = []
+        has_portfolio_fetch = False
 
         if google_id:
             auth_accs = accounts if accounts is not None else get_authenticated_accounts(google_id)
             if auth_accs:
+                has_portfolio_fetch = True
                 threads.append(threading.Thread(
                     target=fetch_portfolio_data, args=(google_id, auth_accs),
                     name=f"PortfolioFetch-{google_id[:8]}", daemon=True))
+            else:
+                # No authenticated Zerodha accounts — still mark portfolio
+                # as updating so the UI shows the updating state.
+                state_manager.set_portfolio_updating(google_id=google_id)
 
         threads.append(threading.Thread(target=fetch_nifty50_data, name="Nifty50Fetch", daemon=True))
         threads.append(threading.Thread(target=fetch_gold_prices, args=(force_gold,),
@@ -137,6 +143,11 @@ def run_background_fetch(
             t.start()
         for t in threads:
             t.join()
+
+        # If no portfolio fetch ran, mark updated now that market data is done
+        if google_id and not has_portfolio_fetch:
+            state_manager.set_portfolio_updated(google_id=google_id)
+
         if on_complete:
             on_complete()
 
@@ -172,4 +183,7 @@ def run_auto_refresh() -> None:
                 authenticated = get_authenticated_accounts(gid)
                 if authenticated:
                     fetch_portfolio_data(gid, authenticated)
+                else:
+                    state_manager.set_portfolio_updating(google_id=gid)
+                    state_manager.set_portfolio_updated(google_id=gid)
 

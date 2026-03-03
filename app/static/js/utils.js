@@ -221,7 +221,9 @@ class Formatter {
     if (!dateStr) return '';
 
     try {
-      const date = new Date(dateStr);
+      // Handle "YYYY-MM-DD HH:MM:SS" (space-separated) by converting to ISO
+      const normalized = dateStr.replace(' ', 'T');
+      const date = new Date(normalized);
       if (isNaN(date.getTime())) return '';
 
       const now = Date.now();

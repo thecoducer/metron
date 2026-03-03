@@ -247,7 +247,7 @@ class StateManager:
 def format_timestamp(ts: float) -> str:
     if ts is None:
         return None
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+    return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(ts))
 
 
 def is_market_open_ist() -> bool:
