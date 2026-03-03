@@ -40,11 +40,22 @@ def set_active_user(google_id: str) -> None:
 
     Also scopes the session manager to this user so that Zerodha tokens are
     loaded from / saved to the correct Firestore document.
+
+    On first activation (new user sign-in or server restart), triggers a
+    background data fetch so that gold prices and market data are loaded
+    by the time the portfolio page renders.
     """
     global _active_google_id
+    is_new_activation = False
     with _active_user_lock:
+        if _active_google_id != google_id:
+            is_new_activation = True
         _active_google_id = google_id
     session_manager.set_user(google_id)
+
+    if is_new_activation:
+        from .fetchers import run_background_fetch
+        run_background_fetch()
 
 
 def get_active_user() -> str | None:
