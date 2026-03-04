@@ -79,6 +79,9 @@ class TestAppOnly(unittest.TestCase):
         self.app = app_ui
         self.app.testing = True
         self.client = self.app.test_client()
+        # Ensure browser API access is disabled for tests
+        from app.config import app_config
+        app_config.features['allow_browser_api_access'] = False
 
     def test_no_header_returns_403(self):
         """Request without X-Requested-With header returns 403."""
@@ -162,6 +165,8 @@ class TestProtectedApi(unittest.TestCase):
         self.app = app_ui
         self.app.testing = True
         self.client = self.app.test_client()
+        from app.config import app_config
+        app_config.features['allow_browser_api_access'] = False
 
     def test_unauthenticated_without_header_returns_401(self):
         """Auth check runs first — 401 before 403."""
@@ -229,6 +234,8 @@ class TestProtectedEndpoints(unittest.TestCase):
         self.app = app_ui
         self.app.testing = True
         self.client = self.app.test_client()
+        from app.config import app_config
+        app_config.features['allow_browser_api_access'] = False
 
     def test_protected_get_endpoints_require_auth(self):
         """All user-data GET endpoints return 401 without session."""

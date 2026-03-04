@@ -190,7 +190,7 @@ class TestUIServerRoutes(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'started')
         mock_fetch.assert_called_once_with(
-            is_manual=True, accounts=[{"name": "test"}], google_id="test123"
+            is_manual=True, accounts=[{"name": "test"}], google_id="test123", manual_symbols=[]
         )
 
     def test_refresh_route_conflict(self):
@@ -222,7 +222,7 @@ class TestUIServerRoutes(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'started')
         mock_fetch.assert_called_once_with(
-            is_manual=True, accounts=[], google_id="test123"
+            is_manual=True, accounts=[], google_id="test123", manual_symbols=[]
         )
 
     def test_remove_zerodha_account_success(self):
