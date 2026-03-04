@@ -378,7 +378,9 @@ class CrudManager {
     }
 
     saveBtn.disabled = true;
-    saveBtn.classList.add('saving');
+    // Apply saving state to the entire row for visual feedback
+    const formRow = form.closest('.crud-inline-row');
+    if (formRow) formRow.classList.add('saving');
 
     try {
       const url = isEdit
@@ -416,7 +418,8 @@ class CrudManager {
     } catch (err) {
       this._toast(err.message, 'error');
       saveBtn.disabled = false;
-      saveBtn.classList.remove('saving');
+      const formRow2 = form.closest('.crud-inline-row');
+      if (formRow2) formRow2.classList.remove('saving');
     }
   }
 
