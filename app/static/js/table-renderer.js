@@ -1240,7 +1240,6 @@ class TableRenderer {
       original_amount: deposit.original_amount || 0,
       reinvested_amount: deposit.reinvested_amount || 0,
       interest_rate: deposit.interest_rate || 0,
-      redeemed: deposit.redeemed ? 'Yes' : 'No',
       account: deposit.account || ''
     }) : '';
 

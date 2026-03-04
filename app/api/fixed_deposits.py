@@ -37,21 +37,17 @@ def calculate_compound_interest(
 
 
 def calculate_current_value(fixed_deposits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Calculate current value for active fixed deposits (excludes redeemed deposits).
+    """Calculate current value for fixed deposits.
     
     Args:
         fixed_deposits: List of fixed deposit holdings
     
     Returns:
-        Enriched holdings with current_value and estimated_returns fields (only non-redeemed deposits)
+        Enriched holdings with current_value and estimated_returns fields
     """
     enriched_deposits = []
     
     for deposit in fixed_deposits:
-        # Skip redeemed deposits - they should not appear in the table
-        if deposit.get('redeemed', False):
-            continue
-            
         deposit_copy = deposit.copy()
         
         # Parse deposit date: prefer reinvested date, but fall back to original investment date
@@ -101,7 +97,7 @@ def calculate_current_value(fixed_deposits: List[Dict[str, Any]]) -> List[Dict[s
         principal = deposit.get('reinvested_amount', 0) or deposit.get('original_amount', 0)
         annual_rate = deposit.get('interest_rate', 0)
         
-        # Calculate till today since non-redeemed deposits are auto-reinvested
+        # Calculate till today since active deposits are auto-reinvested
         days_elapsed = (datetime.now() - deposit_date).days
         years_elapsed = days_elapsed / 365.0
         

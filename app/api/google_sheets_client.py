@@ -452,7 +452,6 @@ class FixedDepositsService(GoogleSheetsService):
     def _parse_row(self, row: List[Any], idx: int) -> Dict[str, Any]:
         g = self._safe_get
         p = GoogleSheetsClient.parse_number
-        b = GoogleSheetsClient.parse_yes_no
 
         deposit = {
             'original_investment_date': g(row, 0),
@@ -464,8 +463,7 @@ class FixedDepositsService(GoogleSheetsService):
             'original_amount': g(row, 6, 0, p),
             'reinvested_amount': g(row, 7, 0, p),
             'interest_rate': g(row, 8, 0, p),
-            'redeemed': g(row, 9, False, b),
-            'account': g(row, 10),
+            'account': g(row, 9),
             'row_number': idx,
         }
         if not deposit['bank_name']:

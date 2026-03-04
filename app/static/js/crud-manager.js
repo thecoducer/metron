@@ -107,7 +107,6 @@ const SCHEMAS = {
       { key: 'original_amount',         label: 'Amount',          type: 'number', required: true, step: '0.01', min: '0' },
       { key: 'reinvested_amount',       label: 'Reinvested Amt',  type: 'number', required: false, step: '0.01', min: '0' },
       { key: 'interest_rate',           label: 'Rate (%)',        type: 'number', required: true, step: '0.01', min: '0' },
-      { key: 'redeemed',               label: 'Redeemed?',       type: 'select', required: true, options: ['No', 'Yes'] },
       { key: 'account',                label: 'Account',          type: 'text',   required: true, placeholder: 'e.g. Joint' },
     ],
   },

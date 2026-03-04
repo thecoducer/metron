@@ -38,7 +38,6 @@ FD_HEADERS = [
     "Amount",
     "Reinvested Amt",
     "Rate",
-    "Redeemed?",
     "Account",
 ]
 
@@ -117,7 +116,7 @@ SHEET_CONFIGS = {
         "fields": ["original_investment_date", "reinvested_date",
                     "bank_name", "deposit_year", "deposit_month",
                     "deposit_day", "original_amount", "reinvested_amount",
-                    "interest_rate", "redeemed", "account"],
+                    "interest_rate", "account"],
     },
 }
 
