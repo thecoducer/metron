@@ -455,10 +455,10 @@ class TableDetailApp {
   _filterData(data) {
     // Filter data based on table type (ETFs come from stocks endpoint)
     if (this.tableKey === 'stocks') {
-      return data.filter(h => !isETFInstrument(h.tradingsymbol || '', h.isin || ''));
+      return data.filter(h => !isETFInstrument(h.tradingsymbol || '', h.isin || '', h.manual_type));
     }
     if (this.tableKey === 'etfs') {
-      return data.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || ''));
+      return data.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || '', h.manual_type));
     }
     return data;
   }

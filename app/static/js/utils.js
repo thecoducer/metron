@@ -359,9 +359,11 @@ function isSilverInstrument(symbol) {
  * Uses two signals: symbol suffix (BEES, ETF) and ISIN prefix (INF for ETFs vs INE for equities).
  * @param {string} symbol - Trading symbol to check
  * @param {string} [isin] - Optional ISIN number (INF = ETF/MF, INE = equity)
+ * @param {string} [manualType] - Optional manual_type from Google Sheets (e.g. 'etfs')
  * @returns {boolean} - True if symbol is an ETF (e.g., NIFTYBEES, GOLDBEES, LIQUIDETF)
  */
-function isETFInstrument(symbol, isin) {
+function isETFInstrument(symbol, isin, manualType) {
+  if (manualType === 'etfs') return true;
   if (ETF_SUFFIXES.some(suffix => symbol.endsWith(suffix))) return true;
   if (isin && isin.startsWith('INF')) return true;
   return false;

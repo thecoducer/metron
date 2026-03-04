@@ -256,7 +256,7 @@ class TableRenderer {
       const isGold = isGoldInstrument(symbol);
       const isSGB = isSGBInstrument(symbol);
       const isSilver = isSilverInstrument(symbol);
-      const isETF = isETFInstrument(symbol, isin);
+      const isETF = isETFInstrument(symbol, isin, holding.manual_type);
       
       // Skip ETFs - they go to the ETF table
       if (isETF) return;
@@ -850,7 +850,7 @@ class TableRenderer {
     holdings.forEach(holding => {
       const symbol = holding.tradingsymbol || '';
       const isin = holding.isin || '';
-      const isETF = isETFInstrument(symbol, isin);
+      const isETF = isETFInstrument(symbol, isin, holding.manual_type);
 
       if (!isETF) return;
 
@@ -913,7 +913,7 @@ class TableRenderer {
     // Append "view more" footer if data exceeds row limit
     rowsHTML += this._buildViewMoreRow(totalGroups, 10, 'etfs', 'ETFs');
 
-    if (filteredHoldings.length === 0 && holdings.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || '')).length === 0) {
+    if (filteredHoldings.length === 0 && holdings.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || '', h.manual_type)).length === 0) {
       this._renderEmptyCta(tbody, 'etfs', 'ETFs', 10);
     } else {
       this._updateTbodyContent(tbody, rowsHTML);
