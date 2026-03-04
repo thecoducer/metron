@@ -1,7 +1,7 @@
 # Metron
 
 [![CI/CD](https://github.com/thecoducer/metron/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/thecoducer/metron/actions/workflows/ci-cd.yml)
-[![Cloud Run](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/thecoducer/metron/main/.github/badges/cloud-run.json)](https://console.cloud.google.com/run/detail/us-central1/metron/revisions?project=extreme-outpost-480113-c6)
+[![Cloud Run](https://img.shields.io/badge/Cloud%20Run-deployed-2196F3?logo=googlecloud&logoColor=white)](https://console.cloud.google.com/run/detail/us-central1/metron/revisions?project=extreme-outpost-480113-c6)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)

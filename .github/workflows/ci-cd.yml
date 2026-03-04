@@ -170,35 +170,4 @@ jobs:
           echo "### Firebase Hosting" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Site:** https://${{ env.FIREBASE_SITE }}.web.app" >> "$GITHUB_STEP_SUMMARY"
 
-  # ── Update deployment badge in repo ─────────────────────────
-  update-badge:
-    name: Update deployment badge
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    needs: deploy-cloud-run
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
 
-      - name: Write badge JSON
-        run: |
-          mkdir -p .github/badges
-          jq -n \
-            --arg rev "${{ needs.deploy-cloud-run.outputs.revision }}" \
-            '{
-              schemaVersion: 1,
-              label: "Cloud Run",
-              message: $rev,
-              color: "2196F3",
-              namedLogo: "googlecloud",
-              logoColor: "white"
-            }' > .github/badges/cloud-run.json
-
-      - name: Commit badge
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: update deployment badge [skip ci]"
-          file_pattern: ".github/badges/cloud-run.json"
