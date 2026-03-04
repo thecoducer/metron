@@ -173,7 +173,7 @@ class TestIntegration(unittest.TestCase):
         session_manager.set_token(google_id, "Account1", "token123")
 
         # Simulate round-trip: encrypt -> store -> decrypt
-        encrypted = session_manager._encrypt("token123")
+        encrypted = session_manager._encrypt("token123", google_id)
         sessions = session_manager._sessions_for(google_id)
         stored = {"Account1": {"access_token": encrypted,
                                "expiry": sessions["Account1"]["expiry"].isoformat()}}

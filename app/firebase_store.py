@@ -17,6 +17,7 @@ from typing import Any, Optional
 from google.api_core import exceptions as gcp_exceptions
 
 from .logging_config import logger
+from .utils import decrypt_credential, encrypt_credential
 
 _firestore_client = None
 
@@ -152,19 +153,15 @@ def update_google_credentials(google_id: str, google_credentials: dict) -> None:
 def add_zerodha_account(
     google_id: str, account_name: str, api_key: str, api_secret: str
 ) -> None:
-    """Add a Zerodha account to the user's list of connected accounts."""
+    """Add a Zerodha account to the user's list of connected accounts.
+
+    The *api_key* and *api_secret* are encrypted at rest with a per-user
+    Fernet key before being persisted to Firestore.
+    """
     ref = _user_ref(google_id)
     doc = ref.get()
     data = doc.to_dict() if doc.exists else {}
     accounts: list[dict] = data.get("zerodha_accounts", [])
-
-    # Migrate legacy single-key fields if present
-    if not accounts and data.get("zerodha_api_key"):
-        accounts.append({
-            "account_name": "Primary",
-            "api_key": data["zerodha_api_key"],
-            "api_secret": data.get("zerodha_api_secret", ""),
-        })
 
     # Prevent duplicate account names
     if any(a["account_name"] == account_name for a in accounts):
@@ -172,8 +169,8 @@ def add_zerodha_account(
 
     accounts.append({
         "account_name": account_name,
-        "api_key": api_key,
-        "api_secret": api_secret,
+        "api_key": encrypt_credential(api_key, google_id),
+        "api_secret": encrypt_credential(api_secret, google_id),
     })
     ref.update({"zerodha_accounts": accounts})
     logger.info("Added Zerodha account '%s' for user %s", account_name, google_id)
@@ -199,11 +196,6 @@ def get_zerodha_account_names(google_id: str) -> list[str]:
     doc = _user_ref(google_id).get()
     data = doc.to_dict() if doc.exists else {}
     accounts: list[dict] = data.get("zerodha_accounts", [])
-
-    # Migrate legacy single-key fields if present
-    if not accounts and data.get("zerodha_api_key"):
-        return ["Primary"]
-
     return [a["account_name"] for a in accounts]
 
 
@@ -211,27 +203,29 @@ def get_zerodha_accounts(google_id: str) -> list[dict]:
     """Return the user's Zerodha accounts in auth-compatible format.
 
     Each dict has keys: ``name``, ``api_key``, ``api_secret``.
+    Credentials are decrypted with the user's per-user Fernet key.
+    Accounts whose credentials cannot be decrypted are skipped with a
+    warning — the user must re-add them via the UI.
     """
     doc = _user_ref(google_id).get()
     data = doc.to_dict() if doc.exists else {}
     accounts: list[dict] = data.get("zerodha_accounts", [])
 
-    # Migrate legacy single-key fields if present
-    if not accounts and data.get("zerodha_api_key"):
-        accounts = [{
-            "account_name": "Primary",
-            "api_key": data["zerodha_api_key"],
-            "api_secret": data.get("zerodha_api_secret", ""),
-        }]
-
-    return [
-        {
-            "name": a["account_name"],
-            "api_key": a["api_key"],
-            "api_secret": a["api_secret"],
-        }
-        for a in accounts
-    ]
+    result: list[dict] = []
+    for a in accounts:
+        try:
+            result.append({
+                "name": a["account_name"],
+                "api_key": decrypt_credential(a["api_key"], google_id),
+                "api_secret": decrypt_credential(a["api_secret"], google_id),
+            })
+        except Exception:
+            logger.warning(
+                "Failed to decrypt credentials for account '%s' of user %s "
+                "— please re-add the account via Settings",
+                a["account_name"], google_id,
+            )
+    return result
 
 
 # --------------------------

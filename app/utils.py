@@ -1,6 +1,7 @@
 """Session management, state tracking, and utility functions."""
 
 import hashlib
+import hmac
 import json
 import os
 import platform
@@ -11,12 +12,58 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 from zoneinfo import ZoneInfo
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 
 from .constants import (MARKET_CLOSE_HOUR, MARKET_CLOSE_MINUTE,
                         MARKET_OPEN_HOUR, MARKET_OPEN_MINUTE, STATE_ERROR,
                         STATE_UPDATED, STATE_UPDATING, WEEKEND_SATURDAY)
 from .logging_config import logger
+
+
+# ---------------------------------------------------------------------------
+# Per-user Fernet encryption for Zerodha credentials at rest
+#
+# Each user's credentials are encrypted with a key derived from
+#   HMAC-SHA256(server_secret, google_id)
+# so that:
+#   • A database leak alone reveals only ciphertext.
+#   • The server secret alone is useless without the ciphertext.
+#   • There is no single "master key" that decrypts all users at once.
+# ---------------------------------------------------------------------------
+
+def _get_base_secret() -> bytes:
+    """Return the base secret used for per-user key derivation."""
+    secret = os.environ.get("ZERODHA_TOKEN_SECRET")
+    if secret:
+        return secret.encode()
+    machine_id = platform.node() + platform.machine()
+    logger.warning("ZERODHA_TOKEN_SECRET not set — using machine-specific key")
+    return machine_id.encode()
+
+
+_base_secret: bytes = _get_base_secret()
+
+
+def _derive_user_cipher(google_id: str) -> Fernet:
+    """Derive a per-user Fernet cipher from the server secret and user ID."""
+    key_material = hmac.new(
+        _base_secret, google_id.encode(), hashlib.sha256
+    ).digest()
+    return Fernet(urlsafe_b64encode(key_material))
+
+
+def encrypt_credential(value: str, google_id: str) -> str:
+    """Encrypt a credential with a per-user Fernet key."""
+    return _derive_user_cipher(google_id).encrypt(value.encode()).decode()
+
+
+def decrypt_credential(encrypted: str, google_id: str) -> str:
+    """Decrypt a credential with a per-user Fernet key.
+
+    Raises ``cryptography.fernet.InvalidToken`` if decryption fails.
+    No plaintext fallback — callers must handle the error.
+    """
+    return _derive_user_cipher(google_id).decrypt(encrypted.encode()).decode()
 
 
 class SessionManager:
@@ -28,27 +75,12 @@ class SessionManager:
     def __init__(self):
         self._lock = threading.Lock()
         self._user_sessions: Dict[str, Dict[str, Dict[str, Any]]] = {}
-        self._cipher = self._init_cipher()
 
-    @staticmethod
-    def _init_cipher() -> Fernet:
-        secret = os.environ.get("ZERODHA_TOKEN_SECRET")
-        if secret:
-            key_material = hashlib.sha256(secret.encode()).digest()
-        else:
-            machine_id = platform.node() + platform.machine()
-            key_material = hashlib.sha256(machine_id.encode()).digest()
-            logger.warning("ZERODHA_TOKEN_SECRET not set — using machine-specific key")
-        return Fernet(urlsafe_b64encode(key_material))
+    def _encrypt(self, token: str, google_id: str) -> str:
+        return encrypt_credential(token, google_id)
 
-    def _encrypt(self, token: str) -> str:
-        return self._cipher.encrypt(token.encode()).decode()
-
-    def _decrypt(self, encrypted: str) -> str:
-        try:
-            return self._cipher.decrypt(encrypted.encode()).decode()
-        except Exception:
-            return encrypted
+    def _decrypt(self, encrypted: str, google_id: str) -> str:
+        return decrypt_credential(encrypted, google_id)
 
     def _sessions_for(self, google_id: str) -> Dict[str, Dict[str, Any]]:
         with self._lock:
@@ -73,8 +105,14 @@ class SessionManager:
                     expiry = expiry.replace(tzinfo=timezone.utc)
             except (ValueError, TypeError):
                 continue
+            try:
+                access_token = self._decrypt(info.get("access_token", ""), google_id)
+            except (InvalidToken, Exception):
+                logger.warning("Failed to decrypt session for %s/%s — skipping",
+                               google_id, name)
+                continue
             sessions[name] = {
-                "access_token": self._decrypt(info.get("access_token", "")),
+                "access_token": access_token,
                 "expiry": expiry,
             }
 
@@ -92,7 +130,7 @@ class SessionManager:
             user_sessions = dict(self._user_sessions.get(google_id, {}))
 
         stored = {
-            name: {"access_token": self._encrypt(info["access_token"]),
+            name: {"access_token": self._encrypt(info["access_token"], google_id),
                     "expiry": info["expiry"].isoformat()}
             for name, info in user_sessions.items()
         }

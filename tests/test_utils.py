@@ -11,11 +11,50 @@ from unittest.mock import patch, MagicMock
 from zoneinfo import ZoneInfo
 
 from app.constants import STATE_ERROR, STATE_UPDATED, STATE_UPDATING
-from app.utils import (SessionManager, StateManager, format_timestamp,
+from app.utils import (SessionManager, StateManager, encrypt_credential,
+                       decrypt_credential, format_timestamp,
                        is_market_open_ist, load_config)
 
 # Default google_id used throughout tests
 _GID = "test_google_id_123"
+
+
+class TestCredentialEncryption(unittest.TestCase):
+    """Test per-user encrypt/decrypt credential helpers."""
+
+    def test_round_trip(self):
+        """Encrypting then decrypting returns the original value."""
+        original = "my_super_secret_api_key"
+        encrypted = encrypt_credential(original, _GID)
+        self.assertNotEqual(encrypted, original)
+        self.assertEqual(decrypt_credential(encrypted, _GID), original)
+
+    def test_decrypt_plaintext_raises(self):
+        """Decrypting a plaintext string raises InvalidToken (no fallback)."""
+        from cryptography.fernet import InvalidToken
+        with self.assertRaises(InvalidToken):
+            decrypt_credential("not_encrypted_at_all", _GID)
+
+    def test_different_values_produce_different_ciphertext(self):
+        """Two different plaintexts must not produce the same ciphertext."""
+        a = encrypt_credential("key_aaa", _GID)
+        b = encrypt_credential("key_bbb", _GID)
+        self.assertNotEqual(a, b)
+
+    def test_empty_string_round_trip(self):
+        """Empty string should survive the round trip."""
+        encrypted = encrypt_credential("", _GID)
+        self.assertEqual(decrypt_credential(encrypted, _GID), "")
+
+    def test_per_user_isolation(self):
+        """Data encrypted for user A cannot be decrypted by user B."""
+        from cryptography.fernet import InvalidToken
+        encrypted = encrypt_credential("secret", "userA")
+        # Same user can decrypt
+        self.assertEqual(decrypt_credential(encrypted, "userA"), "secret")
+        # Different user cannot
+        with self.assertRaises(InvalidToken):
+            decrypt_credential(encrypted, "userB")
 
 
 class TestSessionManager(unittest.TestCase):
@@ -73,7 +112,7 @@ class TestSessionManager(unittest.TestCase):
     @patch('app.firebase_store.get_zerodha_sessions')
     def test_load_user_from_firestore(self, mock_get):
         """load_user populates in-memory sessions from Firestore."""
-        encrypted = self.sm._encrypt("my_token")
+        encrypted = self.sm._encrypt("my_token", _GID)
         future = (datetime.now(timezone.utc) + timedelta(hours=23)).isoformat()
         mock_get.return_value = {
             "Account1": {"access_token": encrypted, "expiry": future}
@@ -127,16 +166,16 @@ class TestSessionManager(unittest.TestCase):
 
     def test_encrypt_decrypt_roundtrip(self):
         original = "super_secret_token_12345"
-        encrypted = self.sm._encrypt(original)
+        encrypted = self.sm._encrypt(original, _GID)
         self.assertNotEqual(encrypted, original)
-        decrypted = self.sm._decrypt(encrypted)
+        decrypted = self.sm._decrypt(encrypted, _GID)
         self.assertEqual(decrypted, original)
 
     @patch.dict(os.environ, {"ZERODHA_TOKEN_SECRET": "my_production_secret"})
     def test_cipher_uses_env_var(self):
         sm = SessionManager()
-        encrypted = sm._encrypt("test_token")
-        decrypted = sm._decrypt(encrypted)
+        encrypted = sm._encrypt("test_token", _GID)
+        decrypted = sm._decrypt(encrypted, _GID)
         self.assertEqual(decrypted, "test_token")
 
     def test_load_user_empty_noop(self):
