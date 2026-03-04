@@ -34,6 +34,79 @@ class TableRenderer {
     this.expandedGroups = new Set(); // Track which groups are expanded
   }
 
+  /**
+   * Replace the data rows of a <tbody> while preserving any active CRUD
+   * inline form row that lives inside it.  When no form is present this
+   * is equivalent to `tbody.innerHTML = html`.
+   *
+   * How it works:
+   * 1. Identify the inline form <tr> (.crud-inline-row) if present.
+   * 2. Remove every *other* child row from the tbody.
+   * 3. Inject the new HTML into a temporary container.
+   * 4. Move the new rows into the tbody, positioning them around the
+   *    form row (form stays in place, original data row hidden).
+   *
+   * Because the form <tr> never leaves the DOM, its focus, input values,
+   * and CSS animation state are fully preserved.
+   */
+  _updateTbodyContent(tbody, html) {
+    const formRow = tbody.querySelector('tr.crud-inline-row');
+    if (!formRow) {
+      tbody.innerHTML = html;
+      return;
+    }
+
+    // --- Form is open: surgical update ---
+
+    // Remember the original data row the form is editing (if any)
+    const editedRowNum = formRow.previousElementSibling?.dataset?.manualRow
+      || formRow.nextElementSibling?.dataset?.manualRow;
+    const editedSchema = formRow.previousElementSibling?.dataset?.schema
+      || formRow.nextElementSibling?.dataset?.schema;
+
+    // 1. Remove all rows except the form row
+    Array.from(tbody.children).forEach(row => {
+      if (row !== formRow) row.remove();
+    });
+
+    // 2. Parse the new HTML into a document fragment
+    const temp = document.createElement('tbody');
+    temp.innerHTML = html;
+    const newRows = Array.from(temp.children);
+
+    // 3. Re-insert new rows, hiding the one being edited and placing
+    //    new rows before/after the form row as appropriate.
+    let foundEditedRow = false;
+    let insertedFormRowDataBefore = false;
+
+    newRows.forEach(row => {
+      const isEditedRow = row.dataset.manualRow === editedRowNum
+                       && row.dataset.schema === editedSchema
+                       && editedRowNum !== undefined;
+
+      if (isEditedRow) {
+        // This is the re-rendered version of the row being edited —
+        // insert it right before the form row and keep it hidden.
+        row.style.display = 'none';
+        tbody.insertBefore(row, formRow);
+        foundEditedRow = true;
+        insertedFormRowDataBefore = true;
+      } else if (!insertedFormRowDataBefore && !foundEditedRow) {
+        // Rows before the edited row → insert before the form row
+        tbody.insertBefore(row, formRow);
+      } else {
+        // Rows after the edited row → append at end
+        tbody.appendChild(row);
+      }
+    });
+
+    // 4. If no matching data row was found (e.g. add mode, or row is
+    //    on a different page), make sure the form row stays at top.
+    if (!foundEditedRow && formRow !== tbody.firstChild) {
+      tbody.insertBefore(formRow, tbody.firstChild);
+    }
+  }
+
   setSearchQuery(query) {
     this.searchQuery = query.toLowerCase();
   }
@@ -79,7 +152,7 @@ class TableRenderer {
    * @param {number} colCount - Number of columns for colspan
    */
   _renderEmptyCta(tbody, schemaKey, label, colCount) {
-    tbody.innerHTML = `<tr class="crud-empty-cta-row">
+    const ctaHtml = `<tr class="crud-empty-cta-row">
       <td colspan="${colCount}">
         <div class="crud-empty-cta">
           <span class="crud-empty-text">No ${label} added yet</span>
@@ -90,6 +163,7 @@ class TableRenderer {
         </div>
       </td>
     </tr>`;
+    this._updateTbodyContent(tbody, ctaHtml);
   }
 
   /**
@@ -234,7 +308,7 @@ class TableRenderer {
     if (filteredHoldings.length === 0 && holdings.length === 0) {
       this._renderEmptyCta(tbody, 'stocks', 'stocks', 10);
     } else {
-      tbody.innerHTML = rowsHTML;
+      this._updateTbodyContent(tbody, rowsHTML);
     }
 
     // Show/hide table and empty state
@@ -295,7 +369,6 @@ class TableRenderer {
     const section = document.getElementById('mf-section');
     const isUpdating = status.portfolio_state === 'updating';
 
-    tbody.innerHTML = '';
     let mfTotalInvested = 0;
     let mfTotalCurrent = 0;
     let filteredHoldings = [];
@@ -350,7 +423,7 @@ class TableRenderer {
     if (filteredHoldings.length === 0 && mfHoldings.length === 0) {
       this._renderEmptyCta(tbody, 'mutual_funds', 'mutual funds', 8);
     } else {
-      tbody.innerHTML = rowsHTML;
+      this._updateTbodyContent(tbody, rowsHTML);
     }
 
     // Show/hide table and empty state
@@ -420,7 +493,7 @@ class TableRenderer {
       this._renderEmptyCta(tbody, 'sips', 'SIPs', 7);
     } else {
       rowsHTML += this._buildSIPTotalRow(totalMonthlyAmount, dataClass);
-      tbody.innerHTML = rowsHTML;
+      this._updateTbodyContent(tbody, rowsHTML);
     }
     
     // Always show table with headers; hide old empty state
@@ -840,7 +913,7 @@ class TableRenderer {
     if (filteredHoldings.length === 0 && holdings.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || '')).length === 0) {
       this._renderEmptyCta(tbody, 'etfs', 'ETFs', 10);
     } else {
-      tbody.innerHTML = rowsHTML;
+      this._updateTbodyContent(tbody, rowsHTML);
     }
 
     // Show/hide table and empty state
@@ -913,8 +986,6 @@ class TableRenderer {
     
     if (!tbody) return { invested: 0, current: 0, pl: 0, plPct: 0 };
 
-    tbody.innerHTML = '';
-
     const sectionElements = {
       table: section ? section.querySelector('table') : null,
       emptyState: null,
@@ -951,7 +1022,7 @@ class TableRenderer {
     pageData.forEach((holding) => {
       rowsHTML += this._buildPhysicalGoldRow(holding);
     });
-    tbody.innerHTML = rowsHTML;
+    this._updateTbodyContent(tbody, rowsHTML);
 
     this._renderPhysicalGoldPagination(paginationData);
     
@@ -1041,8 +1112,6 @@ class TableRenderer {
     
     if (!tbody) return { invested: 0, maturity: 0, returns: 0, returnsPct: 0 };
 
-    tbody.innerHTML = '';
-
     const sectionElements = {
       table: section ? section.querySelector('table') : null,
       emptyState: null,
@@ -1098,7 +1167,7 @@ class TableRenderer {
         });
       }
     });
-    tbody.innerHTML = rowsHTML;
+    this._updateTbodyContent(tbody, rowsHTML);
 
     this._renderFixedDepositsPagination(paginationData);
     
@@ -1279,8 +1348,6 @@ class TableRenderer {
     
     if (!tbody) return;
 
-    tbody.innerHTML = '';
-
     const sectionElements = {
       table: section ? section.querySelector('table') : null,
       controls: section ? section.querySelector('.controls-container') : null,
@@ -1290,6 +1357,7 @@ class TableRenderer {
 
     if (!summaryArray || summaryArray.length === 0) {
       this._toggleSectionVisibility(sectionElements, false);
+      this._updateTbodyContent(tbody, '');
       return;
     }
 
@@ -1301,7 +1369,7 @@ class TableRenderer {
     pageData.forEach((summary) => {
       rowsHTML += this._buildFDSummaryRow(summary);
     });
-    tbody.innerHTML = rowsHTML;
+    this._updateTbodyContent(tbody, rowsHTML);
 
     this._toggleSectionVisibility(sectionElements, true);
 

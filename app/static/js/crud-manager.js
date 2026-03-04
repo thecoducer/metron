@@ -129,6 +129,8 @@ class CrudManager {
     this._onDataChanged = onDataChanged;
     this._activeFormRow = null;      // current inline form <tr>
     this._activeOriginalRow = null;  // original <tr> hidden during edit
+    this._activeSchemaKey = null;    // schemaKey of the active inline form
+    this._activeRowNumber = null;    // row number being edited (null for add)
     this._modalEl = null;
     this._backdropEl = null;
     this._init();
@@ -164,10 +166,17 @@ class CrudManager {
 
   // ── Public API ───────────────────────────────────────────────
 
+  /** Returns true when an inline add/edit form is currently open. */
+  isEditing() {
+    return this._activeFormRow !== null;
+  }
+
   openAdd(schemaKey) {
     const schema = SCHEMAS[schemaKey];
     if (!schema) return;
     this._cancelInline();
+    this._activeSchemaKey = schemaKey;
+    this._activeRowNumber = null;
     this._showInlineForm(schema, schemaKey, null, null);
   }
 
@@ -175,6 +184,8 @@ class CrudManager {
     const schema = SCHEMAS[schemaKey];
     if (!schema) return;
     this._cancelInline();
+    this._activeSchemaKey = schemaKey;
+    this._activeRowNumber = rowNumber;
     const tbody = this._getTbody(schemaKey);
     const existingRow = tbody?.querySelector(
       `tr[data-manual-row="${rowNumber}"][data-schema="${schemaKey}"]`
@@ -391,10 +402,14 @@ class CrudManager {
       // Remove form row immediately
       if (this._activeFormRow) this._activeFormRow.remove();
       this._activeFormRow = null;
-      if (this._activeOriginalRow) {
-        this._activeOriginalRow.remove(); // will be re-rendered by refresh
-        this._activeOriginalRow = null;
-      }
+      // Remove the hidden original data row (may have been replaced by
+      // _updateTbodyContent during a refresh, so look it up fresh).
+      const origRow = this._activeOriginalRow
+        || this._findOriginalRow();
+      if (origRow) origRow.remove();
+      this._activeOriginalRow = null;
+      this._activeSchemaKey = null;
+      this._activeRowNumber = null;
 
       this._toast(isEdit ? 'Updated successfully' : 'Added successfully', 'success');
       if (this._onDataChanged) this._onDataChanged(result.data);
@@ -412,10 +427,16 @@ class CrudManager {
       this._activeFormRow.remove();
       this._activeFormRow = null;
     }
-    if (this._activeOriginalRow) {
-      this._activeOriginalRow.style.display = '';
-      this._activeOriginalRow = null;
+    // Unhide the original data row. Prefer the live reference, but fall
+    // back to a DOM lookup in case _updateTbodyContent replaced it.
+    const origRow = this._activeOriginalRow
+      || this._findOriginalRow();
+    if (origRow) {
+      origRow.style.display = '';
     }
+    this._activeOriginalRow = null;
+    this._activeSchemaKey = null;
+    this._activeRowNumber = null;
     // Re-show empty CTA if the tbody has no visible data rows
     document.querySelectorAll('.crud-empty-cta-row').forEach(row => {
       const tbody = row.closest('tbody');
@@ -433,6 +454,20 @@ class CrudManager {
   _getTbody(schemaKey) {
     const id = TBODY_MAP[schemaKey];
     return id ? document.getElementById(id) : null;
+  }
+
+  /**
+   * Look up the hidden original data row in the DOM by schema key and
+   * row number.  Used as a fallback when the stored _activeOriginalRow
+   * reference has been replaced by a table re-render.
+   */
+  _findOriginalRow() {
+    if (this._activeRowNumber == null || !this._activeSchemaKey) return null;
+    const tbody = this._getTbody(this._activeSchemaKey);
+    if (!tbody) return null;
+    return tbody.querySelector(
+      `tr[data-manual-row="${this._activeRowNumber}"][data-schema="${this._activeSchemaKey}"]`
+    );
   }
 
   // ── Modal (delete confirmation only) ───────────────────────

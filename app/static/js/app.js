@@ -767,7 +767,7 @@ class PortfolioApp {
     paginationData.pageData.forEach((summary) => {
       rowsHTML += this.tableRenderer._buildFDSummaryRow(summary);
     });
-    tbody.innerHTML = rowsHTML;
+    this.tableRenderer._updateTbodyContent(tbody, rowsHTML);
 
     PaginationManager.updatePaginationUI(
       paginationData,
