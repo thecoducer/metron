@@ -27,7 +27,7 @@ class PrivacyManager {
       this.privacyBtn.classList.toggle('active', enabled);
     }
     if (this.privacyLabel) {
-      this.privacyLabel.textContent = enabled ? 'ON' : 'OFF';
+      this.privacyLabel.classList.toggle('toggle-on', enabled);
     }
     if (enabled) {
       body.classList.add('privacy-mode');

@@ -30,9 +30,9 @@ class ThemeManager {
       body.classList.remove('dark-theme');
     }
 
-    // Update label text
+    // Update toggle switch
     if (this.themeLabel) {
-      this.themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
+      this.themeLabel.classList.toggle('toggle-on', theme === 'dark');
     }
     
     // Re-enable transitions after the browser has painted the new theme

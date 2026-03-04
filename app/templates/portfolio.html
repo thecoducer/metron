@@ -49,21 +49,31 @@
         {% endif %}
     </button>
     <div class="user-dropdown" id="userDropdown">
-        <div class="user-dropdown-info">
-            <strong>{{ user.name or 'User' }}</strong>
-            <span>{{ user.email }}</span>
+        <div class="user-dropdown-header">
+            <div class="user-dropdown-avatar">
+                {% if user.picture %}
+                <img src="{{ user.picture }}" alt="" referrerpolicy="no-referrer">
+                {% else %}
+                <span>{{ (user.name or user.email)[0]|upper }}</span>
+                {% endif %}
+            </div>
+            <div class="user-dropdown-info">
+                <strong>{{ user.name or 'User' }}</strong>
+                <span>{{ user.email }}</span>
+            </div>
         </div>
-        <hr>
-        <div class="user-dropdown-toggles">
+
+        <div class="user-dropdown-section">
+            <div class="user-dropdown-section-label">Preferences</div>
             <button class="user-dropdown-toggle-btn" id="compact_toggle_btn" onclick="toggleCompactFormat()" title="Toggle number format">
-                <svg class="dropdown-icon" id="compact_toggle_icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                <svg class="dropdown-icon" id="compact_toggle_icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
                 <span>Short Numbers</span>
-                <span class="toggle-label" id="compact_toggle_label">ON</span>
+                <span class="toggle-switch" id="compact_toggle_label"><span class="toggle-knob"></span></span>
             </button>
             <button class="user-dropdown-toggle-btn" id="privacy_toggle_btn" onclick="togglePrivacy()" title="Toggle privacy mode">
-                <svg class="dropdown-icon" id="privacy_toggle_icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="dropdown-icon" id="privacy_toggle_icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
                 <span>Privacy Mode</span>
-                <span class="toggle-label" id="privacy_toggle_label">OFF</span>
+                <span class="toggle-switch" id="privacy_toggle_label"><span class="toggle-knob"></span></span>
             </button>
             <button class="user-dropdown-toggle-btn" id="theme_toggle_btn" onclick="toggleTheme()" title="Toggle theme">
                 <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
@@ -71,23 +81,28 @@
                     <span class="theme-icon-moon"></span>
                 </span>
                 <span>Theme</span>
-                <span class="toggle-label" id="theme_toggle_label">Light</span>
+                <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
             </button>
         </div>
-        <hr>
-        <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}" target="_blank" class="user-dropdown-item">
-            <svg class="dropdown-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            <span>My Data</span>
-        </a>
-        <button class="user-dropdown-item" onclick="openSettingsDrawer()">
-            <svg class="dropdown-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span>Settings</span>
-        </button>
-        <hr>
-        <button class="user-dropdown-item user-dropdown-logout" onclick="handleLogout()">
-            <svg class="dropdown-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            <span>Sign Out</span>
-        </button>
+
+        <div class="user-dropdown-section">
+            <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}" target="_blank" class="user-dropdown-item">
+                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <span>My Data</span>
+                <svg class="dropdown-external-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+            <button class="user-dropdown-item" onclick="openSettingsDrawer()">
+                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Settings</span>
+            </button>
+        </div>
+
+        <div class="user-dropdown-section user-dropdown-section--logout">
+            <button class="user-dropdown-item user-dropdown-logout" onclick="handleLogout()">
+                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Sign Out</span>
+            </button>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -119,12 +134,21 @@
     </div>
     <div class="overview-metrics">
         <div class="overview-primary">
-            <span class="overview-current" id="combined_current_value">0.00</span>
-            <span class="overview-invested" id="combined_total_invested">0.00</span>
+            <div class="overview-stat">
+                <span class="overview-stat-label">Current</span>
+                <span class="overview-current" id="combined_current_value">0.00</span>
+            </div>
+            <div class="overview-stat">
+                <span class="overview-stat-label">Invested</span>
+                <span class="overview-invested" id="combined_total_invested">0.00</span>
+            </div>
         </div>
         <div class="overview-pl-group">
-            <span class="overview-pl" id="combined_total_pl">0.00</span>
-            <span class="overview-pct" id="combined_total_pl_pct">0.00%</span>
+            <span class="overview-stat-label">Returns</span>
+            <div class="overview-pl-values">
+                <span class="overview-pl" id="combined_total_pl">0.00</span>
+                <span class="overview-pct" id="combined_total_pl_pct">0.00%</span>
+            </div>
         </div>
     </div>
     <div class="overview-tickers">
@@ -401,6 +425,14 @@
 <div class="section-header">
 <h2>Fixed Deposits</h2>
 <div class="controls-container fd-header-controls">
+<div class="fd-tabs">
+<button class="fd-tab active" data-tab="maturity" onclick="window.switchFDTab('maturity')">
+By Maturity
+</button>
+<button class="fd-tab" data-tab="bank" onclick="window.switchFDTab('bank')">
+By Bank
+</button>
+</div>
 <button class="crud-add-btn" onclick="window.crudAdd('fixed_deposits')" title="Add fixed deposit">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
 <span>Add</span>
@@ -424,16 +456,6 @@
 </select>
 </div>
 </div>
-</div>
-
-<!-- Tab Navigation -->
-<div class="fd-tabs">
-<button class="fd-tab active" data-tab="maturity" onclick="window.switchFDTab('maturity')">
-By Maturity
-</button>
-<button class="fd-tab" data-tab="bank" onclick="window.switchFDTab('bank')">
-By Bank
-</button>
 </div>
 
 <!-- Tab Content: By Maturity (Detailed View) -->

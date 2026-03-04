@@ -160,11 +160,10 @@ class TableRenderer {
 
     const ctaHtml = `<tr class="crud-empty-cta-row">
       <td colspan="${colCount}">
-        <div class="crud-empty-cta">
-          <span class="crud-empty-text">No ${label} added yet</span>
-          <button class="crud-empty-add-btn" onclick="window.crudAdd('${schemaKey}')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-            Add
+        <div class="crud-empty-cta" onclick="window.crudAdd('${schemaKey}')" role="button" tabindex="0">
+          <button class="crud-empty-add-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            Add ${label}
           </button>
         </div>
       </td>
@@ -502,9 +501,12 @@ class TableRenderer {
       this._updateTbodyContent(tbody, rowsHTML);
     }
     
-    // Always show table with headers; hide old empty state
-    const table = section.querySelector('table');
-    if (table) table.style.display = 'table';
+    // Show/hide table and controls (Add button)
+    this._toggleSectionVisibility({
+      table: section.querySelector('table'),
+      emptyState: null,
+      controls: section.querySelector('.controls-container'),
+    }, sips.length > 0);
   }
 
   _buildSIPTotalRow(totalAmount, dataClass) {

@@ -133,7 +133,7 @@ class PortfolioApp {
       btn.classList.toggle('active', Formatter.isCompactFormat);
     }
     if (label) {
-      label.textContent = Formatter.isCompactFormat ? 'ON' : 'OFF';
+      label.classList.toggle('toggle-on', Formatter.isCompactFormat);
     }
     if (icon) {
       // Switch between 'Tt' (compact) and 'T' (full) icon paths

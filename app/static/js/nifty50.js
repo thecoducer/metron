@@ -89,7 +89,7 @@ class Nifty50App {
     
     const themeLabel = document.getElementById('theme_toggle_label');
     if (themeLabel) {
-      themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
+      themeLabel.classList.toggle('toggle-on', theme === 'dark');
     }
   }
 
@@ -307,7 +307,7 @@ window.toggleTheme = function() {
   
   const themeLabel = document.getElementById('theme_toggle_label');
   if (themeLabel) {
-    themeLabel.textContent = isDark ? 'Dark' : 'Light';
+    themeLabel.classList.toggle('toggle-on', isDark);
   }
 };
 
