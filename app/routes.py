@@ -13,7 +13,7 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .api.physical_gold import enrich_holdings_with_prices
-from .cache import market_cache, portfolio_cache, user_sheets_cache
+from .cache import market_cache, manual_ltp_cache, portfolio_cache, user_sheets_cache
 from .constants import (HTTP_ACCEPTED, HTTP_CONFLICT, MARKET_INDEX_CACHE_TTL,
                          PORTFOLIO_TABLE_ROW_LIMIT,
                          SSE_KEEPALIVE_INTERVAL, SSE_TOKEN_MAX_AGE)
@@ -616,20 +616,21 @@ def events():
 
 
 def _build_stocks_data(user):
-    """Build merged broker + manual stocks list."""
+    """Build merged broker + manual stocks list with live LTPs."""
     user_data = portfolio_cache.get(user["google_id"])
     broker_stocks = list(user_data.stocks)
 
+    manual_entries = []
     for sheet_type in ("stocks", "etfs"):
         manual = _fetch_manual_entries(user, sheet_type)
         for m in manual:
             qty = float(m.get("qty") or 0)
             avg = float(m.get("avg_price") or 0)
-            broker_stocks.append({
+            manual_entries.append({
                 "tradingsymbol": (m.get("symbol") or "").upper(),
                 "quantity": qty,
                 "average_price": avg,
-                "last_price": avg,
+                "last_price": avg,          # fallback; enriched below
                 "invested": qty * avg,
                 "exchange": m.get("exchange", "NSE"),
                 "account": m.get("account", "Manual"),
@@ -640,7 +641,89 @@ def _build_stocks_data(user):
                 "row_number": m.get("row_number"),
                 "manual_type": sheet_type,
             })
+
+    if manual_entries:
+        _enrich_manual_entries_with_ltp(manual_entries)
+
+    broker_stocks.extend(manual_entries)
     return sorted(broker_stocks, key=lambda x: x.get("tradingsymbol", ""))
+
+
+def _validate_nse_symbol(symbol: str) -> dict | None:
+    """Validate a symbol against NSE by fetching its quote.
+
+    Returns the quote dict (with 'ltp' > 0) if valid, or None if the
+    symbol does not exist on NSE or the fetch fails.
+    """
+    from .api.market_data import MarketDataClient
+
+    try:
+        client = MarketDataClient()
+        session = client._create_session()
+        data = client.fetch_stock_quote(session, symbol)
+        if data and data.get("ltp"):
+            return data
+    except Exception:
+        logger.warning("NSE validation failed for symbol %s", symbol)
+    return None
+
+
+def _fetch_uncached_manual_ltps(user: dict, new_symbol: str = "") -> None:
+    """Fetch LTPs for all uncached manual stock/ETF symbols after a CRUD add.
+
+    Collects symbols from both stocks and etfs sheets, adds the newly-added
+    symbol, then batch-fetches any that aren't already in the LTP cache.
+    """
+    try:
+        from .api.market_data import MarketDataClient
+
+        all_symbols: set[str] = set()
+        for sheet_type in ("stocks", "etfs"):
+            for entry in (_fetch_manual_entries(user, sheet_type) or []):
+                sym = (entry.get("symbol") or "").upper()
+                if sym:
+                    all_symbols.add(sym)
+        if new_symbol:
+            all_symbols.add(new_symbol)
+
+        to_fetch = [s for s in all_symbols
+                    if not manual_ltp_cache.get(s)
+                    and not manual_ltp_cache.is_negative(s)]
+        if not to_fetch:
+            return
+
+        fetched = MarketDataClient().fetch_stock_quotes(to_fetch)
+        if fetched:
+            manual_ltp_cache.put_batch(fetched)
+        missed = [s for s in to_fetch if s not in (fetched or {})]
+        if missed:
+            manual_ltp_cache.put_negative_batch(missed)
+    except Exception:
+        logger.warning("Failed to fetch LTPs after CRUD add for %s", new_symbol)
+
+
+def _enrich_manual_entries_with_ltp(entries: list) -> None:
+    """Apply cached LTPs to manual entries (read-only, never fetches)."""
+    symbols = list({e["tradingsymbol"] for e in entries if e["tradingsymbol"]})
+    if not symbols:
+        return
+
+    enriched = 0
+    for sym in symbols:
+        cached = manual_ltp_cache.get(sym)
+        if not cached or not cached.get("ltp"):
+            continue
+        for entry in entries:
+            if entry["tradingsymbol"] == sym:
+                entry["last_price"] = cached["ltp"]
+                entry["day_change"] = cached.get("change", 0)
+                entry["day_change_percentage"] = cached.get("pChange", 0)
+                enriched += 1
+
+    if enriched:
+        logger.info("Manual LTP enrichment: %d/%d symbols from cache", enriched, len(symbols))
+    else:
+        logger.debug("Manual LTP enrichment: %d symbols, all uncached", len(symbols))
 
 
 def _build_mf_data(user):
@@ -808,7 +891,7 @@ def market_indices():
 @protected_api
 def refresh_route():
     """Trigger manual data refresh for the signed-in user."""
-    from .fetchers import run_background_fetch
+    from .fetchers import run_background_fetch, collect_manual_symbols
 
     user = _current_user()
     google_id = user["google_id"]
@@ -817,10 +900,18 @@ def refresh_route():
         return make_response(jsonify({"error": "Fetch already in progress"}), HTTP_CONFLICT)
 
     ensure_user_loaded(google_id)
+
+    # Collect symbols before invalidation (cache will be cleared)
+    manual_symbols = collect_manual_symbols(google_id)
+
     user_sheets_cache.invalidate(google_id)
+    manual_ltp_cache.invalidate()
 
     authenticated = get_authenticated_accounts(google_id)
-    run_background_fetch(is_manual=True, accounts=authenticated, google_id=google_id)
+    run_background_fetch(
+        is_manual=True, accounts=authenticated, google_id=google_id,
+        manual_symbols=manual_symbols,
+    )
 
     return make_response(jsonify({"status": "started"}), HTTP_ACCEPTED)
 
@@ -1171,15 +1262,28 @@ def sheets_add(sheet_type):
         return jsonify({"error": err}), 400
 
     data = request.get_json(silent=True) or {}
+    symbol = (data.get("symbol") or "").upper()
+
+    # Validate stock/ETF symbols against NSE before saving.
+    if sheet_type in ("stocks", "etfs") and symbol:
+        quote = _validate_nse_symbol(symbol)
+        if not quote:
+            return jsonify({"error": f"Symbol {symbol} doesn't exist on exchange."}), 400
+        # Cache the validated LTP immediately.
+        manual_ltp_cache.put(symbol, quote)
+
     values = [data.get(f, "") for f in cfg["fields"]]
 
     try:
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
         row_num = client.append_row(spreadsheet_id, cfg["sheet_name"], values)
-        # Refresh only the changed sheet in cache (not all 6).
         user = _current_user()
         google_id = user.get("google_id", "")
         _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
+
+        # Fetch LTPs for any other uncached manual symbols.
+        if sheet_type in ("stocks", "etfs"):
+            _fetch_uncached_manual_ltps(user, symbol)
     except Exception as e:
         logger.exception("Error adding %s row", sheet_type)
         return jsonify({"error": str(e)}), 500
@@ -1209,11 +1313,19 @@ def sheets_update(sheet_type, row_number):
         return jsonify({"error": err}), 400
 
     data = request.get_json(silent=True) or {}
+    symbol = (data.get("symbol") or "").upper()
+
+    # Validate stock/ETF symbols against NSE before saving.
+    if sheet_type in ("stocks", "etfs") and symbol:
+        quote = _validate_nse_symbol(symbol)
+        if not quote:
+            return jsonify({"error": f"Symbol {symbol} doesn't exist on exchange."}), 400
+        manual_ltp_cache.put(symbol, quote)
+
     values = [data.get(f, "") for f in cfg["fields"]]
 
     try:
         client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)
-        # Refresh only the changed sheet in cache (not all 6).
         user = _current_user()
         google_id = user.get("google_id", "")
         _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)

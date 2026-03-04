@@ -1,8 +1,9 @@
 """
 Market data client – NSE stock quotes and Yahoo Finance indices / commodities.
 """
+import threading
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 import requests
@@ -146,6 +147,60 @@ class MarketDataClient:
             'low': 0,
             'close': 0
         }
+
+    # ------------------------------------------------------------------
+    # Batch quote fetching (for manual stock/ETF enrichment)
+    # ------------------------------------------------------------------
+
+    def fetch_stock_quotes(self, symbols: list, timeout: int = None,
+                           cancel: Optional[threading.Event] = None) -> dict:
+        """Fetch quotes for multiple symbols in a single NSE session.
+
+        Args:
+            symbols: List of NSE stock symbols to fetch.
+            timeout: Optional per-request timeout override (seconds).
+            cancel:  Optional threading.Event; when set the loop stops early.
+
+        Returns a dict mapping each symbol to its quote data dict.
+        Symbols that fail to fetch are omitted from the result.
+        """
+        if not symbols:
+            return {}
+
+        logger.info("Batch quote fetch: %d symbols (timeout=%s)", len(symbols), timeout)
+
+        saved_timeout = self.timeout
+        if timeout is not None:
+            self.timeout = timeout
+
+        try:
+            session = self._create_session()
+            logger.info("NSE session created for batch quote fetch")
+        except Exception:
+            logger.warning("Could not create NSE session for batch quote fetch")
+            return {}
+        finally:
+            if timeout is not None:
+                self.timeout = saved_timeout
+
+        result = {}
+        failed: list = []
+        for symbol in symbols:
+            if cancel and cancel.is_set():
+                logger.info("Batch quote fetch cancelled after %d/%d symbols",
+                            len(result), len(symbols))
+                break
+            data = self.fetch_stock_quote(session, symbol)
+            if data and data.get('ltp'):
+                result[symbol] = data
+            else:
+                failed.append(symbol)
+
+        if failed:
+            logger.info("No LTP for %d symbols: %s", len(failed), failed)
+        logger.info("Batch quote fetch done: %d/%d symbols successful",
+                    len(result), len(symbols))
+        return result
 
     # ------------------------------------------------------------------
     # Market index data (NIFTY 50 + SENSEX) via Yahoo Finance

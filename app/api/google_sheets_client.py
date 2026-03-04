@@ -185,7 +185,6 @@ class GoogleSheetsClient:
                     break
                 rows.append(row)
             trimmed[name] = rows
-            logger.info("Batch trimmed %s to %d rows", name, len(rows))
         return trimmed
 
     @staticmethod

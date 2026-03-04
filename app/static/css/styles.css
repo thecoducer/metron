@@ -4742,6 +4742,12 @@ body.dark-theme .crud-manual-badge {
   color: #c4c4c4;
   font-size: 12px;
 }
+.crud-inline-input-uppercase {
+  text-transform: uppercase;
+}
+.crud-inline-input-uppercase::placeholder {
+  text-transform: none;
+}
 .crud-inline-input-error {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 3px rgba(239,68,68,.1) !important;
@@ -4828,6 +4834,23 @@ select.crud-inline-input {
   animation: crudRowSaving 1.4s ease-in-out infinite;
   pointer-events: none;
   border-left-color: #ebebea;
+}
+.crud-inline-row.validating {
+  pointer-events: none;
+  border-left-color: #f59e0b;
+}
+.crud-inline-row.validating > td::before {
+  content: 'Validating symbol…';
+  display: block;
+  font-size: 11px;
+  color: #b45309;
+  font-weight: 500;
+  padding: 2px 0 4px;
+  animation: crudPulse 1.2s ease-in-out infinite;
+}
+@keyframes crudPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .45; }
 }
 .crud-inline-row.saving > td::after {
   content: '';
@@ -4932,6 +4955,12 @@ body.dark-theme .crud-inline-row.saving > td::after {
     transparent 100%
   );
   background-size: 200% 100%;
+}
+body.dark-theme .crud-inline-row.validating {
+  border-left-color: #f59e0b;
+}
+body.dark-theme .crud-inline-row.validating > td::before {
+  color: #fbbf24;
 }
 body.dark-theme .crud-inline-label {
   color: #6b6b7e;

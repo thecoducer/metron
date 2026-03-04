@@ -186,3 +186,70 @@ class UserSheetsCache:
 
 
 user_sheets_cache = UserSheetsCache()
+
+
+class ManualLTPCache:
+    """Thread-safe cache for manually-added stock/ETF last traded prices.
+
+    Stores NSE quote data (ltp, change, pChange) keyed by symbol.
+    No TTL — data persists until explicitly invalidated or overwritten.
+
+    Negative lookups (unresolved symbols) use a 5-minute TTL to allow
+    periodic retries for temporarily unavailable symbols.
+    """
+
+    _NEGATIVE_TTL = 300  # 5 minutes
+
+    def __init__(self):
+        self._data: Dict[str, Dict[str, Any]] = {}
+        self._negative: Dict[str, float] = {}
+        self._lock = threading.Lock()
+        self._cancel = threading.Event()
+
+    # -- Read --
+
+    def get(self, symbol: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            return self._data.get(symbol)
+
+    def is_negative(self, symbol: str) -> bool:
+        with self._lock:
+            ts = self._negative.get(symbol, 0)
+            return (time.monotonic() - ts) < self._NEGATIVE_TTL
+
+    # -- Write --
+
+    def put(self, symbol: str, data: Dict[str, Any]) -> None:
+        with self._lock:
+            self._data[symbol] = data
+            self._negative.pop(symbol, None)
+
+    def put_batch(self, data: Dict[str, Dict[str, Any]]) -> None:
+        with self._lock:
+            for symbol, quote in data.items():
+                self._data[symbol] = quote
+                self._negative.pop(symbol, None)
+
+    def put_negative_batch(self, symbols: list) -> None:
+        with self._lock:
+            now = time.monotonic()
+            for sym in symbols:
+                self._negative[sym] = now
+
+    # -- Control --
+
+    @property
+    def cancel_flag(self) -> threading.Event:
+        """Event checked by background fetch threads to abort early."""
+        return self._cancel
+
+    def invalidate(self) -> None:
+        """Clear all data and cancel in-flight background fetches."""
+        with self._lock:
+            self._data.clear()
+            self._negative.clear()
+        self._cancel.set()
+        self._cancel = threading.Event()
+
+
+manual_ltp_cache = ManualLTPCache()
