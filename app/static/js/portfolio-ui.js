@@ -729,11 +729,37 @@ function removeDrawerAccount(name) {
   }
 
   function hideOverlay() {
-    overlay.style.display = 'none';
-    document.body.style.overflow = '';
-    // Reveal the dashboard content that was hidden to prevent flash
-    const container = document.querySelector('.container');
-    if (container) container.style.visibility = '';
+    const wasVisible = overlay.style.display !== 'none';
+
+    if (wasVisible) {
+      // Animate the PIN overlay out
+      overlay.classList.add('pin-exit');
+
+      // After the exit animation, reveal dashboard with entrance animation
+      const onExit = () => {
+        overlay.removeEventListener('animationend', onExit);
+        overlay.style.display = 'none';
+        overlay.classList.remove('pin-exit');
+        document.body.style.overflow = '';
+
+        // Reveal the dashboard with staggered entrance animation
+        const container = document.querySelector('.container');
+        if (container) {
+          container.style.visibility = '';
+          container.classList.add('dash-entrance');
+          // Clean up after all animations complete
+          setTimeout(() => container.classList.remove('dash-entrance'), 1200);
+        }
+      };
+      overlay.addEventListener('animationend', onExit);
+    } else {
+      // Overlay was already hidden (e.g. already verified) — just ensure dashboard is visible
+      overlay.style.display = 'none';
+      document.body.style.overflow = '';
+      const container = document.querySelector('.container');
+      if (container) container.style.visibility = '';
+    }
+
     if (_lockoutTimer) { clearInterval(_lockoutTimer); _lockoutTimer = null; }
     inputRow.querySelectorAll('.pin-digit').forEach(d => d.disabled = false);
     clearAll();

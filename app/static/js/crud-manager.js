@@ -130,24 +130,15 @@ class CrudManager {
     this._activeOriginalRow = null;  // original <tr> hidden during edit
     this._activeSchemaKey = null;    // schemaKey of the active inline form
     this._activeRowNumber = null;    // row number being edited (null for add)
-    this._modalEl = null;
-    this._backdropEl = null;
     this._init();
   }
 
   // ── Bootstrap ────────────────────────────────────────────────
 
   _init() {
-    // Backdrop + modal kept only for delete confirmation
-    this._backdropEl = document.createElement('div');
-    this._backdropEl.className = 'crud-backdrop';
-    this._backdropEl.addEventListener('click', () => this._closeModal());
-
-    this._modalEl = document.createElement('div');
-    this._modalEl.className = 'crud-modal';
-
-    document.body.appendChild(this._backdropEl);
-    document.body.appendChild(this._modalEl);
+    // Delete confirmation popover (replaces full-page modal)
+    this._deletePopover = null;
+    this._deletePopoverCleanup = null;
 
     // Toast container
     this._toastContainer = document.createElement('div');
@@ -157,7 +148,7 @@ class CrudManager {
     // Global keyboard handler
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if (this._backdropEl.classList.contains('open')) this._closeModal();
+        if (this._deletePopover) this._closeDeletePopover();
         else if (this._activeFormRow) this._cancelInline();
       }
     });
@@ -196,31 +187,51 @@ class CrudManager {
     const schema = SCHEMAS[schemaKey];
     if (!schema) return;
 
-    this._modalEl.innerHTML = `
-      <div class="crud-delete-compact">
-        <div class="crud-delete-row">
-          <div class="crud-delete-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </div>
-          <div class="crud-delete-text">
-            <span class="crud-delete-title">Delete ${schema.label}?</span>
-            <span class="crud-delete-sub">This can't be undone.</span>
-          </div>
-          <button class="crud-close-btn" title="Close">&times;</button>
-        </div>
-        <div class="crud-delete-actions">
-          <button class="crud-btn crud-btn-cancel">Cancel</button>
-          <button class="crud-btn crud-btn-danger" id="crud-confirm-delete">Delete</button>
+    // Close any existing popover first
+    this._closeDeletePopover();
+
+    // Find the delete button that was clicked to anchor the popover
+    const tbody = this._getTbody(schemaKey);
+    const row = tbody?.querySelector(`tr[data-manual-row="${rowNumber}"][data-schema="${schemaKey}"]`);
+    const anchor = row?.querySelector('.crud-delete-btn') || row;
+
+    // Create the popover element
+    const popover = document.createElement('div');
+    popover.className = 'crud-delete-popover';
+    popover.innerHTML = `
+      <div class="crud-delete-popover-arrow"></div>
+      <div class="crud-delete-popover-body">
+        <span class="crud-delete-popover-text">Delete ${schema.label}?</span>
+        <div class="crud-delete-popover-actions">
+          <button class="crud-dpop-btn crud-dpop-cancel">Cancel</button>
+          <button class="crud-dpop-btn crud-dpop-confirm">Delete</button>
         </div>
       </div>`;
 
-    this._modalEl.classList.add('crud-modal-compact');
-    this._openModal();
+    document.body.appendChild(popover);
+    this._deletePopover = popover;
 
-    this._modalEl.querySelector('.crud-close-btn').addEventListener('click', () => this._closeModal());
-    this._modalEl.querySelector('.crud-btn-cancel').addEventListener('click', () => this._closeModal());
-    this._modalEl.querySelector('#crud-confirm-delete').addEventListener('click', async () => {
-      const btn = this._modalEl.querySelector('#crud-confirm-delete');
+    // Position the popover above the anchor
+    this._positionPopover(popover, anchor);
+
+    // Animate in
+    requestAnimationFrame(() => popover.classList.add('open'));
+
+    // Close on outside click
+    const onOutsideClick = (e) => {
+      if (!popover.contains(e.target) && !anchor.contains(e.target)) {
+        this._closeDeletePopover();
+      }
+    };
+    setTimeout(() => document.addEventListener('click', onOutsideClick, { capture: true }), 0);
+    this._deletePopoverCleanup = () => {
+      document.removeEventListener('click', onOutsideClick, { capture: true });
+    };
+
+    // Wire buttons
+    popover.querySelector('.crud-dpop-cancel').addEventListener('click', () => this._closeDeletePopover());
+    popover.querySelector('.crud-dpop-confirm').addEventListener('click', async () => {
+      const btn = popover.querySelector('.crud-dpop-confirm');
       btn.disabled = true;
       btn.textContent = 'Deleting…';
       try {
@@ -230,7 +241,7 @@ class CrudManager {
           throw new Error(d.error || 'Delete failed');
         }
         const result = await resp.json();
-        this._closeModal();
+        this._closeDeletePopover();
         this._toast('Deleted successfully', 'success');
         if (this._onDataChanged) this._onDataChanged(result.data);
       } catch (err) {
@@ -239,6 +250,49 @@ class CrudManager {
         btn.textContent = 'Delete';
       }
     });
+  }
+
+  _positionPopover(popover, anchor) {
+    const rect = anchor.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    const gap = 8;
+
+    // Default: position above the anchor, centered horizontally
+    let top = rect.top - popoverRect.height - gap + window.scrollY;
+    let left = rect.left + rect.width / 2 - popoverRect.width / 2 + window.scrollX;
+
+    // If it would go off-screen top, show below instead
+    if (top - window.scrollY < 8) {
+      top = rect.bottom + gap + window.scrollY;
+      popover.classList.add('below');
+    }
+
+    // Clamp horizontal to viewport
+    const maxLeft = window.innerWidth - popoverRect.width - 8 + window.scrollX;
+    left = Math.max(8 + window.scrollX, Math.min(left, maxLeft));
+
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+
+    // Adjust arrow to point at anchor center
+    const arrowOffset = rect.left + rect.width / 2 - left;
+    const arrow = popover.querySelector('.crud-delete-popover-arrow');
+    if (arrow) arrow.style.left = `${arrowOffset}px`;
+  }
+
+  _closeDeletePopover() {
+    if (!this._deletePopover) return;
+    if (this._deletePopoverCleanup) {
+      this._deletePopoverCleanup();
+      this._deletePopoverCleanup = null;
+    }
+    const popover = this._deletePopover;
+    popover.classList.remove('open');
+    popover.classList.add('closing');
+    popover.addEventListener('animationend', () => popover.remove(), { once: true });
+    // Fallback removal
+    setTimeout(() => { if (popover.parentNode) popover.remove(); }, 300);
+    this._deletePopover = null;
   }
 
   // ── Inline form ──────────────────────────────────────────────
@@ -483,21 +537,6 @@ class CrudManager {
     return tbody.querySelector(
       `tr[data-manual-row="${this._activeRowNumber}"][data-schema="${this._activeSchemaKey}"]`
     );
-  }
-
-  // ── Modal (delete confirmation only) ───────────────────────
-
-  _openModal() {
-    this._backdropEl.classList.add('open');
-    this._modalEl.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  _closeModal() {
-    this._backdropEl.classList.remove('open');
-    this._modalEl.classList.remove('open');
-    this._modalEl.classList.remove('crud-modal-compact');
-    document.body.style.overflow = '';
   }
 
   // ── Toast notifications ────────────────────────────────────
