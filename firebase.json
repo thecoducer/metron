@@ -50,7 +50,7 @@
         "source": "**",
         "run": {
           "serviceId": "metron",
-          "region": "us-central1"
+          "region": "asia-south1"
         }
       }
     ]

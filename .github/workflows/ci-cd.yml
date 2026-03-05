@@ -31,7 +31,7 @@ concurrency:
 env:
   GCP_PROJECT_ID: extreme-outpost-480113-c6
   GCP_PROJECT_NUMBER: "591669245036"
-  GCP_REGION: us-central1
+  GCP_REGION: asia-south1
   SERVICE_NAME: metron
   FIREBASE_SITE: metron
   WIF_PROVIDER: projects/591669245036/locations/global/workloadIdentityPools/github/providers/github-actions

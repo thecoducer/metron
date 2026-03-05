@@ -4,7 +4,7 @@
 #
 # Firebase Hosting acts as a reverse proxy to the Cloud Run
 # backend. All requests are forwarded to the Cloud Run service
-# "metron" in us-central1.
+# "metron" in asia-south1.
 #
 # Prerequisites:
 #   1. Firebase CLI installed (npm i -g firebase-tools)

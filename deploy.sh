@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────
-# Metron — Deploy to Google Cloud Run (us-central1)
+# Metron — Deploy to Google Cloud Run (asia-south1)
 #
 # Prerequisites:
 #   1. gcloud CLI installed and authenticated
@@ -22,7 +22,7 @@ set -euo pipefail
 
 # ─── Configuration ───────────────────────────────────────────
 SERVICE_NAME="metron"
-REGION="us-central1"
+REGION="asia-south1"
 PROJECT="${GCP_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
 MIN_INSTANCES="${MIN_INSTANCES:-0}"
 MAX_INSTANCES="${MAX_INSTANCES:-1}"
