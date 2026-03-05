@@ -176,6 +176,43 @@ class TestGoldPriceService(unittest.TestCase):
         
         self.assertEqual(price, 117444.0)
     
+    @patch.object(GoldPriceService, 'fetch_gold_prices')
+    def test_get_18k_price_pm(self, mock_fetch):
+        """Test getting 18K PM price."""
+        mock_fetch.return_value = {
+            'prices': {
+                '999': {'am': 128550.0, 'pm': 128214.0},
+                '916': {'am': 117752.0, 'pm': 117444.0},
+                '750': {'am': 96500.0, 'pm': 96413.0}
+            }
+        }
+        
+        price = self.service.get_18k_price('pm')
+        
+        self.assertEqual(price, 96413.0)
+    
+    @patch.object(GoldPriceService, 'fetch_gold_prices')
+    def test_get_18k_price_am(self, mock_fetch):
+        """Test getting 18K AM price."""
+        mock_fetch.return_value = {
+            'prices': {
+                '750': {'am': 96500.0, 'pm': 96413.0}
+            }
+        }
+        
+        price = self.service.get_18k_price('am')
+        
+        self.assertEqual(price, 96500.0)
+    
+    @patch.object(GoldPriceService, 'fetch_gold_prices')
+    def test_get_18k_price_not_available(self, mock_fetch):
+        """Test handling when 18K price is not available."""
+        mock_fetch.return_value = None
+        
+        price = self.service.get_18k_price()
+        
+        self.assertIsNone(price)
+    
     def test_singleton_instance(self):
         """Test that get_gold_price_service returns singleton."""
         service1 = get_gold_price_service()

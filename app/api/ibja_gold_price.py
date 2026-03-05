@@ -94,6 +94,10 @@ class GoldPriceService:
         """Get the current 22K (916 purity) gold price."""
         return self._get_price_by_purity('916', time_of_day)
 
+    def get_18k_price(self, time_of_day: str = 'pm') -> Optional[float]:
+        """Get the current 18K (750 purity) gold price."""
+        return self._get_price_by_purity('750', time_of_day)
+
 
 # Singleton instance
 _gold_price_service = None

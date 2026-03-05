@@ -31,6 +31,8 @@ def enrich_holdings_with_prices(holdings: List[Dict[str, Any]], gold_prices_data
                 latest_price_per_gm = gold_prices.get('999', {}).get('pm')
             elif '916' in purity or '22K' in purity:
                 latest_price_per_gm = gold_prices.get('916', {}).get('pm')
+            elif '750' in purity or '18K' in purity:
+                latest_price_per_gm = gold_prices.get('750', {}).get('pm')
         
         holding_copy['latest_ibja_price_per_gm'] = latest_price_per_gm
         
