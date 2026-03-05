@@ -530,14 +530,14 @@ function removeDrawerAccount(name) {
   const submitSpinner = document.getElementById('pinSubmitSpinner');
   const forgotBtn = document.getElementById('pinForgotBtn');
   const infoEl   = document.getElementById('pinInfo');
-  const stepIndicator = document.getElementById('pinStepIndicator');
-  const step1 = document.getElementById('pinStep1');
-  const step2 = document.getElementById('pinStep2');
-  const stepLine = document.getElementById('pinStepLine');
+  const pinCheck1 = document.getElementById('pinCheck1');
+  const pinCheck2 = document.getElementById('pinCheck2');
+  const fieldLabel1 = document.getElementById('pinFieldLabel1');
   const resetDialog = document.getElementById('pinResetDialog');
   const resetCancel = document.getElementById('pinResetCancel');
   const resetConfirm = document.getElementById('pinResetConfirm');
   const resetInput = document.getElementById('pinResetInput');
+  const resetCheck = document.getElementById('pinResetCheck');
 
   if (!overlay) return;
 
@@ -628,26 +628,14 @@ function removeDrawerAccount(name) {
     });
   }
 
-  function revealConfirmGroup() {
-    if (mode !== 'setup' || confirmGroup.style.display !== 'none') return;
-    confirmGroup.style.display = '';
-    confirmGroup.classList.remove('pin-confirm-reveal');
-    void confirmGroup.offsetWidth; // reflow
-    confirmGroup.classList.add('pin-confirm-reveal');
-    // Mark first row as complete in step indicator
-    if (step1) step1.classList.add('done');
-    if (stepLine) stepLine.classList.add('active');
-    if (step2) step2.classList.add('active');
-    // Give completed row a subtle glow
-    inputRow.classList.add('pin-row-done');
-    // Focus first confirm input after the animation starts
-    setTimeout(() => {
-      const first = confirmRow.querySelector('.pin-digit');
-      if (first) first.focus();
-    }, 120);
+  function updateCheckmarks() {
+    const pin = getDigits(inputRow);
+    const confirm = confirmRow ? getDigits(confirmRow) : '';
+    if (pinCheck1) pinCheck1.classList.toggle('done', pin.length === 6);
+    if (pinCheck2) pinCheck2.classList.toggle('done', confirm.length === 6);
   }
 
-  wireDigitInputs(inputRow, { onRowComplete: revealConfirmGroup });
+  wireDigitInputs(inputRow);
   if (confirmRow) wireDigitInputs(confirmRow);
 
   function updateSubmitState() {
@@ -659,6 +647,7 @@ function removeDrawerAccount(name) {
     } else {
       submitBtn.disabled = pin.length !== 6;
     }
+    updateCheckmarks();
   }
 
   let _lockoutTimer = null;
@@ -708,28 +697,26 @@ function removeDrawerAccount(name) {
     if (mode === 'setup') {
       title.textContent = 'Create Security PIN';
       subtitle.textContent = 'Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored — remember it carefully.';
-      submitText.textContent = 'Set PIN';
+      submitText.textContent = 'Create PIN';
       if (infoEl) infoEl.style.display = '';
-      // Don't reveal confirm group yet — it slides in after first row is complete
-      confirmGroup.style.display = 'none';
-      confirmGroup.classList.remove('pin-confirm-reveal');
-      inputRow.classList.remove('pin-row-done');
+      // Show both rows, both always editable
+      confirmGroup.style.display = '';
+      if (fieldLabel1) fieldLabel1.parentElement.style.display = '';
       forgotBtn.style.display = 'none';
-      // Show step indicator
-      if (stepIndicator) stepIndicator.style.display = '';
-      if (step1) { step1.classList.add('active'); step1.classList.remove('done'); }
-      if (step2) step2.classList.remove('active');
-      if (stepLine) stepLine.classList.remove('active');
+      // Reset checkmarks
+      if (pinCheck1) pinCheck1.classList.remove('done');
+      if (pinCheck2) pinCheck2.classList.remove('done');
     } else {
       title.textContent = 'Enter Security PIN';
       subtitle.textContent = 'Enter your 6-character PIN to unlock your portfolio data.';
       submitText.textContent = 'Unlock';
       confirmGroup.style.display = 'none';
+      if (fieldLabel1) fieldLabel1.parentElement.style.display = 'none';
       forgotBtn.style.display = '';
       if (infoEl) infoEl.style.display = 'none';
       _wrongAttempts = 0;
-      // Hide step indicator for verify mode
-      if (stepIndicator) stepIndicator.style.display = 'none';
+      // Reset checkmark
+      if (pinCheck1) pinCheck1.classList.remove('done');
     }
 
     overlay.style.display = 'flex';
@@ -767,6 +754,7 @@ function removeDrawerAccount(name) {
         errorEl.innerHTML = '<span class="pin-mismatch-msg">PINs do not match — try again</span>';
         flashError(confirmRow);
         clearRow(confirmRow);
+        updateCheckmarks();
         confirmRow.querySelector('.pin-digit').focus();
         return;
       }
@@ -818,6 +806,8 @@ function removeDrawerAccount(name) {
   forgotBtn.addEventListener('click', () => {
     resetInput.value = '';
     resetConfirm.disabled = true;
+    resetInput.classList.remove('matched');
+    if (resetCheck) resetCheck.classList.remove('done');
     resetDialog.style.display = 'flex';
     requestAnimationFrame(() => resetInput.focus());
   });
@@ -826,6 +816,7 @@ function removeDrawerAccount(name) {
     const matched = resetInput.value.trim().toLowerCase() === 'reset';
     resetConfirm.disabled = !matched;
     resetInput.classList.toggle('matched', matched);
+    if (resetCheck) resetCheck.classList.toggle('done', matched);
   });
 
   resetInput.addEventListener('keydown', (e) => {

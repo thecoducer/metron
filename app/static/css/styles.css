@@ -6001,7 +6001,7 @@ body.dark-theme .pin-overlay {
 }
 
 .pin-card {
-  width: 380px;
+  width: 400px;
   max-width: 92vw;
   background: #fff;
   border-radius: 24px;
@@ -6075,98 +6075,72 @@ body.dark-theme .pin-subtitle { color: #888; }
 .pin-info {
   font-size: 11px;
   color: #aaa;
-  margin: 2px 0 14px;
+  margin: 6px 0 16px;
   text-align: center;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
+  font-weight: 500;
 }
 
 body.dark-theme .pin-info { color: #555; }
 
-/* ── Step Indicator ── */
+/* ── PIN Field Groups ── */
 
-.pin-step-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  margin-bottom: 24px;
-}
-
-.pin-step {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  color: #bbb;
-  background: #f5f5f4;
-  border: 2px solid #e5e4e3;
-  transition: all .35s cubic-bezier(.4,0,.2,1);
+.pin-field-group {
+  margin-bottom: 20px;
   position: relative;
 }
 
-.pin-step.active {
-  color: #fff;
-  background: #37352f;
-  border-color: #37352f;
-  box-shadow: 0 2px 8px rgba(55,53,47,.2);
+.pin-field-group:last-of-type {
+  margin-bottom: 8px;
 }
 
-.pin-step.done {
-  color: #fff;
+.pin-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pin-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+body.dark-theme .pin-field-label { color: #666; }
+
+.pin-field-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e8e8e7;
+  color: #ccc;
+  transition: all .35s cubic-bezier(.34,1.56,.64,1);
+  transform: scale(0.85);
+}
+
+.pin-field-check.done {
   background: #22c55e;
-  border-color: #22c55e;
+  color: #fff;
+  transform: scale(1);
   box-shadow: 0 2px 8px rgba(34,197,94,.25);
 }
 
-body.dark-theme .pin-step {
-  color: #555;
-  background: #252525;
-  border-color: #333;
+body.dark-theme .pin-field-check {
+  background: #2a2a2a;
+  color: #444;
 }
 
-body.dark-theme .pin-step.active {
-  color: #111;
-  background: #e0e0e0;
-  border-color: #e0e0e0;
-  box-shadow: 0 2px 8px rgba(255,255,255,.1);
-}
-
-body.dark-theme .pin-step.done {
-  color: #fff;
+body.dark-theme .pin-field-check.done {
   background: #22c55e;
-  border-color: #22c55e;
-  box-shadow: 0 2px 8px rgba(34,197,94,.2);
+  color: #fff;
 }
-
-.pin-step-line {
-  width: 48px;
-  height: 2px;
-  background: #e5e4e3;
-  border-radius: 1px;
-  position: relative;
-  overflow: hidden;
-}
-
-.pin-step-line::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, #22c55e, #4ade80);
-  border-radius: 1px;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform .5s cubic-bezier(.4,0,.2,1);
-}
-
-.pin-step-line.active::after {
-  transform: scaleX(1);
-}
-
-body.dark-theme .pin-step-line { background: #333; }
 
 /* ── PIN Digit Inputs ── */
 
@@ -6175,15 +6149,8 @@ body.dark-theme .pin-step-line { background: #333; }
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 18px;
+  margin-bottom: 0;
   transition: opacity .35s ease, filter .35s ease, transform .35s ease;
-}
-
-.pin-input-row.pin-row-done {
-  opacity: .45;
-  filter: grayscale(.3);
-  pointer-events: none;
-  transform: scale(.97);
 }
 
 .pin-digit {
@@ -6317,45 +6284,16 @@ body.dark-theme .pin-attempt-count {
 body.dark-theme .pin-lockout-msg { color: #a1a1aa; }
 body.dark-theme .pin-lockout-msg strong { color: #d4d4d8; }
 
-/* ── Confirm Group ── */
+/* ── PIN field-group divider ── */
 
-.pin-confirm-group {
-  margin-top: 6px;
-  margin-bottom: 8px;
-  overflow: hidden;
+.pin-field-group + .pin-field-group {
+  padding-top: 4px;
+  border-top: 1px solid #f0efee;
 }
 
-.pin-confirm-group.pin-confirm-reveal {
-  animation: pinConfirmSlideIn .4s cubic-bezier(.16,1,.3,1) both;
-  overflow: visible;
+body.dark-theme .pin-field-group + .pin-field-group {
+  border-top-color: #262626;
 }
-
-@keyframes pinConfirmSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-    max-height: 0;
-    overflow: hidden;
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 140px;
-    overflow: visible;
-  }
-}
-
-.pin-confirm-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: #999;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-body.dark-theme .pin-confirm-label { color: #666; }
 
 /* ── Error / Submit / Forgot ── */
 
@@ -6417,13 +6355,14 @@ body.dark-theme .pin-mismatch-msg::before {
   border: none;
   border-radius: 14px;
   cursor: pointer;
-  transition: all .2s cubic-bezier(.4,0,.2,1);
+  transition: all .3s cubic-bezier(.4,0,.2,1);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
   letter-spacing: -0.01em;
+  margin-top: 4px;
 }
 
 .pin-submit-btn:hover:not(:disabled) {
@@ -6506,58 +6445,65 @@ body.dark-theme .pin-forgot-btn:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px) saturate(1.2);
-  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  background: rgba(250, 250, 249, 0.75);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   animation: pinFadeIn .25s cubic-bezier(.4,0,.2,1);
+}
+
+body.dark-theme .pin-reset-dialog {
+  background: rgba(10, 10, 10, 0.8);
 }
 
 .pin-reset-card {
   width: 400px;
   max-width: 92vw;
   background: #fff;
-  border-radius: 20px;
-  padding: 32px 28px 26px;
+  border-radius: 24px;
+  padding: 40px 36px 32px;
   text-align: center;
   box-shadow:
-    0 0 0 1px rgba(0,0,0,.04),
-    0 8px 24px rgba(0,0,0,.08),
-    0 24px 56px rgba(0,0,0,.1);
-  animation: pinResetCardIn .3s cubic-bezier(.16,1,.3,1);
-}
-
-@keyframes pinResetCardIn {
-  from { transform: scale(.95) translateY(8px); opacity: 0; }
-  to   { transform: scale(1) translateY(0); opacity: 1; }
+    0 0 0 1px rgba(0,0,0,.03),
+    0 1px 2px rgba(0,0,0,.04),
+    0 8px 24px rgba(0,0,0,.06),
+    0 24px 48px rgba(0,0,0,.04);
+  animation: pinCardIn .3s cubic-bezier(.16,1,.3,1);
 }
 
 body.dark-theme .pin-reset-card {
-  background: #1c1c1c;
+  background: #1a1a1a;
   box-shadow:
     0 0 0 1px rgba(255,255,255,.06),
+    0 1px 2px rgba(0,0,0,.2),
     0 8px 24px rgba(0,0,0,.3),
-    0 24px 56px rgba(0,0,0,.25);
+    0 24px 48px rgba(0,0,0,.2);
 }
 
-.pin-reset-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 16px;
+.pin-reset-header {
+  margin-bottom: 28px;
+}
+
+.pin-reset-icon-circle {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  background: #fef3c7;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: #d97706;
+  box-shadow: 0 2px 8px rgba(217,119,6,.1);
 }
 
-body.dark-theme .pin-reset-icon {
-  background: #422006;
+body.dark-theme .pin-reset-icon-circle {
+  background: linear-gradient(135deg, #422006, #3a1c04);
   color: #fbbf24;
+  box-shadow: 0 2px 8px rgba(251,191,36,.1);
 }
 
 .pin-reset-title {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
   color: #111;
   margin: 0 0 8px;
@@ -6568,20 +6514,31 @@ body.dark-theme .pin-reset-title { color: #f0f0f0; }
 
 .pin-reset-desc {
   font-size: 13.5px;
-  color: #666;
-  line-height: 1.6;
-  margin: 0 0 22px;
-  max-width: 300px;
+  color: #777;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 280px;
   margin-left: auto;
   margin-right: auto;
 }
 
 body.dark-theme .pin-reset-desc { color: #888; }
 
+.pin-reset-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pin-reset-field-group {
+  padding-top: 4px;
+}
+
 .pin-reset-prompt {
   font-size: 13px;
   color: #555;
   margin: 0 0 12px;
+  font-weight: 500;
 }
 
 .pin-reset-prompt strong {
@@ -6603,16 +6560,17 @@ body.dark-theme .pin-reset-prompt strong {
 
 .pin-reset-input {
   display: block;
-  width: 180px;
-  margin: 0 auto 22px;
-  padding: 10px 14px;
+  width: 100%;
+  max-width: 220px;
+  margin: 0 auto 0;
+  padding: 12px 16px;
   font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
   font-size: 14px;
   text-align: center;
   color: #111;
   background: #fafaf9;
   border: 1.5px solid #e5e4e3;
-  border-radius: 12px;
+  border-radius: 14px;
   outline: none;
   transition: border-color .2s, box-shadow .2s, background .2s;
   letter-spacing: 0.05em;
@@ -6662,25 +6620,28 @@ body.dark-theme .pin-reset-input.matched {
 
 .pin-reset-cancel,
 .pin-reset-confirm {
-  padding: 10px 24px;
+  flex: 1;
+  padding: 13px 16px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all .2s cubic-bezier(.4,0,.2,1);
+  transition: all .3s cubic-bezier(.4,0,.2,1);
   letter-spacing: -0.01em;
 }
 
 .pin-reset-cancel {
   background: #f5f5f4;
   color: #37352f;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
 }
 
 .pin-reset-cancel:hover {
   background: #e8e8e7;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
 }
 
 body.dark-theme .pin-reset-cancel { background: #262626; color: #ccc; }
@@ -6711,8 +6672,10 @@ body.dark-theme .pin-reset-cancel:hover { background: #333; }
 /* ── PIN Overlay Responsive ── */
 
 @media (max-width: 420px) {
-  .pin-card { padding: 32px 22px 26px; width: 340px; }
+  .pin-card { padding: 32px 22px 26px; width: 360px; }
   .pin-digit { width: 38px; height: 46px; font-size: 18px; border-radius: 12px; }
   .pin-input-row { gap: 6px; }
-  .pin-reset-card { padding: 28px 22px 22px; }
+  .pin-field-group { margin-bottom: 16px; }
+  .pin-reset-card { padding: 32px 24px 26px; }
+  .pin-reset-icon-circle { width: 48px; height: 48px; border-radius: 14px; }
 }
