@@ -642,6 +642,7 @@ def sse_token():
     The token lets the browser open an EventSource directly to Cloud Run
     (bypassing Firebase Hosting CDN, which buffers streaming responses).
     """
+    user = _current_user()
     google_id = user["google_id"]
     logger.debug("SSE token requested: user=%s", google_id[:8])
     token = _generate_sse_token(user["google_id"])
