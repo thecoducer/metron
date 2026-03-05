@@ -1326,6 +1326,9 @@ def add_zerodha():
     google_id = user["google_id"]
     pin = session_manager.get_pin(google_id) or ""
     if not pin:
+        # Defensive: decorator should catch this, but clear flag just in case
+        session["pin_verified"] = False
+        session.modified = True
         return jsonify({"error": "pin_required"}), 403
 
     from .firebase_store import add_zerodha_account

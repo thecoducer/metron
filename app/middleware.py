@@ -108,6 +108,11 @@ def pin_required(f):
     Returns a JSON ``{"error": "pin_required"}`` with status 403 when the
     user hasn't entered their PIN yet.  The frontend uses this to show the
     PIN overlay.
+
+    Also verifies that the user's PIN is still held in server memory
+    (it is lost on server restart).  If the session cookie says
+    ``pin_verified`` but the in-memory PIN is gone, the session flag is
+    cleared so the frontend will re-prompt for the PIN.
     """
 
     @functools.wraps(f)
@@ -121,6 +126,21 @@ def pin_required(f):
         if not session.get("pin_verified"):
             logger.debug("pin_required: PIN not verified for %s %s", request.method, request.path)
             return jsonify({"error": "pin_required"}), 403
+
+        # Ensure the PIN is still in server memory (lost on restart).
+        from .services import session_manager
+        user = session.get("user")
+        if user:
+            google_id = user.get("google_id", "")
+            if google_id and not session_manager.get_pin(google_id):
+                logger.info(
+                    "pin_required: in-memory PIN lost for %s %s — clearing session flag",
+                    request.method, request.path,
+                )
+                session["pin_verified"] = False
+                session.modified = True
+                return jsonify({"error": "pin_required"}), 403
+
         return f(*args, **kwargs)
 
     return decorated_function

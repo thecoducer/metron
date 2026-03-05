@@ -25,9 +25,13 @@ _APP_HEADERS = {APP_REQUEST_HEADER: APP_REQUEST_HEADER_VALUE}
 
 def _inject_user(client, user=None):
     """Inject a user into the Flask session for authenticated requests."""
+    u = user or _TEST_USER
     with client.session_transaction() as sess:
-        sess["user"] = user or _TEST_USER
+        sess["user"] = u
         sess["pin_verified"] = True
+    # Also store a PIN in server memory so pin_required decorator passes
+    from app.services import session_manager
+    session_manager.set_pin(u["google_id"], "test01")
 
 
 class TestUIServerRoutes(unittest.TestCase):
