@@ -157,8 +157,11 @@ class TestUIServerRoutes(unittest.TestCase):
         """Root page renders portfolio dashboard when signed in."""
         with patch('app.routes.portfolio_cache') as mock_pcache, \
              patch('app.routes.ensure_user_loaded'), \
-             patch('app.routes._build_status_response', return_value={}):
+             patch('app.routes._build_status_response', return_value={}), \
+             patch('app.firebase_store.has_pin', return_value=False), \
+             patch('app.routes.user_sheets_cache') as mock_usc:
             mock_pcache.get.return_value = UserPortfolioData()
+            mock_usc.is_fully_cached.return_value = False
             _inject_user(self.client)
             response = self.client.get('/')
 
