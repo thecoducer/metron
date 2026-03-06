@@ -1,30 +1,9 @@
-// User profile dropdown toggle
-(function() {
-  const avatarBtn = document.getElementById('userAvatarBtn');
-  const dropdown = document.getElementById('userDropdown');
-  if (avatarBtn && dropdown) {
-    avatarBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-    });
-  }
-})();
-
 // Sign-out handler
 function handleLogout() {
   window.metronFetch('/api/auth/logout', { method: 'POST' })
     .then(() => { window.location.href = '/'; })
     .catch(() => { window.location.href = '/'; });
 }
-
-// Close user dropdown when clicking outside
-document.addEventListener('click', function(event) {
-  const dropdown = document.getElementById('userDropdown');
-  const avatarBtn = document.getElementById('userAvatarBtn');
-  if (dropdown && avatarBtn && !avatarBtn.contains(event.target) && !dropdown.contains(event.target)) {
-    dropdown.classList.remove('open');
-  }
-});
 
 // ─── Settings Drawer ──────────────────────────────────────────
 

@@ -6,30 +6,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/styles.css">
 <link rel="preload" href="/static/js/nifty50.js" as="script">
 </head>
 <body>
+<script>
+  // Apply saved theme immediately (before first paint) to prevent flash
+  (function() {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark') document.body.classList.add('dark-theme');
+  })();
+</script>
 <div class="container">
 <header>
-<div class="nav-menu" id="navMenu">
-<button class="nav-menu-btn" onclick="toggleNavMenu(event)">
-<span class="hamburger-icon">
-<span></span>
-<span></span>
-<span></span>
-</span>
-</button>
-<div class="nav-menu-content">
-<a href="/" class="nav-menu-item">
-<span class="menu-icon">📊</span>Portfolio
+<nav class="nav-tabs">
+<a href="/" class="nav-tab">
+<svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+<span>Portfolio</span>
 </a>
-<a href="/nifty50" class="nav-menu-item active">
-<span class="menu-icon">📈</span>Nifty 50
+<a href="/nifty50" class="nav-tab active">
+<svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+<span>Nifty 50</span>
 </a>
-</div>
-</div>
+</nav>
 <div class="controls">
 {% if user %}
 <div class="user-profile" id="userProfile">
@@ -39,6 +39,9 @@
         {% else %}
         <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
         {% endif %}
+        <span class="avatar-gear-badge" aria-hidden="true">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
     </button>
     <div class="user-dropdown" id="userDropdown">
         <div class="user-dropdown-header">

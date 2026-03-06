@@ -319,26 +319,6 @@ class Nifty50App {
   }
 }
 
-// User profile dropdown
-(function() {
-  const avatarBtn = document.getElementById('userAvatarBtn');
-  const dropdown = document.getElementById('userDropdown');
-  if (avatarBtn && dropdown) {
-    avatarBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-    });
-  }
-})();
-
-document.addEventListener('click', function(event) {
-  const dropdown = document.getElementById('userDropdown');
-  const avatarBtn = document.getElementById('userAvatarBtn');
-  if (dropdown && avatarBtn && !avatarBtn.contains(event.target) && !dropdown.contains(event.target)) {
-    dropdown.classList.remove('open');
-  }
-});
-
 window.handleLogout = function() {
   metronFetch('/api/auth/logout', { method: 'POST' })
     .then(() => { window.location.href = '/'; })
