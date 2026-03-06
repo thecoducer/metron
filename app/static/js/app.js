@@ -888,7 +888,8 @@ class PortfolioApp {
 // Global function to toggle group expansion
 window.toggleGroupExpand = function(event, groupId) {
   event.stopPropagation();
-  const toggleBtn = event.target;
+  const toggleBtn = document.querySelector(`.expand-toggle[data-group-id="${groupId}"]`);
+  if (!toggleBtn) return;
   const breakdownRows = document.querySelectorAll(`.breakdown-row.${groupId}`);
   const isExpanded = toggleBtn.classList.contains('expanded');
   
@@ -899,18 +900,29 @@ window.toggleGroupExpand = function(event, groupId) {
         row.style.display = 'none';
       });
       toggleBtn.classList.remove('expanded');
-      toggleBtn.textContent = '▶';
       window.portfolioApp.tableRenderer.markGroupCollapsed(groupId);
     } else {
       breakdownRows.forEach(row => {
         row.style.display = 'table-row';
       });
       toggleBtn.classList.add('expanded');
-      toggleBtn.textContent = '▼';
       window.portfolioApp.tableRenderer.markGroupExpanded(groupId);
     }
   }
 };
+
+// Delegate row-click on group rows to toggle expansion
+document.addEventListener('click', function(event) {
+  // Don't trigger on buttons, links, or CRUD actions inside the row
+  const target = event.target;
+  if (target.closest('button, a, .crud-row-actions, .source-indicator')) return;
+  const groupRow = target.closest('tr.group-row');
+  if (!groupRow) return;
+  const toggle = groupRow.querySelector('.expand-toggle[data-group-id]');
+  if (!toggle) return;
+  const groupId = toggle.dataset.groupId;
+  window.toggleGroupExpand(event, groupId);
+});
 
 // Global function to switch Fixed Deposits tabs
 window.switchFDTab = function(tabName) {

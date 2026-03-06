@@ -595,7 +595,6 @@ class TableRenderer {
         });
         if (toggleBtn) {
           toggleBtn.classList.add('expanded');
-          toggleBtn.textContent = '▼';
         }
       }
     });
@@ -686,12 +685,12 @@ class TableRenderer {
   _buildStockRow(holding, metrics, classes) {
     const { qty, avg, invested, ltp, dayChange, pl, current, plPct, dayChangePct } = metrics;
     const expandBtn = classes.hasMultipleAccounts ? 
-      `<span class="expand-toggle" data-group-id="${classes.groupId}" onclick="toggleGroupExpand(event, '${classes.groupId}')" style="cursor:pointer;margin-right:8px;">▶</span>` : 
-      `<span style="display:inline-block;width:20px;margin-right:8px;"></span>`;
+      `<span class="expand-toggle" data-group-id="${classes.groupId}"></span>` : 
+      `<span class="expand-toggle-spacer"></span>`;
     
     const symbol = holding.tradingsymbol;
     const accountDisplay = classes.hasMultipleAccounts ? '> 1' : (holding.account || '-');
-    const isManual = holding.source === 'manual';
+    const isManual = !classes.hasMultipleAccounts && holding.source === 'manual';
     const manualBadge = isManual ? '<span class="source-indicator source-manual" data-tip="Manually added"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5c0 .3-.2.5-.5.5h-9a.5.5 0 0 1-.5-.5Z"/></svg></span>' : '';
     const crudType = (isManual && holding.manual_type === 'etfs') ? 'etfs' : 'stocks';
     const actions = isManual ? buildCrudActions(crudType, holding.row_number, {
@@ -716,9 +715,17 @@ class TableRenderer {
 
   _buildStockBreakdownRow(holding, metrics, groupId) {
     const { qty, avg, invested, ltp, dayChange, pl, current, plPct, dayChangePct } = metrics;
+    const isManual = holding.source === 'manual';
+    const manualBadge = isManual ? ' <span class="source-indicator source-manual" data-tip="Manually added"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5c0 .3-.2.5-.5.5h-9a.5.5 0 0 1-.5-.5Z"/></svg></span>' : '';
+    const crudType = (isManual && holding.manual_type === 'etfs') ? 'etfs' : 'stocks';
+    const actions = isManual ? buildCrudActions(crudType, holding.row_number, {
+      symbol: holding.tradingsymbol, qty: holding.quantity,
+      avg_price: holding.average_price, exchange: holding.exchange, account: holding.account
+    }) : '';
+    const manualAttrs = isManual ? ` data-manual-row="${holding.row_number}" data-schema="${crudType}"` : '';
     
-    return `<tr class="breakdown-row ${groupId}" style="display:none;background-color:${Formatter.rowColor(pl)};opacity:0.85;">
-  ${this._buildCell(`&nbsp;&nbsp;&nbsp;&nbsp;└ ${holding.account}`, '')}
+    return `<tr${manualAttrs} class="breakdown-row ${groupId}" style="display:none;background-color:${Formatter.rowColor(pl)};opacity:0.85;">
+  ${this._buildCell(`<span class="breakdown-branch"></span>${holding.account}${manualBadge}`, '')}
   ${this._buildCell(qty.toLocaleString(), '')}
   ${this._buildCell(Formatter.formatCurrency(avg), '')}
   ${this._buildCell(Formatter.formatCurrency(invested), '')}
@@ -727,7 +734,7 @@ class TableRenderer {
   ${this._buildPLWithPctCell(pl, plPct, '')}
   ${this._buildChangeCell(dayChange, dayChangePct, '')}
   ${this._buildCell(holding.exchange, '')}
-  ${this._buildCell('', '')}
+  ${this._buildCell(actions, '')}
   </tr>`;
   }
 
@@ -735,7 +742,7 @@ class TableRenderer {
     const { qty, avg, invested, nav, current, pl, plPct } = metrics;
     
     const expandBtn = classes.hasMultipleAccounts ? 
-      `<span class="expand-toggle mf-expand-icon" data-group-id="${classes.groupId}" onclick="toggleGroupExpand(event, '${classes.groupId}')">▶</span>` : 
+      `<span class="expand-toggle mf-expand-icon" data-group-id="${classes.groupId}"></span>` : 
       `<span class="mf-expand-placeholder"></span>`;
     
     const accountDisplay = classes.hasMultipleAccounts ? '> 1' : (mf.account || '-');
@@ -749,7 +756,7 @@ class TableRenderer {
     }
 
     const mfNameCell = `<span class="mf-fund-cell"><span class="mf-fund-label">${fundName}</span></span>`;
-    const isManual = mf.source === 'manual';
+    const isManual = !classes.hasMultipleAccounts && mf.source === 'manual';
     const manualBadge = isManual ? '<span class="source-indicator source-manual" data-tip="Manually added"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5c0 .3-.2.5-.5.5h-9a.5.5 0 0 1-.5-.5Z"/></svg></span>' : '';
     const crudActions = isManual ? buildCrudActions('mutual_funds', mf.row_number, {
       fund: mf.fund || mf.tradingsymbol, qty: mf.quantity,
@@ -771,6 +778,13 @@ class TableRenderer {
 
   _buildMFBreakdownRow(fundName, mf, metrics, groupId) {
     const { qty, avg, invested, nav, current, pl, plPct } = metrics;
+    const isManual = mf.source === 'manual';
+    const manualBadge = isManual ? ' <span class="source-indicator source-manual" data-tip="Manually added"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5c0 .3-.2.5-.5.5h-9a.5.5 0 0 1-.5-.5Z"/></svg></span>' : '';
+    const crudActions = isManual ? buildCrudActions('mutual_funds', mf.row_number, {
+      fund: mf.fund || mf.tradingsymbol, qty: mf.quantity,
+      avg_nav: mf.average_price, account: mf.account
+    }) : '';
+    const manualAttrs = isManual ? ` data-manual-row="${mf.row_number}" data-schema="mutual_funds"` : '';
     
     let navDateText = '';
     if (mf.last_price_date) {
@@ -780,15 +794,15 @@ class TableRenderer {
       }
     }
     
-    return `<tr class="breakdown-row ${groupId}" style="display:none;background-color:${Formatter.rowColor(pl)};opacity:0.85;">
-  ${this._buildCell(`&nbsp;&nbsp;&nbsp;&nbsp;└ ${mf.account}`, '')}
+    return `<tr${manualAttrs} class="breakdown-row ${groupId}" style="display:none;background-color:${Formatter.rowColor(pl)};opacity:0.85;">
+  ${this._buildCell(`<span class="breakdown-branch"></span>${mf.account}${manualBadge}`, '')}
   ${this._buildCell(qty.toLocaleString(), '')}
   ${this._buildCell(Formatter.formatCurrency(avg), '')}
   ${this._buildCell(Formatter.formatCurrency(invested), '')}
   ${this._buildCell(Formatter.formatCurrency(current), '')}
   <td>${Formatter.formatLTP(nav)}${navDateText}</td>
   ${this._buildPLWithPctCell(pl, plPct, '')}
-  ${this._buildCell('', '')}
+  ${this._buildCell(crudActions, '')}
   </tr>`;
   }
 
@@ -1222,15 +1236,15 @@ class TableRenderer {
     const accountDisplay = classes.hasMultipleAccounts ? '> 1' : (deposit.account || '-');
     
     const expandBtn = classes.hasMultipleAccounts ? 
-      `<span class="expand-toggle" data-group-id="${classes.groupId}" onclick="toggleGroupExpand(event, '${classes.groupId}')" style="cursor:pointer;margin-right:8px;">▶</span>` : 
-      `<span style="display:inline-block;width:20px;margin-right:8px;"></span>`;
+      `<span class="expand-toggle" data-group-id="${classes.groupId}"></span>` : 
+      `<span class="expand-toggle-spacer"></span>`;
     
     const reinvestedDisplay = (reinvestedAmount && Number(reinvestedAmount) > 0)
       ? Formatter.formatCurrency(reinvestedAmount)
       : '-';
     const interestRateDisplay = interestRate ? `${interestRate.toFixed(2)}%` : '-';
 
-    const crudActions = (deposit.row_number) ? buildCrudActions('fixed_deposits', deposit.row_number, {
+    const crudActions = (!classes.hasMultipleAccounts && deposit.row_number) ? buildCrudActions('fixed_deposits', deposit.row_number, {
       original_investment_date: deposit.original_investment_date || '',
       reinvested_date: deposit.reinvested_date || '',
       bank_name: deposit.bank_name || '',
@@ -1243,7 +1257,7 @@ class TableRenderer {
       account: deposit.account || ''
     }) : '';
 
-    const manualAttrs = deposit.row_number ? ` data-manual-row="${deposit.row_number}" data-schema="fixed_deposits"` : '';
+    const manualAttrs = (!classes.hasMultipleAccounts && deposit.row_number) ? ` data-manual-row="${deposit.row_number}" data-schema="fixed_deposits"` : '';
     return `<tr${manualAttrs} class="${classes.groupId ? `group-row ${classes.groupId}` : ''}">
       <td>${expandBtn}${Formatter.formatShortDate(deposit.original_investment_date)}</td>
       <td>${Formatter.formatShortDate(deposit.reinvested_date)}</td>
@@ -1265,8 +1279,22 @@ class TableRenderer {
       : '-';
     const interestRateDisplay = interestRate ? `${interestRate.toFixed(2)}%` : '-';
 
-    return `<tr class="breakdown-row ${groupId}" style="display:none;">
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;└ ${Formatter.formatShortDate(deposit.original_investment_date)}</td>
+    const crudActions = (deposit.row_number) ? buildCrudActions('fixed_deposits', deposit.row_number, {
+      original_investment_date: deposit.original_investment_date || '',
+      reinvested_date: deposit.reinvested_date || '',
+      bank_name: deposit.bank_name || '',
+      deposit_year: deposit.deposit_year || 0,
+      deposit_month: deposit.deposit_month || 0,
+      deposit_day: deposit.deposit_day || 0,
+      original_amount: deposit.original_amount || 0,
+      reinvested_amount: deposit.reinvested_amount || 0,
+      interest_rate: deposit.interest_rate || 0,
+      account: deposit.account || ''
+    }) : '';
+    const manualAttrs = deposit.row_number ? ` data-manual-row="${deposit.row_number}" data-schema="fixed_deposits"` : '';
+
+    return `<tr${manualAttrs} class="breakdown-row ${groupId}" style="display:none;">
+      <td><span class="breakdown-branch"></span>${Formatter.formatShortDate(deposit.original_investment_date)}</td>
       <td>${Formatter.formatShortDate(deposit.reinvested_date)}</td>
       <td>${deposit.bank_name || '-'}</td>
       <td>${Formatter.formatCurrency(originalAmount)}</td>
@@ -1274,7 +1302,7 @@ class TableRenderer {
       <td style="color:#3498db;font-weight:600">${interestRateDisplay}</td>
       <td>${Formatter.formatShortDate(deposit.maturity_date)}</td>
       <td>${Formatter.formatCurrency(currentValue)}</td>
-      <td>${deposit.account || '-'}</td>
+      <td>${(deposit.account || '-') + crudActions}</td>
     </tr>`;
   }
 

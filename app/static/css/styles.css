@@ -1646,14 +1646,14 @@ table {
 .mf-expand-icon,
 .mf-expand-placeholder {
   display: inline-block;
-  width: 20px;
-  margin-right: 8px;
+  width: 18px;
+  margin-right: 6px;
   vertical-align: top;
 }
 
 .mf-fund-cell {
   display: inline-flex;
-  max-width: calc(100% - 28px);
+  max-width: calc(100% - 24px);
   vertical-align: top;
 }
 
@@ -1670,7 +1670,7 @@ thead {
 th {
   color: #787774;
   padding: 10px 16px;
-  text-align: center;
+  text-align: right;
   font-weight: 600;
   font-size: 11.5px;
   text-transform: uppercase;
@@ -1678,6 +1678,14 @@ th {
   line-height: 1.2;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
+}
+
+th:first-child {
+  text-align: left;
+}
+
+th:last-child {
+  text-align: left;
 }
 
 th.sortable-header {
@@ -1733,13 +1741,21 @@ th.sortable-header.sorted-pct-desc::after {
 
 td {
   padding: 11px 16px;
-  text-align: center;
+  text-align: right;
   border-bottom: 1px solid #f0f0f0;
   color: #37352f;
   white-space: nowrap;
   word-break: normal;
   font-family: 'Inter', sans-serif;
   font-size: 13.5px;
+}
+
+td:first-child {
+  text-align: left;
+}
+
+td:last-child {
+  text-align: left;
 }
 
 tbody tr {
@@ -1789,32 +1805,130 @@ tbody tr.group-row:hover {
 
 tbody tr.breakdown-row {
   font-size: 13px;
-  opacity: 0.92;
 }
 
 tbody tr.breakdown-row td:first-child {
-  padding-left: 30px;
+  padding-left: 12px;
   font-style: normal;
   color: #888;
 }
 
-/* Expand/collapse toggle button */
-.expand-toggle {
-  display: inline-block;
-  width: 20px;
-  text-align: center;
-  font-size: 12px;
-  color: #888;
-  transition: transform 0.2s ease;
-  user-select: none;
+/* CSS tree-branch connector for breakdown sub-rows */
+.breakdown-branch {
+  display: inline-flex;
+  align-items: center;
+  width: 18px;
+  height: 16px;
+  margin-right: 6px;
+  position: relative;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
-.expand-toggle.expanded {
-  transform: rotate(90deg);
+.breakdown-branch::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: -6px;
+  width: 0;
+  height: 14px;
+  border-left: 1.5px solid #bbb;
+}
+
+.breakdown-branch::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  width: 8px;
+  height: 0;
+  border-bottom: 1.5px solid #bbb;
+  border-bottom-left-radius: 3px;
+}
+
+body.dark-theme .breakdown-branch::before,
+body.dark-theme .breakdown-branch::after {
+  border-color: #555;
+}
+
+/* Expand/collapse toggle – CSS-only animated chevron */
+.expand-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 4px;
+  vertical-align: middle;
+  user-select: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.expand-toggle::before,
+.expand-toggle::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 1.5px;
+  background: #888;
+  border-radius: 1px;
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1), background 0.2s;
+}
+
+.expand-toggle::before {
+  transform: translate(-1.5px, 0) rotate(40deg);
+}
+
+.expand-toggle::after {
+  transform: translate(1.5px, 0) rotate(-40deg);
+}
+
+/* Expanded state – chevron points down */
+.expand-toggle.expanded::before {
+  transform: translate(-1.5px, 0) rotate(-40deg);
+}
+
+.expand-toggle.expanded::after {
+  transform: translate(1.5px, 0) rotate(40deg);
 }
 
 .expand-toggle:hover {
-  color: #111;
+  background: rgba(0,0,0,0.06);
+}
+
+.expand-toggle:hover::before,
+.expand-toggle:hover::after {
+  background: #333;
+}
+
+body.dark-theme .expand-toggle::before,
+body.dark-theme .expand-toggle::after {
+  background: #999;
+}
+
+body.dark-theme .expand-toggle:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+body.dark-theme .expand-toggle:hover::before,
+body.dark-theme .expand-toggle:hover::after {
+  background: #e0e0e0;
+}
+
+body.dark-theme tbody tr.group-row:hover {
+  background-color: #2a2a2a !important;
+}
+
+/* Invisible spacer that matches expand-toggle dimensions exactly */
+.expand-toggle-spacer {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 /* Change color indicators */
