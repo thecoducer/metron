@@ -5144,16 +5144,9 @@ select.crud-input {
   gap: 0;
   margin-left: 8px;
   vertical-align: middle;
-  opacity: 0;
   background: rgba(0,0,0,.03);
   border-radius: 6px;
   border: 1px solid rgba(0,0,0,.06);
-  transition: opacity .18s ease, transform .18s ease;
-  transform: translateX(4px);
-}
-tbody tr:hover .crud-row-actions {
-  opacity: 1;
-  transform: translateX(0);
 }
 .crud-action-btn {
   appearance: none;
