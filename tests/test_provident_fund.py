@@ -94,6 +94,26 @@ class TestParseDate(unittest.TestCase):
     def test_garbage(self):
         self.assertIsNone(parse_date("not-a-date"))
 
+    def test_excel_serial_integer(self):
+        # 45573 = 2024-10-08 in Excel/Sheets serial-date format
+        self.assertEqual(parse_date("45573"), date(2024, 10, 8))
+
+    def test_excel_serial_float(self):
+        # Sheets may return "45573.0" for dates with time component
+        self.assertEqual(parse_date("45573.0"), date(2024, 10, 8))
+
+    def test_excel_serial_as_int(self):
+        # Passed as a raw int from the API (not a string)
+        self.assertEqual(parse_date(45573), date(2024, 10, 8))
+
+    def test_excel_serial_zero_returns_none(self):
+        self.assertIsNone(parse_date("0"))
+
+    def test_excel_serial_known_dates(self):
+        # 45293 = 2024-01-02, 45818 = 2025-06-10
+        self.assertEqual(parse_date("45293"), date(2024, 1, 2))
+        self.assertEqual(parse_date("45818"), date(2025, 6, 10))
+
 
 class TestCalculatePfCorpus(unittest.TestCase):
     """Tests for calculate_pf_corpus with manual and auto rates."""

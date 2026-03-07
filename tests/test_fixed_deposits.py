@@ -118,6 +118,29 @@ class TestCalculateCurrentValue(unittest.TestCase):
             self.assertEqual(len(result), 1, f"Failed for date format: {date_str}")
 
     @patch('app.api.fixed_deposits.datetime')
+    def test_serial_date_from_sheets(self, mock_dt):
+        """Excel/Sheets serial date numbers (e.g. 45573) must be handled."""
+        mock_dt.now.return_value = datetime(2026, 3, 6)
+        mock_dt.strptime = datetime.strptime
+
+        deposits = [{
+            'bank_name': 'ICICI',
+            'original_investment_date': '45573',   # 2024-10-08
+            'reinvested_date': '',
+            'deposit_year': 1,
+            'deposit_month': 0,
+            'deposit_day': 0,
+            'original_amount': 100_000,
+            'reinvested_amount': 0,
+            'interest_rate': 7.5,
+        }]
+        result = calculate_current_value(deposits)
+        self.assertEqual(len(result), 1)
+        self.assertGreater(result[0]['current_value'], 100_000)
+        # Maturity = Oct 8 2024 + 1y = Oct 8 2025
+        self.assertEqual(result[0]['maturity_date'], 'October 08, 2025')
+
+    @patch('app.api.fixed_deposits.datetime')
     def test_unparsable_date_skipped(self, mock_dt):
         mock_dt.now.return_value = datetime(2026, 3, 6)
         mock_dt.strptime = datetime.strptime

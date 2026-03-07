@@ -518,19 +518,54 @@ class PinRateLimiter:
 # Date Parsing — shared across PF, FD, and other sheet-based services
 # ---------------------------------------------------------------------------
 
+from datetime import date as _date_type
+
 from dateutil.parser import parse as _dateutil_parse
+
+# Excel / Google Sheets epoch: 1899-12-30.  Serial date values are
+# the number of days since that epoch.  We accept integers in the
+# range [1, 2958465] (≈ 1 Jan 0001 .. 31 Dec 9999).
+_SHEETS_EPOCH = _date_type(1899, 12, 30)
+_SERIAL_MAX = 2958465
+
+
+def _try_serial_date(raw_str: str):
+    """Convert an Excel/Sheets serial-date number to ``datetime.date``.
+
+    Returns *None* when *raw_str* is not a plausible serial number.
+    """
+    try:
+        num = int(raw_str)
+    except (ValueError, TypeError):
+        try:
+            num = int(float(raw_str))
+        except (ValueError, TypeError):
+            return None
+    if num < 1 or num > _SERIAL_MAX:
+        return None
+    return _SHEETS_EPOCH + timedelta(days=num)
 
 
 def parse_date(raw):
     """Parse a flexible date string into a ``datetime.date``, or *None*.
 
-    Uses ``python-dateutil`` so it handles ISO-8601, US, long-month
-    and many other formats automatically.
+    Handles:
+    * Excel / Google Sheets serial-date numbers (e.g. ``45573``) —
+      checked first because ``dateutil`` wrongly parses bare numbers
+      into nonsensical dates.
+    * ISO-8601, US (MM/DD/YYYY), long-month, and other text formats
+      (via ``python-dateutil``).
     """
     if not raw or not str(raw).strip():
         return None
+    raw_str = str(raw).strip()
+    # Try serial-date first — bare numbers like "45573" are
+    # misinterpreted by dateutil but are valid Sheets serial dates.
+    serial = _try_serial_date(raw_str)
+    if serial is not None:
+        return serial
     try:
-        return _dateutil_parse(str(raw).strip()).date()
+        return _dateutil_parse(raw_str).date()
     except (ValueError, OverflowError):
         return None
 

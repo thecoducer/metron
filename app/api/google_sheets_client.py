@@ -83,7 +83,8 @@ class GoogleSheetsClient:
     def _fetch_sheet_data_impl(self, spreadsheet_id: str, range_name: str) -> List[List[Any]]:
         try:
             result = self.service.spreadsheets().values().get(
-                spreadsheetId=spreadsheet_id, range=range_name).execute()
+                spreadsheetId=spreadsheet_id, range=range_name,
+                valueRenderOption='FORMATTED_VALUE').execute()
             values = result.get('values', [])
             logger.info("Fetched %d rows from Google Sheets range %s", len(values), range_name)
             return values
@@ -134,7 +135,8 @@ class GoogleSheetsClient:
     def _batch_fetch_impl(self, spreadsheet_id: str, ranges: List[str]) -> Dict[str, List[List[Any]]]:
         try:
             result = self.service.spreadsheets().values().batchGet(
-                spreadsheetId=spreadsheet_id, ranges=ranges).execute()
+                spreadsheetId=spreadsheet_id, ranges=ranges,
+                valueRenderOption='FORMATTED_VALUE').execute()
             
             # Key results by the input range names (using index-based
             # matching — the API guarantees valueRanges order matches
@@ -220,7 +222,7 @@ class GoogleSheetsClient:
             result = self.service.spreadsheets().values().append(
                 spreadsheetId=spreadsheet_id,
                 range=f"{sheet_name}!A:Z",
-                valueInputOption="USER_ENTERED",
+                valueInputOption="RAW",
                 insertDataOption="INSERT_ROWS",
                 body={"values": [values]},
             ).execute()
@@ -245,7 +247,7 @@ class GoogleSheetsClient:
             self.service.spreadsheets().values().update(
                 spreadsheetId=spreadsheet_id,
                 range=range_str,
-                valueInputOption="USER_ENTERED",
+                valueInputOption="RAW",
                 body={"values": [values]},
             ).execute()
             logger.info("Updated row %d in %s", row_number, sheet_name)
