@@ -221,3 +221,28 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     )
 
     return enriched
+
+
+def resolve_epf_rate(start_date_str: str, end_date_str: str = "") -> Optional[float]:
+    """Compute the weighted-average EPFO rate for a date range.
+
+    Used to fill in the interest rate when the user leaves it blank.
+    Returns ``None`` if the start date cannot be parsed.
+    """
+    start = parse_date(start_date_str)
+    if not start:
+        return None
+    end = parse_date(end_date_str) if end_date_str else None
+    effective_end = end or date.today()
+    if effective_end > date.today():
+        effective_end = date.today()
+
+    rate_sum = 0.0
+    rate_count = 0
+    for year, month in _month_range(start, effective_end):
+        rate_sum += _get_epf_rate(year, month)
+        rate_count += 1
+
+    if rate_count == 0:
+        return None
+    return round(rate_sum / rate_count, 2)

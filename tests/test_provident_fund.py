@@ -8,6 +8,7 @@ from unittest.mock import patch
 from app.api.provident_fund import (
     _get_epf_rate,
     calculate_pf_corpus,
+    resolve_epf_rate,
 )
 from app.utils import parse_date
 from app.api.google_sheets_client import ProvidentFundService, DataError
@@ -45,6 +46,33 @@ class TestGetEpfRate(unittest.TestCase):
                 _get_epf_rate(fy_start, 7), expected_rate,
                 f"FY {fy_start}-{fy_start+1} rate mismatch",
             )
+
+
+class TestResolveEpfRate(unittest.TestCase):
+    """Tests for resolve_epf_rate helper."""
+
+    def test_single_fy(self):
+        # Apr 2022 → Mar 2023 → FY 2022, rate 8.15
+        rate = resolve_epf_rate("2022-04-01", "2023-03-01")
+        self.assertEqual(rate, 8.15)
+
+    def test_cross_fy_weighted_average(self):
+        # Jan 2022 (FY 2021, rate 8.10) → Jun 2022 (FY 2022, rate 8.15)
+        # Jan–Mar 2022 = 3 months @ 8.10, Apr–Jun 2022 = 3 months @ 8.15
+        rate = resolve_epf_rate("2022-01-01", "2022-06-01")
+        expected = round((3 * 8.10 + 3 * 8.15) / 6, 2)
+        self.assertEqual(rate, expected)
+
+    def test_no_end_date_uses_today(self):
+        rate = resolve_epf_rate("2024-01-01", "")
+        self.assertIsNotNone(rate)
+        self.assertGreater(rate, 0)
+
+    def test_invalid_start_returns_none(self):
+        self.assertIsNone(resolve_epf_rate("not-a-date"))
+
+    def test_empty_start_returns_none(self):
+        self.assertIsNone(resolve_epf_rate(""))
 
 
 class TestParseDate(unittest.TestCase):
