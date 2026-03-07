@@ -152,7 +152,7 @@ class TestCalculateCurrentValue(unittest.TestCase):
             'reinvested_amount': 0,
             'interest_rate': 7.5,
         }]
-        # Empty date_str is falsy → deposit_date stays None → None + timedelta
+        # Empty date_str is falsy → deposit_date stays None → None + relativedelta
         # raises TypeError. Verify the function raises in this case.
         with self.assertRaises(TypeError):
             calculate_current_value(deposits)
@@ -175,8 +175,35 @@ class TestCalculateCurrentValue(unittest.TestCase):
         }]
         result = calculate_current_value(deposits)
         self.assertEqual(len(result), 1)
-        # Maturity: 2025-01-01 + 0*365 + 6*30 + 15 = 2025-01-01 + 195 days
-        self.assertIn('maturity_date', result[0])
+        # Maturity: 2025-01-01 + 6 calendar months + 15 days = July 16, 2025
+        self.assertEqual(result[0]['maturity_date'], 'July 16, 2025')
+
+    @patch('app.api.fixed_deposits.datetime')
+    def test_maturity_date_real_scenario(self, mock_dt):
+        """Regression: 1y 8m 29d from Oct 17 2024 must land on Jul 16 2026.
+
+        The old flat-day formula (years*365 + months*30 + days) produced
+        Jul 13 2026 because it under-counted months with 31 days.
+        Using relativedelta gives the calendar-correct result.
+        """
+        mock_dt.now.return_value = datetime(2026, 3, 7)
+        mock_dt.strptime = datetime.strptime
+
+        deposits = [{
+            'bank_name': 'HDFC',
+            'original_investment_date': 'October 17, 2024',
+            'reinvested_date': '',
+            'deposit_year': 1,
+            'deposit_month': 8,
+            'deposit_day': 29,
+            'original_amount': 20_000,
+            'reinvested_amount': 0,
+            'interest_rate': 6.45,
+        }]
+        result = calculate_current_value(deposits)
+        self.assertEqual(len(result), 1)
+        # Oct 17 2024 + 1y → Oct 17 2025 + 8m → Jun 17 2026 + 29d → Jul 16 2026
+        self.assertEqual(result[0]['maturity_date'], 'July 16, 2026')
 
     @patch('app.api.fixed_deposits.datetime')
     def test_sorted_by_maturity(self, mock_dt):

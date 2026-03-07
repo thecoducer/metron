@@ -1,7 +1,9 @@
 """Fixed Deposits Service"""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List
+
+from dateutil.relativedelta import relativedelta
 
 from ..logging_config import logger
 
@@ -75,12 +77,14 @@ def calculate_current_value(fixed_deposits: List[Dict[str, Any]]) -> List[Dict[s
         deposit_month = deposit.get('deposit_month', 0)
         deposit_day_val = deposit.get('deposit_day', 0)
 
-        # Calculate maturity date by adding the deposit period
-        total_days = int(deposit_year * 365)
-        total_days += int(deposit_month * 30)
-        total_days += int(deposit_day_val)
-        
-        maturity_date = deposit_date + timedelta(days=total_days)
+        # Use relativedelta for calendar-accurate date arithmetic.
+        # A flat day approximation (years*365 + months*30 + days) drifts
+        # because calendar months vary from 28-31 days and years can be 366.
+        maturity_date = deposit_date + relativedelta(
+            years=int(deposit_year),
+            months=int(deposit_month),
+            days=int(deposit_day_val),
+        )
         maturity_date_str = maturity_date.strftime("%B %d, %Y")
         deposit_copy['maturity_date'] = maturity_date_str
         
