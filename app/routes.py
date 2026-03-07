@@ -1583,6 +1583,18 @@ def sheets_add(sheet_type):
 
     values = [data.get(f, "") for f in cfg["fields"]]
 
+    # Resolve EPFO rate when interest rate is not provided for PF entries.
+    if sheet_type == "provident_fund":
+        rate_val = float(data.get("interest_rate", 0) or 0)
+        if rate_val <= 0:
+            from .api.provident_fund import resolve_epf_rate
+            resolved = resolve_epf_rate(
+                data.get("start_date", ""), data.get("end_date", "")
+            )
+            if resolved:
+                rate_idx = cfg["fields"].index("interest_rate")
+                values[rate_idx] = resolved
+
     try:
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
         row_num = client.append_row(spreadsheet_id, cfg["sheet_name"], values)
@@ -1633,6 +1645,18 @@ def sheets_update(sheet_type, row_number):
         manual_ltp_cache.put(symbol, quote)
 
     values = [data.get(f, "") for f in cfg["fields"]]
+
+    # Resolve EPFO rate when interest rate is not provided for PF entries.
+    if sheet_type == "provident_fund":
+        rate_val = float(data.get("interest_rate", 0) or 0)
+        if rate_val <= 0:
+            from .api.provident_fund import resolve_epf_rate
+            resolved = resolve_epf_rate(
+                data.get("start_date", ""), data.get("end_date", "")
+            )
+            if resolved:
+                rate_idx = cfg["fields"].index("interest_rate")
+                values[rate_idx] = resolved
 
     try:
         client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)

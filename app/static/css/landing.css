@@ -364,6 +364,7 @@ body.dark-theme .theme-toggle svg{color:#999}
 .asset-chip-icon.a-amber{background:rgba(245,158,11,.08);color:#f59e0b}
 .asset-chip-icon.a-teal{background:rgba(20,184,166,.08);color:#14b8a6}
 .asset-chip-icon.a-rose{background:rgba(244,63,94,.08);color:#f43f5e}
+.asset-chip-icon.a-orange{background:rgba(230,126,34,.08);color:#e67e22}
 
 .features{
   display:grid;
@@ -1127,6 +1128,7 @@ body.dark-theme .asset-chip-icon.a-emerald{background:rgba(16,185,129,.12)}
 body.dark-theme .asset-chip-icon.a-amber{background:rgba(245,158,11,.12)}
 body.dark-theme .asset-chip-icon.a-teal{background:rgba(20,184,166,.12)}
 body.dark-theme .asset-chip-icon.a-rose{background:rgba(244,63,94,.12)}
+body.dark-theme .asset-chip-icon.a-orange{background:rgba(230,126,34,.12)}
 body.dark-theme .feature-card{background:rgba(20,20,20,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(255,255,255,.06)}
 body.dark-theme .feature-card:hover{background:rgba(30,30,30,.6);border-color:rgba(255,255,255,.1);box-shadow:0 2px 16px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.04) inset}
 body.dark-theme .feature-card h3{color:#e5e5e5}

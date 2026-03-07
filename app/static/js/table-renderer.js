@@ -1515,7 +1515,7 @@ class TableRenderer {
   _buildProvidentFundGroupRow(firstEntry, metrics, classes) {
     const rateDisplay = `${metrics.weightedRate.toFixed(2)}%`;
 
-    return `<tr class="group-row ${classes.groupId}">
+    return `<tr data-schema="provident_fund" class="group-row ${classes.groupId}">
       <td style="font-weight:600"><span class="expand-toggle" data-group-id="${classes.groupId}"></span>${firstEntry.company_name || '-'}</td>
       <td></td>
       <td></td>
