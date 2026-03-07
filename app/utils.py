@@ -508,6 +508,11 @@ class PinRateLimiter:
         with self._lock:
             self._state.pop(google_id, None)
 
+    def get_attempts(self, google_id: str) -> int:
+        """Return the current failure count for *google_id* (0 if absent)."""
+        with self._lock:
+            return self._get(google_id)["attempts"]
+
 
 # ---------------------------------------------------------------------------
 # Date Parsing — shared across PF, FD, and other sheet-based services
