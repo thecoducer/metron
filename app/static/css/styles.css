@@ -1635,6 +1635,194 @@ body.privacy-mode .allocation-pct {
   }
 }
 
+/* ============ GOLD RHYTHM STRIP ============ */
+.gold-rhythm {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  margin-bottom: 16px;
+  background: rgba(245, 245, 244, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.gold-rhythm-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 14px 20px;
+}
+
+.gold-rhythm-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.gold-rhythm-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.gold-rhythm-secondary {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.gold-rhythm-invested {
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.gold-rhythm-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+
+.gold-rhythm-pl {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.gold-rhythm-pl > span:first-child {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gold-rhythm-pct {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* Gold breakdown segments (like SIP frequencies) */
+.gold-rhythm-segments {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.gold-seg {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 16px;
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+  min-width: 100px;
+}
+
+.gold-seg-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.gold-seg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gold-seg-dot--etf { background: #f59e0b; }
+.gold-seg-dot--physical { background: #d97706; }
+.gold-seg-dot--sgb { background: #92400e; }
+
+.gold-seg-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.gold-seg-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.gold-seg-pl {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  line-height: 1.3;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.gold-seg-pct {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Gold proportion bar */
+.gold-rhythm-bar {
+  display: flex;
+  width: 100%;
+  height: 4px;
+  flex-basis: 100%;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.gold-bar-seg {
+  height: 100%;
+  transition: width 0.4s cubic-bezier(.4,0,.2,1);
+}
+
+.gold-bar-seg--etf { background: #f59e0b; }
+.gold-bar-seg--physical { background: #d97706; }
+.gold-bar-seg--sgb { background: #92400e; }
+
+@media (max-width: 600px) {
+  .gold-rhythm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gold-rhythm-main {
+    gap: 12px;
+    padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+  .gold-rhythm-segments {
+    margin-left: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .gold-seg:first-child {
+    border-left: none;
+  }
+}
+
 #physical-gold-section {
   margin-top: 32px;
 }
@@ -3105,6 +3293,48 @@ body.dark-theme .sip-bar-seg--monthly { background: #34d399; }
 body.dark-theme .sip-bar-seg--weekly { background: #60a5fa; }
 body.dark-theme .sip-bar-seg--quarterly { background: #c084fc; }
 
+/* Dark theme - Gold rhythm strip */
+body.dark-theme .gold-rhythm {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-theme .gold-rhythm-value {
+  color: #f0f0f0;
+}
+
+body.dark-theme .gold-rhythm-invested {
+  color: #aaa;
+}
+
+body.dark-theme .gold-rhythm-label {
+  color: #666;
+}
+
+body.dark-theme .gold-rhythm-secondary {
+  border-left-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-theme .gold-rhythm-pl {
+  border-left-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-theme .gold-seg {
+  border-left-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-theme .gold-seg-name {
+  color: #888;
+}
+
+body.dark-theme .gold-seg-amount {
+  color: #e0e0e0;
+}
+
+body.dark-theme .gold-seg-pl {
+  color: #888;
+}
+
 body.dark-theme .section-wrapper h2 {
   color: #ececec;
   -webkit-text-fill-color: #ececec;
@@ -3271,6 +3501,10 @@ body.privacy-mode .category-current,
 body.privacy-mode .category-pl span,
 body.privacy-mode .section-summary-value,
 body.privacy-mode .section-summary-pl > span,
+body.privacy-mode .gold-rhythm-value,
+body.privacy-mode .gold-rhythm-pl > span,
+body.privacy-mode .gold-seg-amount,
+body.privacy-mode .gold-seg-pl > span,
 body.privacy-mode tbody tr td:nth-child(2),
 body.privacy-mode tbody tr td:nth-child(3),
 body.privacy-mode tbody tr td:nth-child(4),
@@ -3287,13 +3521,15 @@ body.privacy-mode .sip-total-value {
 
 /* Blur invested value but keep "Inv." label visible */
 body.privacy-mode .category-invested,
-body.privacy-mode .section-summary-invested span {
+body.privacy-mode .section-summary-invested span,
+body.privacy-mode .gold-rhythm-invested {
   color: transparent;
   text-shadow: 0 0 8px rgba(0,0,0,0.5);
   user-select: none;
 }
 body.privacy-mode .category-invested::before,
-body.privacy-mode .section-summary-invested::before {
+body.privacy-mode .section-summary-invested::before,
+body.privacy-mode .gold-rhythm-label {
   color: #bbb;
   text-shadow: none;
 }

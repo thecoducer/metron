@@ -171,10 +171,10 @@ class TestUIServerRoutes(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'html', response.data.lower())
-        # ensure gold section displays subtitle and expandable breakdown
+        # ensure gold section displays subtitle and rhythm strip
         self.assertIn(b'(ETFs + Physical + SGBs)', response.data)
-        self.assertIn(b'id="gold_breakdown_drawer"', response.data)
-        self.assertIn(b'section-summary--expandable', response.data)
+        self.assertIn(b'gold-rhythm', response.data)
+        self.assertIn(b'gold_proportion_bar', response.data)
 
     def test_nifty50_page(self):
         response = self.client.get('/nifty50')

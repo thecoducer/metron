@@ -207,7 +207,7 @@
       <span class="alloc-dot" style="background:#3b82f6"></span>
       <span class="alloc-chip-label">MFs</span>
     </button>
-    <button class="alloc-chip" data-section="gold-aggregate-section" type="button">
+    <button class="alloc-chip" data-section="physical-gold-section" type="button">
       <span class="alloc-dot" style="background:#f59e0b"></span>
       <span class="alloc-chip-label">Gold</span>
     </button>
@@ -334,56 +334,7 @@
 </div>
 </div>
 
-<!-- Gold Aggregate Section -->
-<div class="section-wrapper" id="gold-aggregate-section">
-<div class="section-header">
-<h2>Gold <span class="section-subtitle">(ETFs + Physical + SGBs)</span></h2>
-</div>
-<div class="section-summary section-summary--expandable" id="gold_summary" style="--section-accent:#f59e0b" tabindex="0" role="button" aria-expanded="false" aria-controls="gold_breakdown_drawer">
-  <div class="section-summary-metrics">
-    <span class="section-summary-badge" id="gold_allocation_pct"></span>
-    <div class="section-summary-value" id="gold_current_value">0.00</div>
-    <div class="section-summary-invested"><span id="gold_total_invested">0.00</span></div>
-    <div class="section-summary-pl">
-      <span id="gold_total_pl">0.00</span>
-      <span class="section-summary-pct" id="gold_total_pl_pct">0.00%</span>
-    </div>
-    <svg class="section-summary-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-  </div>
-  <div class="section-summary-accent"></div>
-</div>
-<div class="gold-breakdown-drawer" id="gold_breakdown_drawer" aria-hidden="true">
-    <div class="gold-breakdown-inner">
-        <div class="breakdown-segment" id="gold_etf_segment">
-            <div class="breakdown-label">ETFs</div>
-            <div class="breakdown-current" id="gold_etf_current_value">0.00</div>
-            <div class="breakdown-invested" id="gold_etf_total_invested">0.00</div>
-            <div class="breakdown-pl">
-                <span id="gold_etf_total_pl">0.00</span>
-                <span class="breakdown-pct" id="gold_etf_total_pl_pct">0.00%</span>
-            </div>
-        </div>
-        <div class="breakdown-segment" id="gold_physical_segment">
-            <div class="breakdown-label">Physical</div>
-            <div class="breakdown-current" id="gold_physical_current_value">0.00</div>
-            <div class="breakdown-invested" id="gold_physical_total_invested">0.00</div>
-            <div class="breakdown-pl">
-                <span id="gold_physical_total_pl">0.00</span>
-                <span class="breakdown-pct" id="gold_physical_total_pl_pct">0.00%</span>
-            </div>
-        </div>
-        <div class="breakdown-segment" id="gold_sgb_segment">
-            <div class="breakdown-label">SGBs</div>
-            <div class="breakdown-current" id="gold_sgb_current_value">0.00</div>
-            <div class="breakdown-invested" id="gold_sgb_total_invested">0.00</div>
-            <div class="breakdown-pl">
-                <span id="gold_sgb_total_pl">0.00</span>
-                <span class="breakdown-pct" id="gold_sgb_total_pl_pct">0.00%</span>
-            </div>
-        </div>
-    </div>
-</div>
-</div>
+
 
 <!-- Silver Aggregate Section -->
 <div class="section-wrapper" id="silver-aggregate-section">
@@ -404,18 +355,69 @@
 </div>
 </div>
 
-<!-- Physical Gold Section -->
-{% if physical_gold_enabled %}
+<!-- Gold Section (ETFs + Physical + SGBs) -->
 <div class="section-wrapper" id="physical-gold-section">
 <div class="section-header">
-<h2>Physical Gold</h2>
+<h2>Gold <span class="section-subtitle">(ETFs + Physical + SGBs)</span></h2>
+{% if physical_gold_enabled %}
 <div class="controls-container">
 <button class="crud-add-btn" onclick="window.crudAdd('physical_gold')" title="Add physical gold">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
 <span>Add</span>
 </button>
 </div>
+{% endif %}
 </div>
+
+<!-- Gold Rhythm Strip -->
+<div class="gold-rhythm" id="gold_summary">
+  <div class="gold-rhythm-main">
+    <span class="section-summary-badge" id="gold_allocation_pct"></span>
+    <div class="gold-rhythm-amount">
+      <span class="gold-rhythm-value" id="gold_current_value">0.00</span>
+    </div>
+    <div class="gold-rhythm-secondary">
+      <span class="gold-rhythm-invested" id="gold_total_invested">0.00</span>
+      <span class="gold-rhythm-label">invested</span>
+    </div>
+    <div class="gold-rhythm-pl">
+      <span id="gold_total_pl">0.00</span>
+      <span class="gold-rhythm-pct" id="gold_total_pl_pct">0.00%</span>
+    </div>
+  </div>
+  <div class="gold-rhythm-segments" id="gold_breakdown_segments">
+    <div class="gold-seg">
+      <div class="gold-seg-header">
+        <span class="gold-seg-dot gold-seg-dot--etf"></span>
+        <span class="gold-seg-name">ETFs</span>
+      </div>
+      <span class="gold-seg-amount" id="gold_etf_current_value">0.00</span>
+      <span class="gold-seg-pl"><span id="gold_etf_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_etf_total_pl_pct">0.00%</span></span>
+      <span id="gold_etf_total_invested" hidden>0.00</span>
+    </div>
+    <div class="gold-seg">
+      <div class="gold-seg-header">
+        <span class="gold-seg-dot gold-seg-dot--physical"></span>
+        <span class="gold-seg-name">Physical</span>
+      </div>
+      <span class="gold-seg-amount" id="gold_physical_current_value">0.00</span>
+      <span class="gold-seg-pl"><span id="gold_physical_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_physical_total_pl_pct">0.00%</span></span>
+      <span id="gold_physical_total_invested" hidden>0.00</span>
+    </div>
+    <div class="gold-seg">
+      <div class="gold-seg-header">
+        <span class="gold-seg-dot gold-seg-dot--sgb"></span>
+        <span class="gold-seg-name">SGBs</span>
+      </div>
+      <span class="gold-seg-amount" id="gold_sgb_current_value">0.00</span>
+      <span class="gold-seg-pl"><span id="gold_sgb_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_sgb_total_pl_pct">0.00%</span></span>
+      <span id="gold_sgb_total_invested" hidden>0.00</span>
+    </div>
+  </div>
+  <div class="gold-rhythm-bar" id="gold_proportion_bar"></div>
+</div>
+
+{% if physical_gold_enabled %}
 <div class="table-scroll-wrapper">
 <table id="physicalGoldTable" aria-label="Physical Gold table">
 <thead>
@@ -434,8 +436,8 @@
 </tbody>
 </table>
 </div>
-</div>
 {% endif %}
+</div>
 
 <!-- Fixed Deposits Section with Tabs -->
 {% if fixed_deposits_enabled %}

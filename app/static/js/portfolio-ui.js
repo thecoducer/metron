@@ -258,8 +258,8 @@ function removeDrawerAccount(name) {
     {
       target: '#gold_summary',
       iconClass: 'tour-icon-medal',
-      title: 'Expandable gold summary',
-      desc: 'Click this strip to expand and see a detailed breakdown of your gold holdings — ETFs, physical gold, and SGBs listed separately with individual P&L.',
+      title: 'Gold breakdown',
+      desc: 'See your total gold holdings at a glance — broken down by ETFs, physical gold, and SGBs with a proportion bar.',
       position: 'bottom',
     },
     {

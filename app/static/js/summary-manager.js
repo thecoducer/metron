@@ -74,9 +74,7 @@ const ELEMENT_IDS = {
 
 class SummaryManager {
   constructor() {
-    // track whether gold breakdown drawer is open
-    this.goldDrawerOpen = false;
-    // store last totals so drawer can render without new data fetch
+    // store last totals so strip can render without new data fetch
     this._lastCombinedGold = { invested: 0, current: 0, pl: 0, plPct: 0 };
     this._lastGoldBreakdown = {
       etf: { invested: 0, current: 0, pl: 0, plPct: 0 },
@@ -173,7 +171,7 @@ class SummaryManager {
       el.innerText = percentage.toFixed(1) + '%';
       
       // Set progress bar on parent section summary strip
-      const strip = el.closest('.section-summary');
+      const strip = el.closest('.section-summary') || el.closest('.gold-rhythm');
       if (strip) {
         strip.style.setProperty('--allocation-width', `${percentage}%`);
         
@@ -273,31 +271,40 @@ class SummaryManager {
   }
 
   _refreshGoldCard() {
-    // always show combined totals on the card
+    // always show combined totals on the main rhythm values
     this._updateGoldCard(this._lastCombinedGold);
-    // always update the drawer breakdown values
+    // always update the breakdown segment values
     this._updateGoldBreakdown(
       this._lastGoldBreakdown.etf,
       this._lastGoldBreakdown.sgb,
       this._lastGoldBreakdown.physical
     );
+    // update proportion bar
+    this._updateGoldProportionBar();
+    // show the strip when any gold value exists
+    const rhythm = document.getElementById('gold_summary');
+    if (rhythm) {
+      rhythm.style.display = '';
+    }
   }
 
-  /**
-   * Toggle the gold breakdown drawer open/closed.
-   */
-  toggleGoldDrawer() {
-    this.goldDrawerOpen = !this.goldDrawerOpen;
-    const card = document.getElementById('gold_summary');
-    const drawer = document.getElementById('gold_breakdown_drawer');
-    if (card) {
-      card.classList.toggle('drawer-open', this.goldDrawerOpen);
-      card.setAttribute('aria-expanded', this.goldDrawerOpen);
-    }
-    if (drawer) {
-      drawer.classList.toggle('open', this.goldDrawerOpen);
-      drawer.setAttribute('aria-hidden', !this.goldDrawerOpen);
-    }
+  _updateGoldProportionBar() {
+    const barEl = document.getElementById('gold_proportion_bar');
+    if (!barEl) return;
+    const etfVal = Math.abs(this._lastGoldBreakdown.etf.current || 0);
+    const physVal = Math.abs(this._lastGoldBreakdown.physical.current || 0);
+    const sgbVal = Math.abs(this._lastGoldBreakdown.sgb.current || 0);
+    const total = etfVal + physVal + sgbVal;
+    if (total === 0) { barEl.innerHTML = ''; return; }
+    const pcts = {
+      etf: (etfVal / total * 100).toFixed(1),
+      physical: (physVal / total * 100).toFixed(1),
+      sgb: (sgbVal / total * 100).toFixed(1)
+    };
+    barEl.innerHTML = ['etf', 'physical', 'sgb']
+      .filter(k => parseFloat(pcts[k]) > 0)
+      .map(k => `<span class="gold-bar-seg gold-bar-seg--${k}" style="width:${pcts[k]}%"></span>`)
+      .join('');
   }
 
   _updateSilverCard(totals) {

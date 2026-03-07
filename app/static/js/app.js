@@ -182,19 +182,6 @@ class PortfolioApp {
       } catch { /* ignore bad JSON */ }
     };
     window.crudDelete = (schemaKey, rowNumber) => this.crudManager.confirmDelete(schemaKey, rowNumber);
-    // gold card click → toggle breakdown drawer
-    const goldCard = document.getElementById('gold_summary');
-    if (goldCard) {
-      goldCard.addEventListener('click', () => {
-        this.summaryManager.toggleGoldDrawer();
-      });
-      goldCard.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          this.summaryManager.toggleGoldDrawer();
-        }
-      });
-    }
     // Sort handlers
     window.sortStocksTable = (sortBy) => this._handleSort('Stocks', sortBy);
     window.sortETFTable = (sortBy) => this._handleSort('ETF', sortBy);
