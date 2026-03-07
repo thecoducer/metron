@@ -229,63 +229,63 @@ function removeDrawerAccount(name) {
   const STEPS = [
     {
       target: '#combined_summary',
-      icon: '💰',
+      iconClass: 'tour-icon-wallet',
       title: 'Your net worth',
       desc: 'Total invested value, current value, and overall P&L — all in one place. Updates automatically when markets are open.',
       position: 'bottom',
     },
     {
       target: '.overview-top-right',
-      icon: '🔄',
+      iconClass: 'tour-icon-refresh',
       title: 'Refresh & status',
       desc: 'Hit the refresh button to fetch the latest data. Auto-refresh runs during market hours.<br><br>The <strong>status dot</strong> shows — <span style="color:#f59e0b">●</span> yellow while updating, <span style="color:#22c55e">●</span> green when the market is open, <span style="color:#ef4444">●</span> red when the market is closed. It also shows how long ago data was last refreshed.',
       position: 'bottom-end',
     },
     {
       target: '#indexTickers',
-      icon: '📈',
+      iconClass: 'tour-icon-trending',
       title: 'Live market indices',
       desc: 'NIFTY 50, SENSEX and other key indices update in real-time during market hours. See the day\'s movement at a glance.',
       position: 'bottom',
     },
     {
       target: '#data-container-summary',
-      icon: '📊',
+      iconClass: 'tour-icon-barchart',
       title: 'Asset breakdown',
       desc: 'Your portfolio split across Stocks, ETFs, Mutual Funds, Gold, Silver, and Fixed Deposits — each card shows invested vs current value and P&L.',
       position: 'bottom',
     },
     {
       target: '#gold_summary',
-      icon: '🥇',
+      iconClass: 'tour-icon-medal',
       title: 'Expandable gold summary',
       desc: 'Click this card to expand it and see a detailed breakdown of your gold holdings — ETFs, physical gold, and SGBs listed separately with individual P&L.',
       position: 'bottom',
     },
     {
       target: '#stocks-section .crud-add-btn',
-      icon: '✏️',
+      iconClass: 'tour-icon-pencil',
       title: 'Add, edit & delete data',
       desc: 'Use the <strong>+ Add</strong> button on any table to manually enter holdings. Click a row to view details, edit quantities, or delete entries. Every table in the app has these controls.',
       position: 'bottom-start',
     },
     {
       target: '#stocks-section',
-      icon: '📋',
+      iconClass: 'tour-icon-clipboard',
       title: 'Your holdings tables',
       desc: 'Stocks, ETFs and mutual funds each have their own table. Click any column header to sort. Click a row to see detailed info including day-wise change and account info.',
       position: 'bottom',
     },
     {
       target: '.nav-menu-btn',
-      icon: '🧭',
+      iconClass: 'tour-icon-compass',
       title: 'Navigation',
       desc: 'Use the menu to switch between your Portfolio dashboard and the Nifty 50 heatmap.',
       position: 'bottom-start',
     },
     {
       target: '#userAvatarBtn',
-      icon: '⚙️',
+      iconClass: 'tour-icon-gear',
       title: 'Settings & broker accounts',
       desc: 'Tap your avatar for theme, privacy mode and short numbers. Open <strong>Settings</strong> to connect your broker accounts — sync holdings automatically with a step-by-step setup guide built right in.',
       position: 'bottom-end',
@@ -435,7 +435,7 @@ function removeDrawerAccount(name) {
     const rect = el.getBoundingClientRect();
 
     content.innerHTML =
-      '<span class="tour-tip-icon">' + step.icon + '</span>' +
+      '<span class="tour-tip-icon ' + step.iconClass + '"></span>' +
       '<div class="tour-tip-title">' + step.title + '</div>' +
       '<p class="tour-tip-desc">' + step.desc + '</p>';
 
