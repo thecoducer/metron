@@ -7,7 +7,7 @@ from app.constants import (HTTP_ACCEPTED, HTTP_CONFLICT, HTTP_OK, STATE_ERROR,
                            STATE_UPDATED, STATE_UPDATING,
                            NSE_REQUEST_TIMEOUT, NSE_REQUEST_DELAY,
                            GOOGLE_SHEETS_TIMEOUT, IBJA_GOLD_PRICE_TIMEOUT,
-                           CONFIG_DIR_NAME, SSE_KEEPALIVE_INTERVAL,
+                           SSE_KEEPALIVE_INTERVAL,
                            TOKEN_WAIT_POLL_INTERVAL,
                            EPF_HISTORICAL_RATES, EPF_DEFAULT_RATE)
 
@@ -47,10 +47,6 @@ class TestConstants(unittest.TestCase):
         self.assertGreater(GOOGLE_SHEETS_TIMEOUT, 0)
         self.assertIsInstance(IBJA_GOLD_PRICE_TIMEOUT, (int, float))
         self.assertGreater(IBJA_GOLD_PRICE_TIMEOUT, 0)
-
-    def test_path_constants(self):
-        """Test path and directory constants"""
-        self.assertEqual(CONFIG_DIR_NAME, "config")
 
     def test_timing_constants(self):
         """Test timing / polling constants"""

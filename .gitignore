@@ -2,7 +2,6 @@
 config/.session_cache.json
 .env
 .env.local
-config/config.json
 config/firebase-credentials.json
 config/google-credentials.json
 config/google-oauth-credentials.json

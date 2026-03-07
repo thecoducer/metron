@@ -273,7 +273,7 @@ function removeDrawerAccount(name) {
       target: '#gold_summary, #physical-gold-section',
       iconClass: 'tour-icon-medal',
       title: 'Gold & physical gold',
-      desc: 'Your total gold holdings — broken down by ETFs, physical gold, and SGBs with a proportion bar. Physical gold is valued using <strong>IBJA rates</strong> (India Bullion and Jewellers Association). Look for the <span style="color:#6366f1">ℹ</span> icon on each table for more details.',
+      desc: 'Your total gold holdings — broken down by ETFs, physical gold, and SGBs with a proportion bar. Physical gold is valued using <strong>IBJA rates</strong> (India Bullion and Jewellers Association). Look for the <span style="color:#0d9488">ℹ</span> icon on each table for more details.',
       position: 'bottom',
     },
     {
@@ -294,7 +294,7 @@ function removeDrawerAccount(name) {
       target: '.section-info-btn',
       iconClass: 'tour-icon-info',
       title: 'Table info guides',
-      desc: 'Each table has an <span style="color:#6366f1;font-weight:600">ℹ</span> button next to the heading. Click it to learn what the table shows, how to add entries, and what each column means.',
+      desc: 'Each table has an <span style="color:#0d9488;font-weight:600">ℹ</span> button next to the heading. Click it to learn what the table shows, how to add entries, and what each column means.',
       position: 'bottom-start',
     },
     {

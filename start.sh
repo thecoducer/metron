@@ -35,44 +35,16 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if config.json exists and is properly configured
-print_info "Checking configuration..."
-if [ ! -f "config/config.json" ]; then
-    print_error "config/config.json not found!"
-    echo ""
-    echo "Please create a config.json file with your account details."
-    echo "See config/config.json.example for the required structure."
-    exit 1
+# Load .env file if present (each line: KEY=VALUE)
+print_info "Checking for .env file..."
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+    print_success ".env file loaded"
+else
+    print_info "No .env file found, using defaults / existing env vars"
 fi
-
-# Validate config.json structure using the application's own validation
-if ! python3 -c "
-import json
-import sys
-
-try:
-    with open('config/config.json', 'r') as f:
-        config = json.load(f)
-
-    # Basic structure check — accounts are now stored per-user in Firebase,
-    # so we only validate that the JSON is parseable and has server settings.
-    if 'server' not in config:
-        print('WARNING: config.json is missing \"server\" section, defaults will be used')
-
-    print('Configuration validation passed')
-
-except json.JSONDecodeError as e:
-    print(f'ERROR: config.json is not valid JSON: {e}')
-    sys.exit(1)
-except Exception as e:
-    print(f'ERROR: Failed to validate config.json: {e}')
-    sys.exit(1)
-" 2>&1; then
-    print_error "Configuration validation failed!"
-    exit 1
-fi
-
-print_success "Configuration validated"
 
 # Check if Python 3 is installed
 print_info "Checking Python installation..."

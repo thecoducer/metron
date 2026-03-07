@@ -11,9 +11,9 @@ Origin detection uses two signals:
 2. Browser-supplied ``Sec-Fetch-Mode``; ``navigate`` = address-bar / link
    (blocked), ``cors`` / ``same-origin`` = programmatic (allowed).
 
-The feature flag ``features.allow_browser_api_access`` in ``config/config.json``
-bypasses the origin check for local debugging.  Must remain ``false`` in
-production.
+The env var ``METRON_ALLOW_BROWSER_API_ACCESS`` (or ``features.allow_browser_api_access``
+in AppConfig) bypasses the origin check for local debugging.  Must remain
+``false`` in production.
 """
 
 import functools

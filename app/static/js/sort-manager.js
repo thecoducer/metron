@@ -6,6 +6,8 @@ class SortManager {
   constructor() {
     this.stocksSortOrder = 'default';
     this.etfSortOrder = 'default';
+    this.goldETFSortOrder = 'default';
+    this.silverETFSortOrder = 'default';
     this.mfSortOrder = 'default';
     this.physicalGoldSortOrder = 'default';
     this.fixedDepositsSortOrder = 'default';
@@ -121,6 +123,26 @@ class SortManager {
   }
 
   /**
+   * Sort Gold ETFs array based on selected criteria (same logic as stocks)
+   * @param {Array} holdings - Gold ETF holdings array
+   * @param {string} sortBy - Sort criteria
+   * @returns {Array} Sorted array
+   */
+  sortGoldETFs(holdings, sortBy = 'default') {
+    return this.sortStocks(holdings, sortBy);
+  }
+
+  /**
+   * Sort Silver ETFs array based on selected criteria (same logic as stocks)
+   * @param {Array} holdings - Silver ETF holdings array
+   * @param {string} sortBy - Sort criteria
+   * @returns {Array} Sorted array
+   */
+  sortSilverETFs(holdings, sortBy = 'default') {
+    return this.sortStocks(holdings, sortBy);
+  }
+
+  /**
    * Sort mutual funds array based on selected criteria
    * @param {Array} mfHoldings - MF holdings array
    * @param {string} sortBy - Sort criteria
@@ -174,6 +196,14 @@ class SortManager {
     this.etfSortOrder = sortBy;
   }
 
+  setGoldETFSortOrder(sortBy) {
+    this.goldETFSortOrder = sortBy;
+  }
+
+  setSilverETFSortOrder(sortBy) {
+    this.silverETFSortOrder = sortBy;
+  }
+
   setMFSortOrder(sortBy) {
     this.mfSortOrder = sortBy;
   }
@@ -184,6 +214,14 @@ class SortManager {
 
   getETFSortOrder() {
     return this.etfSortOrder;
+  }
+
+  getGoldETFSortOrder() {
+    return this.goldETFSortOrder;
+  }
+
+  getSilverETFSortOrder() {
+    return this.silverETFSortOrder;
   }
 
   getMFSortOrder() {

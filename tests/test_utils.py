@@ -15,7 +15,7 @@ from app.utils import (SessionManager, StateManager, encrypt_credential,
                        decrypt_credential, encrypt_google_credentials,
                        decrypt_google_credentials, create_pin_check,
                        verify_pin, format_timestamp,
-                       is_market_open_ist, load_config, PinRateLimiter,
+                       is_market_open_ist, PinRateLimiter,
                        _get_base_secret, _get_flask_secret)
 
 # Default PIN used throughout tests
@@ -476,38 +476,6 @@ class TestStateManager(unittest.TestCase):
         """is_any_running without google_id returns False when all global done."""
         self.sm.set_nifty50_updated()
         self.assertFalse(self.sm.is_any_running())
-
-
-class TestConfigLoader(unittest.TestCase):
-    """Test configuration loading and validation."""
-
-    def test_load_valid_config(self):
-        config = {"accounts": [{"name": "TestAccount"}]}
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-            json.dump(config, f)
-            temp_path = f.name
-        try:
-            loaded = load_config(temp_path)
-            self.assertEqual(loaded["accounts"][0]["name"], "TestAccount")
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_missing_config(self):
-        self.assertEqual(load_config("nonexistent.json"), {})
-
-    def test_load_invalid_json(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-            f.write("{ invalid }")
-            temp_path = f.name
-        try:
-            self.assertEqual(load_config(temp_path), {})
-        finally:
-            os.unlink(temp_path)
-
-    @patch("builtins.open", side_effect=PermissionError("no access"))
-    def test_load_config_generic_exception(self, mock_open):
-        """load_config handles generic exceptions gracefully."""
-        self.assertEqual(load_config("/some/path.json"), {})
 
 
 class TestFormatTimestamp(unittest.TestCase):

@@ -165,7 +165,7 @@ class SummaryManager {
     });
 
     // Update portfolio snapshot grid
-    this._updateSnapshotGrid(stock, etf, gold, silver, mf, fd, pf);
+    this._updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf);
   }
 
   _updateSnapshotCell(prefix, invested, current, pl, plPct) {
@@ -193,10 +193,10 @@ class SummaryManager {
     }
   }
 
-  _updateSnapshotGrid(stock, etf, gold, silver, mf, fd, pf) {
+  _updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf) {
     this._updateSnapshotCell('stocks', stock.invested, stock.current, stock.pl, stock.plPct);
-    this._updateSnapshotCell('etf', etf.invested, etf.current, etf.pl, etf.plPct);
     this._updateSnapshotCell('mf', mf.invested, mf.current, mf.pl, mf.plPct);
+    this._updateSnapshotCell('etf', etf.invested, etf.current, etf.pl, etf.plPct);
     this._updateSnapshotCell('gold', gold.invested, gold.current, gold.pl, gold.plPct);
     this._updateSnapshotCell('silver', silver.invested, silver.current, silver.pl, silver.plPct);
     this._updateSnapshotCell('fd', fd.invested, fd.maturity, fd.returns, fd.returnsPct);
@@ -339,7 +339,7 @@ class SummaryManager {
       physical: (physVal / total * 100).toFixed(1),
       sgb: (sgbVal / total * 100).toFixed(1)
     };
-    barEl.innerHTML = ['etf', 'physical', 'sgb']
+    barEl.innerHTML = ['physical', 'etf', 'sgb']
       .filter(k => parseFloat(pcts[k]) > 0)
       .map(k => `<span class="gold-bar-seg gold-bar-seg--${k}" style="width:${pcts[k]}%"></span>`)
       .join('');

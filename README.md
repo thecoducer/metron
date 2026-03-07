@@ -76,7 +76,7 @@ All files go in the `config/` directory (all are git-ignored — never commit th
 
 | File | Purpose |
 |------|---------|
-| `config.json` | Server settings and feature flags |
+| `.env` | Server settings and feature flags (project root) |
 | `firebase-credentials.json` | Firebase service account key |
 | `google-oauth-credentials.json` | Google OAuth 2.0 client secrets |
 | `flask-secret-key.txt` | Flask session signing secret |
@@ -139,33 +139,32 @@ Or set the `ZERODHA_TOKEN_SECRET` environment variable. If neither is set, a mac
 
 ---
 
-### 3. Create `config/config.json`
+### 3. Create a `.env` File (Project Root)
 
-```json
-{
-  "server": {
-    "ui_host": "127.0.0.1",
-    "ui_port": 8000
-  },
-  "timeouts": {
-    "request_token_timeout_seconds": 180,
-    "auto_refresh_interval_seconds": 60
-  },
-  "features": {
-    "auto_refresh_outside_market_hours": false,
-    "allow_browser_api_access": false
-  }
-}
+All settings have sensible defaults. Create `.env` only if you need to override them:
+
+```bash
+# Server
+METRON_UI_HOST=127.0.0.1
+METRON_UI_PORT=8000
+
+# Timeouts (seconds)
+METRON_REQUEST_TOKEN_TIMEOUT=180
+METRON_AUTO_REFRESH_INTERVAL=60
+
+# Features
+METRON_AUTO_REFRESH_OUTSIDE_MARKET_HOURS=false
+METRON_ALLOW_BROWSER_API_ACCESS=false
 ```
 
-| Key | Description | Default |
-|-----|-------------|---------|
-| `server.ui_host` | Host to bind the server | `127.0.0.1` |
-| `server.ui_port` | Port number | `8000` |
-| `timeouts.request_token_timeout_seconds` | Max wait for broker OAuth token | `180` |
-| `timeouts.auto_refresh_interval_seconds` | Auto-refresh interval during market hours | `60` |
-| `features.auto_refresh_outside_market_hours` | Auto-refresh outside 9:00–16:00 IST | `false` |
-| `features.allow_browser_api_access` | Allow direct browser API access | `false` |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `METRON_UI_HOST` | Host to bind the server | `127.0.0.1` |
+| `METRON_UI_PORT` | Port number | `8000` |
+| `METRON_REQUEST_TOKEN_TIMEOUT` | Max wait for broker OAuth token (seconds) | `180` |
+| `METRON_AUTO_REFRESH_INTERVAL` | Auto-refresh interval during market hours (seconds) | `60` |
+| `METRON_AUTO_REFRESH_OUTSIDE_MARKET_HOURS` | Auto-refresh outside 9:00–16:00 IST | `false` |
+| `METRON_ALLOW_BROWSER_API_ACCESS` | Allow direct browser API access | `false` |
 
 > **Redirect URLs must match your config.** Broker callback: `http://<host>:<port>/api/callback`. Google OAuth: `http://<host>:<port>/api/auth/google/callback`.
 
@@ -175,7 +174,7 @@ Or set the `ZERODHA_TOKEN_SECRET` environment variable. If neither is set, a mac
 ./start.sh
 ```
 
-This script creates a virtual environment (`run_server/`), installs dependencies, validates config, and starts the server.
+This script creates a virtual environment (`run_server/`), installs dependencies, loads `.env` (if present), and starts the server.
 
 Open **http://127.0.0.1:8000/** in your browser.
 
@@ -207,7 +206,6 @@ Open **http://127.0.0.1:8000/** in your browser.
 ├── start.sh                        # Startup script (venv + deps + run)
 ├── run_tests.sh                    # Test runner
 ├── config/
-│   ├── config.json                 # App config (git-ignored)
 │   ├── firebase-credentials.json   # Firebase key (git-ignored)
 │   ├── google-oauth-credentials.json # OAuth secrets (git-ignored)
 │   ├── flask-secret-key.txt        # Session secret (git-ignored)
@@ -250,8 +248,8 @@ Open **http://127.0.0.1:8000/** in your browser.
 | Problem | Solution |
 |---------|----------|
 | **Session expired** | Click **Login** next to the broker account to re-authorize |
-| **Port already in use** | Change `ui_port` in `config/config.json` |
-| **Config validation errors** | `start.sh` validates config on startup — check the error output |
+| **Port already in use** | Change `METRON_UI_PORT` in `.env` |
+| **Config validation errors** | Check `.env` syntax (KEY=VALUE, no spaces around `=`) |
 | **Missing dependencies** | `start.sh` auto-installs from `requirements.txt` |
 | **Gold prices not updating** | Fetched at 1 PM and 8 PM IST; click **Refresh** to force |
 

@@ -407,20 +407,7 @@ def is_market_open_ist() -> bool:
     return market_open <= now <= market_close
 
 
-def load_config(config_path: str) -> Dict[str, Any]:
-    """Load JSON config file. Returns empty dict on error."""
-    try:
-        with open(config_path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.warning("Config file not found: %s", config_path)
-        return {}
-    except json.JSONDecodeError as e:
-        logger.error("Invalid JSON in %s: %s", config_path, e)
-        return {}
-    except Exception as e:
-        logger.exception("Error loading config %s: %s", config_path, e)
-        return {}
+
 
 
 # ---------------------------------------------------------------------------

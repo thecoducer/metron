@@ -27,8 +27,7 @@ DEFAULT_UI_HOST = "127.0.0.1"
 DEFAULT_UI_PORT = 8000
 
 # File / directory paths
-CONFIG_FILENAME = "config.json"
-CONFIG_DIR_NAME = "config"  # directory that houses config.json and credentials
+CONFIG_DIR_NAME = "config"  # directory that houses credentials
 
 # HTTP Status codes
 HTTP_OK = 200

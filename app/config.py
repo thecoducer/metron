@@ -1,46 +1,43 @@
 """
-Application configuration loaded from config.json.
+Application configuration loaded from environment variables.
 """
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from .constants import (CONFIG_DIR_NAME, CONFIG_FILENAME,
-                        DEFAULT_AUTO_REFRESH_INTERVAL,
+from .constants import (DEFAULT_AUTO_REFRESH_INTERVAL,
                         DEFAULT_REQUEST_TOKEN_TIMEOUT,
                         DEFAULT_UI_HOST, DEFAULT_UI_PORT)
-from .utils import load_config
+
+
+def _env_bool(key: str, default: bool = False) -> bool:
+    """Read an env var as a boolean (true/1/yes → True)."""
+    return os.environ.get(key, str(default)).lower() in ("true", "1", "yes")
 
 
 @dataclass
 class AppConfig:
-    """Application configuration loaded from config.json."""
+    """Application configuration loaded from environment variables."""
     ui_host: str
     ui_port: int
     request_token_timeout: int
     auto_refresh_interval: int
     auto_refresh_outside_market_hours: bool
-    features: dict
+    features: dict = field(default_factory=dict)
 
     @classmethod
-    def from_file(cls, config_path: str) -> 'AppConfig':
-        """Load and parse application configuration from config.json."""
-        config = load_config(config_path)
-
-        server = config.get("server", {})
-        timeouts = config.get("timeouts", {})
-        features = config.get("features", {})
-
+    def from_env(cls) -> 'AppConfig':
+        """Build configuration from environment variables."""
+        allow_browser_api = _env_bool("METRON_ALLOW_BROWSER_API_ACCESS", False)
         return cls(
-            ui_host=server.get("ui_host", DEFAULT_UI_HOST),
-            ui_port=server.get("ui_port", DEFAULT_UI_PORT),
-            request_token_timeout=timeouts.get("request_token_timeout_seconds", DEFAULT_REQUEST_TOKEN_TIMEOUT),
-            auto_refresh_interval=timeouts.get("auto_refresh_interval_seconds", DEFAULT_AUTO_REFRESH_INTERVAL),
-            auto_refresh_outside_market_hours=features.get("auto_refresh_outside_market_hours", False),
-            features=features,
+            ui_host=os.environ.get("METRON_UI_HOST", DEFAULT_UI_HOST),
+            ui_port=int(os.environ.get("METRON_UI_PORT", DEFAULT_UI_PORT)),
+            request_token_timeout=int(os.environ.get("METRON_REQUEST_TOKEN_TIMEOUT", DEFAULT_REQUEST_TOKEN_TIMEOUT)),
+            auto_refresh_interval=int(os.environ.get("METRON_AUTO_REFRESH_INTERVAL", DEFAULT_AUTO_REFRESH_INTERVAL)),
+            auto_refresh_outside_market_hours=_env_bool("METRON_AUTO_REFRESH_OUTSIDE_MARKET_HOURS", False),
+            features={"allow_browser_api_access": allow_browser_api},
         )
 
 
 # Module-level singleton
-_project_root = os.path.dirname(os.path.dirname(__file__))
-app_config = AppConfig.from_file(os.path.join(_project_root, CONFIG_DIR_NAME, CONFIG_FILENAME))
+app_config = AppConfig.from_env()

@@ -912,11 +912,10 @@ class TableRenderer {
   }
 
   /**
-   * Render ETF holdings table (separate from stocks).
-   * Gold/Silver ETFs are shown in the table but their totals go to Gold/Silver cards, not ETF card.
+   * Render ETF holdings table (excludes Gold and Silver ETFs which have their own tables).
    * @param {Array} holdings - All holdings (stocks + ETFs combined from Zerodha)
    * @param {Object} status - Current status object
-   * @returns {Object} { etfTotals, goldETFTotals, silverETFTotals }
+   * @returns {Object} { etfTotals }
    */
   renderETFTable(holdings, status) {
     const tbody = document.getElementById('etf_tbody');
@@ -925,39 +924,24 @@ class TableRenderer {
 
     let etfInvested = 0;
     let etfCurrent = 0;
-    let goldETFInvested = 0;
-    let goldETFCurrent = 0;
-    let silverETFInvested = 0;
-    let silverETFCurrent = 0;
     let filteredHoldings = [];
 
-    // Filter only ETF holdings
+    // Filter only non-gold, non-silver ETF holdings
     holdings.forEach(holding => {
       const symbol = holding.tradingsymbol || '';
       const isin = holding.isin || '';
       const isETF = isETFInstrument(symbol, isin, holding.manual_type);
 
       if (!isETF) return;
+      if (isGoldInstrument(symbol) || isSilverInstrument(symbol)) return;
 
       const text = (symbol + holding.account).toLowerCase();
       if (!text.includes(this.searchQuery)) return;
 
-      const isGold = isGoldInstrument(symbol);
-      const isSilver = isSilverInstrument(symbol);
-
       filteredHoldings.push(holding);
       const metrics = Calculator.calculateStockMetrics(holding);
-
-      if (isGold) {
-        goldETFInvested += metrics.invested;
-        goldETFCurrent += metrics.current;
-      } else if (isSilver) {
-        silverETFInvested += metrics.invested;
-        silverETFCurrent += metrics.current;
-      } else {
-        etfInvested += metrics.invested;
-        etfCurrent += metrics.current;
-      }
+      etfInvested += metrics.invested;
+      etfCurrent += metrics.current;
     });
 
     // Group ETFs by symbol
@@ -998,7 +982,10 @@ class TableRenderer {
     // Append "view more" footer if data exceeds row limit
     rowsHTML += this._buildViewMoreRow(totalGroups, 10, 'etfs', 'ETFs');
 
-    if (filteredHoldings.length === 0 && holdings.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || '', h.manual_type)).length === 0) {
+    if (filteredHoldings.length === 0 && holdings.filter(h => {
+      const s = h.tradingsymbol || '';
+      return isETFInstrument(s, h.isin || '', h.manual_type) && !isGoldInstrument(s) && !isSilverInstrument(s);
+    }).length === 0) {
       this._renderEmptyCta(tbody, 'etfs', 'ETFs', 10);
     } else {
       this._updateTbodyContent(tbody, rowsHTML);
@@ -1021,21 +1008,124 @@ class TableRenderer {
       plPct: etfInvested ? ((etfCurrent - etfInvested) / etfInvested * 100) : 0
     };
 
-    const goldETFTotals = {
-      invested: goldETFInvested,
-      current: goldETFCurrent,
-      pl: goldETFCurrent - goldETFInvested,
-      plPct: goldETFInvested ? ((goldETFCurrent - goldETFInvested) / goldETFInvested * 100) : 0
-    };
+    return { etfTotals };
+  }
 
-    const silverETFTotals = {
-      invested: silverETFInvested,
-      current: silverETFCurrent,
-      pl: silverETFCurrent - silverETFInvested,
-      plPct: silverETFInvested ? ((silverETFCurrent - silverETFInvested) / silverETFInvested * 100) : 0
-    };
+  /**
+   * Render Gold ETF holdings table (inside the gold section).
+   * @param {Array} holdings - All holdings (stocks + ETFs combined)
+   * @param {Object} status - Current status object
+   * @returns {Object} goldETFTotals
+   */
+  renderGoldETFTable(holdings, status) {
+    return this._renderCommodityETFTable(holdings, status, {
+      tbodyId: 'gold_etf_tbody',
+      sectionId: 'physical-gold-section',
+      groupPrefix: 'gold-etf-group',
+      filterFn: (symbol) => isGoldInstrument(symbol),
+      viewMoreType: 'gold-etfs',
+      viewMoreLabel: 'Gold ETFs'
+    });
+  }
 
-    return { etfTotals, goldETFTotals, silverETFTotals };
+  /**
+   * Render Silver ETF holdings table (inside the silver section).
+   * @param {Array} holdings - All holdings (stocks + ETFs combined)
+   * @param {Object} status - Current status object
+   * @returns {Object} silverETFTotals
+   */
+  renderSilverETFTable(holdings, status) {
+    return this._renderCommodityETFTable(holdings, status, {
+      tbodyId: 'silver_etf_tbody',
+      sectionId: 'silver-aggregate-section',
+      groupPrefix: 'silver-etf-group',
+      filterFn: (symbol) => isSilverInstrument(symbol),
+      viewMoreType: 'silver-etfs',
+      viewMoreLabel: 'Silver ETFs'
+    });
+  }
+
+  /**
+   * Shared renderer for commodity (gold/silver) ETF tables.
+   */
+  _renderCommodityETFTable(holdings, status, { tbodyId, sectionId, groupPrefix, filterFn, viewMoreType, viewMoreLabel }) {
+    const tbody = document.getElementById(tbodyId);
+    const section = document.getElementById(sectionId);
+    const isUpdating = status.portfolio_state === 'updating';
+
+    if (!tbody) return { invested: 0, current: 0, pl: 0, plPct: 0 };
+
+    let totalInvested = 0;
+    let totalCurrent = 0;
+    let filteredHoldings = [];
+
+    holdings.forEach(holding => {
+      const symbol = holding.tradingsymbol || '';
+      const isin = holding.isin || '';
+      const isETF = isETFInstrument(symbol, isin, holding.manual_type);
+
+      if (!isETF) return;
+      if (!filterFn(symbol)) return;
+
+      const text = (symbol + holding.account).toLowerCase();
+      if (!text.includes(this.searchQuery)) return;
+
+      filteredHoldings.push(holding);
+      const metrics = Calculator.calculateStockMetrics(holding);
+      totalInvested += metrics.invested;
+      totalCurrent += metrics.current;
+    });
+
+    const groupedHoldings = this._groupStocksBySymbol(filteredHoldings);
+    const groupedArray = Object.values(groupedHoldings);
+    const totalGroups = groupedArray.length;
+    const pageData = groupedArray.slice(0, this.rowLimit);
+
+    let rowsHTML = '';
+    pageData.forEach((group, index) => {
+      const groupId = `${groupPrefix}-${index}`;
+      const metrics = this._calculateAggregatedStockMetrics(group.holdings);
+      rowsHTML += this._buildStockRow(group.holdings[0], metrics, {
+        symbolClass: this._getUpdateClass(isUpdating),
+        qtyClass: this._getUpdateClass(isUpdating),
+        avgClass: this._getUpdateClass(isUpdating),
+        investedClass: this._getUpdateClass(isUpdating),
+        ltpClass: this._getUpdateClass(isUpdating),
+        plClass: this._getUpdateClass(isUpdating),
+        dayChangeClass: this._getUpdateClass(isUpdating),
+        currentClass: this._getUpdateClass(isUpdating),
+        exchangeClass: this._getUpdateClass(isUpdating),
+        accountClass: this._getUpdateClass(isUpdating),
+        groupId: groupId,
+        hasMultipleAccounts: group.holdings.length > 1,
+        isGroupRow: true
+      });
+
+      if (group.holdings.length > 1) {
+        group.holdings.forEach(holding => {
+          const holdingMetrics = Calculator.calculateStockMetrics(holding);
+          rowsHTML += this._buildStockBreakdownRow(holding, holdingMetrics, groupId);
+        });
+      }
+    });
+    rowsHTML += this._buildViewMoreRow(totalGroups, 10, viewMoreType, viewMoreLabel);
+
+    this._updateTbodyContent(tbody, rowsHTML);
+
+    // Show/hide the commodity ETF table within the section
+    const table = tbody.closest('table');
+    if (table) {
+      table.style.display = filteredHoldings.length > 0 ? '' : 'none';
+    }
+
+    this._restoreExpandedState();
+
+    return {
+      invested: totalInvested,
+      current: totalCurrent,
+      pl: totalCurrent - totalInvested,
+      plPct: totalInvested ? ((totalCurrent - totalInvested) / totalInvested * 100) : 0
+    };
   }
 
   /**
