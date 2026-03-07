@@ -193,9 +193,9 @@ class PortfolioApp {
 
     this._setupHeaderSortListeners();
 
-
-
     this._setupSummaryCardNavigation();
+
+    this._setupInfoToasters();
 
     this._currentTooltip = null;
     this._tooltipIcon = null;
@@ -287,7 +287,173 @@ class PortfolioApp {
     this._tooltipPinned = false;
   }
 
-  
+  // ─── Section Info Toasters ────────────────────────────────────
+
+  _setupInfoToasters() {
+    const INFO_CONTENT = {
+      stocks: {
+        title: 'Stocks',
+        items: [
+          'Shows all your equity holdings across broker accounts.',
+          'Same stock from multiple accounts is grouped \u2014 click to expand and see the split.',
+          '<strong>To add:</strong> Click <strong>+ Add</strong> and enter the symbol (e.g. RELIANCE), quantity, average price, and exchange (NSE/BSE).',
+          'Broker-synced holdings update automatically. Manually added entries show a person icon.',
+          '<strong>P/L</strong> = (Current Price \u2212 Avg Price) \u00d7 Qty. <strong>Day\u2019s Change</strong> shows today\u2019s move.',
+        ]
+      },
+      etfs: {
+        title: 'ETFs',
+        items: [
+          'Exchange-Traded Funds listed separately from stocks. Gold, Silver ETFs appear here too but their value is counted under Gold/Silver totals.',
+          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter the ETF symbol (e.g. NIFTYBEES, GOLDBEES), quantity, average price, and exchange.',
+          'Same structure as the stocks table \u2014 sortable columns, grouped by symbol.',
+        ]
+      },
+      mutual_funds: {
+        title: 'Mutual Funds',
+        items: [
+          'All your mutual fund holdings with current NAV and returns.',
+          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter the exact fund name (e.g. AXIS BLUECHIP FUND), units held, and average NAV.',
+          'NAV (Net Asset Value) is the per-unit price. The date below NAV shows when it was last updated.',
+          'Funds from multiple accounts are grouped by name \u2014 click to expand.',
+        ]
+      },
+      gold: {
+        title: 'Physical Gold',
+        items: [
+          'Track your physical gold including jewellery, coins, bars, and biscuits.',
+          '<strong>IBJA</strong> = India Bullion and Jewellers Association. They publish daily wholesale gold rates used as a benchmark for valuation.',
+          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter purchase date, type (Jewellery/Coin/Bar), purity (24K/22K/18K), weight in grams, and the IBJA rate per gram on the date of purchase.',
+          '<strong>Bought IBJA Rate:</strong> The IBJA rate/gm on the day you purchased. You can find historical rates on the IBJA website.',
+          '<strong>Latest IBJA Rate:</strong> Today\u2019s rate for the same purity, fetched automatically.',
+          'P/L is calculated as: (Latest IBJA Rate \u2212 Bought IBJA Rate) \u00d7 Weight.',
+        ]
+      },
+      fixed_deposits: {
+        title: 'Fixed Deposits',
+        items: [
+          'Track your FDs across banks with maturity dates and interest rates.',
+          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter deposit date, bank, tenure (years/months/days), amount, interest rate, and account label.',
+          '<strong>Original Amt:</strong> The money you first deposited when you opened the FD.',
+          '<strong>Reinvested Amt:</strong> When an FD auto-renews (rolls over), the maturity amount (principal + interest) becomes the reinvested amount for the new tenure.',
+          '<strong>Reinvested On:</strong> The date the FD was auto-renewed. Leave blank for first-time deposits.',
+          'For an <strong>auto-renewed FD</strong>: Original Amt is what you deposited before the last tenure. Reinvested Amt is the rolled-over amount (original + accrued interest).',
+          '<strong>Current Value:</strong> Estimated value today based on tenure elapsed and interest rate.',
+          'The <span style="color:#f59e0b;font-weight:700">!</span> icon appears when deposits at a bank exceed \u20b95 Lakhs \u2014 the DICGC insurance coverage limit.',
+          'Switch to <strong>By Bank</strong> tab to see aggregated totals per bank.',
+        ]
+      },
+      provident_fund: {
+        title: 'Provident Fund',
+        items: [
+          'Track your EPF/PF across employers with compounding interest.',
+          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter company name, start date, end date (leave blank if current), monthly contribution, and interest rate.',
+          '<strong>Interest Rate:</strong> Enter 0 or leave blank to auto-apply the EPFO rate for each financial year (8.25% for FY 2023\u201324). Or enter a custom rate.',
+          'Multiple stints at the same company are grouped \u2014 click to expand.',
+          '<strong>Months:</strong> Auto-computed from start and end dates.',
+          '<strong>Balance:</strong> Your closing balance for that stint (contributions + interest compounded monthly).',
+        ]
+      },
+      sips: {
+        title: 'SIPs',
+        items: [
+          'Track your Systematic Investment Plans with frequency, status, and next due date.',
+          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter fund name, amount, frequency (Monthly/Weekly/Quarterly), status, and next due date.',
+          '<strong>Installments:</strong> Enter \u22121 for perpetual SIPs (no end date). Otherwise enter total installments planned.',
+          'The rhythm summary at the top shows your total monthly and annual SIP outflow across all active SIPs.',
+          'The frequency bar shows how your SIP amount is distributed across weekly, monthly, and quarterly SIPs.',
+        ]
+      },
+    };
+
+    this._activeInfoToaster = null;
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.section-info-btn');
+      if (btn) {
+        e.stopPropagation();
+        const key = btn.dataset.info;
+        if (!key || !INFO_CONTENT[key]) return;
+
+        // Toggle off if same toaster
+        if (this._activeInfoToaster && this._activeInfoToaster.dataset.infoKey === key) {
+          this._closeInfoToaster();
+          return;
+        }
+        this._closeInfoToaster();
+        this._showInfoToaster(btn, key, INFO_CONTENT[key]);
+        return;
+      }
+      // Close if clicking outside
+      if (this._activeInfoToaster && !this._activeInfoToaster.contains(e.target)) {
+        this._closeInfoToaster();
+      }
+    });
+  }
+
+  _showInfoToaster(btn, key, content) {
+    const toaster = document.createElement('div');
+    toaster.className = 'section-info-toaster';
+    toaster.dataset.infoKey = key;
+
+    let html = `<div class="section-info-toaster-header">
+      <span class="section-info-toaster-title">${content.title}</span>
+      <button class="section-info-toaster-close" aria-label="Close">&times;</button>
+    </div><ul class="section-info-toaster-list">`;
+    content.items.forEach(item => {
+      html += `<li>${item}</li>`;
+    });
+    html += '</ul>';
+    toaster.innerHTML = html;
+
+    // Insert after the section-header
+    const sectionHeader = btn.closest('.section-header');
+    if (sectionHeader) {
+      sectionHeader.insertAdjacentElement('afterend', toaster);
+    } else {
+      btn.parentElement.insertAdjacentElement('afterend', toaster);
+    }
+
+    // Animate in
+    requestAnimationFrame(() => toaster.classList.add('open'));
+
+    // Close button
+    toaster.querySelector('.section-info-toaster-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._closeInfoToaster();
+    });
+
+    // Escape key
+    this._infoToasterEscHandler = (e) => {
+      if (e.key === 'Escape') this._closeInfoToaster();
+    };
+    document.addEventListener('keydown', this._infoToasterEscHandler);
+
+    this._activeInfoToaster = toaster;
+    btn.classList.add('active');
+  }
+
+  _closeInfoToaster() {
+    if (!this._activeInfoToaster) return;
+    const toaster = this._activeInfoToaster;
+    toaster.classList.remove('open');
+
+    // Remove active state from the button
+    const key = toaster.dataset.infoKey;
+    const btn = document.querySelector(`.section-info-btn[data-info="${key}"]`);
+    if (btn) btn.classList.remove('active');
+
+    // Remove after transition
+    toaster.addEventListener('transitionend', () => toaster.remove(), { once: true });
+    // Fallback removal
+    setTimeout(() => { if (toaster.parentNode) toaster.remove(); }, 300);
+
+    if (this._infoToasterEscHandler) {
+      document.removeEventListener('keydown', this._infoToasterEscHandler);
+      this._infoToasterEscHandler = null;
+    }
+    this._activeInfoToaster = null;
+  }
 
   _setupHeaderSortListeners() {
     const tableConfigs = [
