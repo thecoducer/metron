@@ -402,33 +402,52 @@ class PortfolioApp {
   }
 
   _setupSummaryCardNavigation() {
-    // Allocation legend chips → scroll to respective sections
-    document.querySelectorAll('.alloc-chip[data-section]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const sectionId = chip.dataset.section;
-        const section = document.getElementById(sectionId);
-        if (!section) return;
+    const bar = document.getElementById('allocation_bar');
+    const labels = document.getElementById('alloc_labels');
+    const focus = document.getElementById('alloc_focus');
+    if (!bar || !labels || !focus) return;
 
-        const header = document.querySelector('header');
-        const headerHeight = header ? header.getBoundingClientRect().height : 0;
-        const extraSpacing = 12;
-        const targetTop = section.getBoundingClientRect().top + window.scrollY - headerHeight - extraSpacing;
-        window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' });
-      });
+    const activate = (asset) => {
+      const isAlready = bar.querySelector(`.alloc-seg.active[data-asset="${asset}"]`);
+      // Clear all
+      bar.querySelectorAll('.alloc-seg').forEach(s => s.classList.remove('active'));
+      labels.querySelectorAll('.alloc-tag').forEach(t => t.classList.remove('active'));
+      focus.querySelectorAll('.alloc-focus-row').forEach(r => r.classList.remove('active'));
+
+      if (isAlready) {
+        // Deactivate
+        bar.classList.remove('has-focus');
+        labels.classList.remove('has-focus');
+        focus.classList.remove('open');
+      } else {
+        // Activate
+        bar.classList.add('has-focus');
+        labels.classList.add('has-focus');
+        bar.querySelector(`.alloc-seg[data-asset="${asset}"]`)?.classList.add('active');
+        labels.querySelector(`.alloc-tag[data-asset="${asset}"]`)?.classList.add('active');
+        const row = focus.querySelector(`.alloc-focus-row[data-asset="${asset}"]`);
+        if (row) row.classList.add('active');
+        focus.classList.add('open');
+      }
+    };
+
+    // Bar segment click
+    bar.querySelectorAll('.alloc-seg[data-asset]').forEach(seg => {
+      seg.addEventListener('click', () => activate(seg.dataset.asset));
     });
 
-    // Snapshot cards → scroll to respective sections
-    document.querySelectorAll('.snapshot-card[data-section]').forEach(card => {
-      card.addEventListener('click', () => {
-        const sectionId = card.dataset.section;
-        const section = document.getElementById(sectionId);
+    // Label tag click — highlight + scroll to section
+    labels.querySelectorAll('.alloc-tag[data-asset]').forEach(tag => {
+      tag.addEventListener('click', () => {
+        activate(tag.dataset.asset);
+      });
+      tag.addEventListener('dblclick', () => {
+        const section = document.getElementById(tag.dataset.section);
         if (!section) return;
-
-        const header = document.querySelector('header');
-        const headerHeight = header ? header.getBoundingClientRect().height : 0;
-        const extraSpacing = 12;
-        const targetTop = section.getBoundingClientRect().top + window.scrollY - headerHeight - extraSpacing;
-        window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' });
+        const hdr = document.querySelector('header');
+        const hdrH = hdr ? hdr.getBoundingClientRect().height : 0;
+        const top = section.getBoundingClientRect().top + window.scrollY - hdrH - 12;
+        window.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
       });
     });
   }

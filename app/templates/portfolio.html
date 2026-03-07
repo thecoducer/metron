@@ -185,156 +185,88 @@
 </div>
 
 <div class="portfolio-allocation" id="data-container-summary">
-  <div class="allocation-bar" id="allocation_bar">
-    <div class="alloc-seg" id="alloc_seg_stocks" style="--seg-color:#6366f1"></div>
-    <div class="alloc-seg" id="alloc_seg_etf" style="--seg-color:#ec4899"></div>
-    <div class="alloc-seg" id="alloc_seg_mf" style="--seg-color:#3b82f6"></div>
-    <div class="alloc-seg" id="alloc_seg_gold" style="--seg-color:#f59e0b"></div>
-    <div class="alloc-seg" id="alloc_seg_silver" style="--seg-color:#94a3b8"></div>
-    <div class="alloc-seg" id="alloc_seg_fd" style="--seg-color:#10b981"></div>
-    <div class="alloc-seg" id="alloc_seg_pf" style="--seg-color:#e67e22"></div>
+  <div class="allocation-bar allocation-bar--interactive" id="allocation_bar">
+    <div class="alloc-seg" id="alloc_seg_stocks" data-asset="stocks" style="--seg-color:#6366f1" title="Stocks"></div>
+    <div class="alloc-seg" id="alloc_seg_etf" data-asset="etf" style="--seg-color:#ec4899" title="ETFs"></div>
+    <div class="alloc-seg" id="alloc_seg_mf" data-asset="mf" style="--seg-color:#3b82f6" title="Mutual Funds"></div>
+    <div class="alloc-seg" id="alloc_seg_gold" data-asset="gold" style="--seg-color:#f59e0b" title="Gold"></div>
+    <div class="alloc-seg" id="alloc_seg_silver" data-asset="silver" style="--seg-color:#94a3b8" title="Silver"></div>
+    <div class="alloc-seg" id="alloc_seg_fd" data-asset="fd" style="--seg-color:#10b981" title="Fixed Deposits"></div>
+    <div class="alloc-seg" id="alloc_seg_pf" data-asset="pf" style="--seg-color:#8b4049" title="Provident Fund"></div>
   </div>
-  <div class="allocation-legend">
-    <button class="alloc-chip" data-section="stocks-section" type="button">
-      <span class="alloc-dot" style="background:#6366f1"></span>
-      <span class="alloc-chip-label">Stocks</span>
-    </button>
-    <button class="alloc-chip" data-section="etf-section" type="button">
-      <span class="alloc-dot" style="background:#ec4899"></span>
-      <span class="alloc-chip-label">ETFs</span>
-    </button>
-    <button class="alloc-chip" data-section="mf-section" type="button">
-      <span class="alloc-dot" style="background:#3b82f6"></span>
-      <span class="alloc-chip-label">MFs</span>
-    </button>
-    <button class="alloc-chip" data-section="physical-gold-section" type="button">
-      <span class="alloc-dot" style="background:#f59e0b"></span>
-      <span class="alloc-chip-label">Gold</span>
-    </button>
-    <button class="alloc-chip" data-section="silver-aggregate-section" type="button">
-      <span class="alloc-dot" style="background:#94a3b8"></span>
-      <span class="alloc-chip-label">Silver</span>
-    </button>
-    {% if fixed_deposits_enabled %}
-    <button class="alloc-chip" data-section="fixed-deposits-section" type="button">
-      <span class="alloc-dot" style="background:#10b981"></span>
-      <span class="alloc-chip-label">FDs</span>
-    </button>
-    {% endif %}
-    <button class="alloc-chip" data-section="provident-fund-section" type="button">
-      <span class="alloc-dot" style="background:#e67e22"></span>
-      <span class="alloc-chip-label">PF</span>
-    </button>
-  </div>
-</div>
 
-<!-- Portfolio Snapshot Grid -->
-<div class="snapshot-grid" id="portfolio_snapshot">
-  <div class="snapshot-card" style="--snap-accent:#6366f1" data-section="stocks-section">
-    <div class="snapshot-header">
-      <span class="snapshot-dot"></span>
-      <span class="snapshot-name">Stocks</span>
-    </div>
-    <div class="snapshot-current" id="snap_stocks_current">--</div>
-    <div class="snapshot-row">
-      <span class="snapshot-label">Invested</span>
-      <span class="snapshot-invested" id="snap_stocks_invested">--</span>
-    </div>
-    <div class="snapshot-pl-row">
-      <span class="snapshot-pl" id="snap_stocks_pl">--</span>
-      <span class="snapshot-pct" id="snap_stocks_pct">--</span>
-    </div>
+  <!-- Label strip — always visible, one-line flowing summary -->
+  <div class="alloc-labels" id="alloc_labels">
+    <span class="alloc-tag" data-asset="stocks" data-section="stocks-section" style="--seg-color:#6366f1"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">Stocks</span><span class="alloc-tag-val" id="snap_stocks_current">--</span><span class="alloc-tag-pct" data-snap-pct="stocks"></span></span>
+    <span class="alloc-tag" data-asset="etf" data-section="etf-section" style="--seg-color:#ec4899"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">ETFs</span><span class="alloc-tag-val" id="snap_etf_current">--</span><span class="alloc-tag-pct" data-snap-pct="etf"></span></span>
+    <span class="alloc-tag" data-asset="mf" data-section="mf-section" style="--seg-color:#3b82f6"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">MFs</span><span class="alloc-tag-val" id="snap_mf_current">--</span><span class="alloc-tag-pct" data-snap-pct="mf"></span></span>
+    <span class="alloc-tag" data-asset="gold" data-section="physical-gold-section" style="--seg-color:#f59e0b"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">Gold</span><span class="alloc-tag-val" id="snap_gold_current">--</span><span class="alloc-tag-pct" data-snap-pct="gold"></span></span>
+    <span class="alloc-tag" data-asset="silver" data-section="silver-aggregate-section" style="--seg-color:#94a3b8"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">Silver</span><span class="alloc-tag-val" id="snap_silver_current">--</span><span class="alloc-tag-pct" data-snap-pct="silver"></span></span>
+    {% if fixed_deposits_enabled %}
+    <span class="alloc-tag" data-asset="fd" data-section="fixed-deposits-section" style="--seg-color:#10b981"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">FDs</span><span class="alloc-tag-val" id="snap_fd_current">--</span><span class="alloc-tag-pct" data-snap-pct="fd"></span></span>
+    {% endif %}
+    <span class="alloc-tag" data-asset="pf" data-section="provident-fund-section" style="--seg-color:#8b4049"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">PF</span><span class="alloc-tag-val" id="snap_pf_current">--</span><span class="alloc-tag-pct" data-snap-pct="pf"></span></span>
   </div>
-  <div class="snapshot-card" style="--snap-accent:#ec4899" data-section="etf-section">
-    <div class="snapshot-header">
-      <span class="snapshot-dot"></span>
-      <span class="snapshot-name">ETFs</span>
+
+  <!-- Focus shelf — slides in when a bar segment is clicked -->
+  <div class="alloc-focus" id="alloc_focus">
+    <div class="alloc-focus-row" data-asset="stocks" style="--seg-color:#6366f1">
+      <span class="alloc-focus-dot"></span>
+      <span class="alloc-focus-name">Stocks</span>
+      <span class="alloc-focus-val" id="snap_stocks_invested">--</span>
+      <span class="alloc-focus-sep"></span>
+      <span class="alloc-focus-pl" id="snap_stocks_pl">--</span>
+      <span class="alloc-focus-pct" id="snap_stocks_pct">--</span>
     </div>
-    <div class="snapshot-current" id="snap_etf_current">--</div>
-    <div class="snapshot-row">
-      <span class="snapshot-label">Invested</span>
-      <span class="snapshot-invested" id="snap_etf_invested">--</span>
+    <div class="alloc-focus-row" data-asset="etf" style="--seg-color:#ec4899">
+      <span class="alloc-focus-dot"></span>
+      <span class="alloc-focus-name">ETFs</span>
+      <span class="alloc-focus-val" id="snap_etf_invested">--</span>
+      <span class="alloc-focus-sep"></span>
+      <span class="alloc-focus-pl" id="snap_etf_pl">--</span>
+      <span class="alloc-focus-pct" id="snap_etf_pct">--</span>
     </div>
-    <div class="snapshot-pl-row">
-      <span class="snapshot-pl" id="snap_etf_pl">--</span>
-      <span class="snapshot-pct" id="snap_etf_pct">--</span>
+    <div class="alloc-focus-row" data-asset="mf" style="--seg-color:#3b82f6">
+      <span class="alloc-focus-dot"></span>
+      <span class="alloc-focus-name">MFs</span>
+      <span class="alloc-focus-val" id="snap_mf_invested">--</span>
+      <span class="alloc-focus-sep"></span>
+      <span class="alloc-focus-pl" id="snap_mf_pl">--</span>
+      <span class="alloc-focus-pct" id="snap_mf_pct">--</span>
     </div>
-  </div>
-  <div class="snapshot-card" style="--snap-accent:#3b82f6" data-section="mf-section">
-    <div class="snapshot-header">
-      <span class="snapshot-dot"></span>
-      <span class="snapshot-name">Mutual Funds</span>
+    <div class="alloc-focus-row" data-asset="gold" style="--seg-color:#f59e0b">
+      <span class="alloc-focus-dot"></span>
+      <span class="alloc-focus-name">Gold</span>
+      <span class="alloc-focus-val" id="snap_gold_invested">--</span>
+      <span class="alloc-focus-sep"></span>
+      <span class="alloc-focus-pl" id="snap_gold_pl">--</span>
+      <span class="alloc-focus-pct" id="snap_gold_pct">--</span>
     </div>
-    <div class="snapshot-current" id="snap_mf_current">--</div>
-    <div class="snapshot-row">
-      <span class="snapshot-label">Invested</span>
-      <span class="snapshot-invested" id="snap_mf_invested">--</span>
+    <div class="alloc-focus-row" data-asset="silver" style="--seg-color:#94a3b8">
+      <span class="alloc-focus-dot"></span>
+      <span class="alloc-focus-name">Silver</span>
+      <span class="alloc-focus-val" id="snap_silver_invested">--</span>
+      <span class="alloc-focus-sep"></span>
+      <span class="alloc-focus-pl" id="snap_silver_pl">--</span>
+      <span class="alloc-focus-pct" id="snap_silver_pct">--</span>
     </div>
-    <div class="snapshot-pl-row">
-      <span class="snapshot-pl" id="snap_mf_pl">--</span>
-      <span class="snapshot-pct" id="snap_mf_pct">--</span>
+    {% if fixed_deposits_enabled %}
+    <div class="alloc-focus-row" data-asset="fd" style="--seg-color:#10b981">
+      <span class="alloc-focus-dot"></span>
+      <span class="alloc-focus-name">FDs</span>
+      <span class="alloc-focus-val" id="snap_fd_invested">--</span>
+      <span class="alloc-focus-sep"></span>
+      <span class="alloc-focus-pl" id="snap_fd_pl">--</span>
+      <span class="alloc-focus-pct" id="snap_fd_pct">--</span>
     </div>
-  </div>
-  <div class="snapshot-card" style="--snap-accent:#f59e0b" data-section="physical-gold-section">
-    <div class="snapshot-header">
-      <span class="snapshot-dot"></span>
-      <span class="snapshot-name">Gold</span>
-    </div>
-    <div class="snapshot-current" id="snap_gold_current">--</div>
-    <div class="snapshot-row">
-      <span class="snapshot-label">Invested</span>
-      <span class="snapshot-invested" id="snap_gold_invested">--</span>
-    </div>
-    <div class="snapshot-pl-row">
-      <span class="snapshot-pl" id="snap_gold_pl">--</span>
-      <span class="snapshot-pct" id="snap_gold_pct">--</span>
-    </div>
-  </div>
-  <div class="snapshot-card" style="--snap-accent:#94a3b8" data-section="silver-aggregate-section">
-    <div class="snapshot-header">
-      <span class="snapshot-dot"></span>
-      <span class="snapshot-name">Silver</span>
-    </div>
-    <div class="snapshot-current" id="snap_silver_current">--</div>
-    <div class="snapshot-row">
-      <span class="snapshot-label">Invested</span>
-      <span class="snapshot-invested" id="snap_silver_invested">--</span>
-    </div>
-    <div class="snapshot-pl-row">
-      <span class="snapshot-pl" id="snap_silver_pl">--</span>
-      <span class="snapshot-pct" id="snap_silver_pct">--</span>
-    </div>
-  </div>
-  {% if fixed_deposits_enabled %}
-  <div class="snapshot-card" style="--snap-accent:#10b981" data-section="fixed-deposits-section">
-    <div class="snapshot-header">
-      <span class="snapshot-dot"></span>
-      <span class="snapshot-name">Fixed Deposits</span>
-    </div>
-    <div class="snapshot-current" id="snap_fd_current">--</div>
-    <div class="snapshot-row">
-      <span class="snapshot-label">Invested</span>
-      <span class="snapshot-invested" id="snap_fd_invested">--</span>
-    </div>
-    <div class="snapshot-pl-row">
-      <span class="snapshot-pl" id="snap_fd_pl">--</span>
-      <span class="snapshot-pct" id="snap_fd_pct">--</span>
-    </div>
-  </div>
-  {% endif %}
-  <div class="snapshot-card" style="--snap-accent:#e67e22" data-section="provident-fund-section">
-    <div class="snapshot-header">
-      <span class="snapshot-dot"></span>
-      <span class="snapshot-name">Provident Fund</span>
-    </div>
-    <div class="snapshot-current" id="snap_pf_current">--</div>
-    <div class="snapshot-row">
-      <span class="snapshot-label">Contributed</span>
-      <span class="snapshot-invested" id="snap_pf_invested">--</span>
-    </div>
-    <div class="snapshot-pl-row">
-      <span class="snapshot-pl" id="snap_pf_pl">--</span>
-      <span class="snapshot-pct" id="snap_pf_pct">--</span>
+    {% endif %}
+    <div class="alloc-focus-row" data-asset="pf" style="--seg-color:#8b4049">
+      <span class="alloc-focus-dot"></span>
+      <span class="alloc-focus-name">PF</span>
+      <span class="alloc-focus-val" id="snap_pf_invested">--</span>
+      <span class="alloc-focus-sep"></span>
+      <span class="alloc-focus-pl" id="snap_pf_pl">--</span>
+      <span class="alloc-focus-pct" id="snap_pf_pct">--</span>
     </div>
   </div>
 </div>
@@ -489,7 +421,6 @@
     </div>
     <div class="gold-rhythm-secondary">
       <span class="gold-rhythm-invested" id="gold_total_invested">0.00</span>
-      <span class="gold-rhythm-label">invested</span>
     </div>
     <div class="gold-rhythm-pl">
       <span id="gold_total_pl">0.00</span>
@@ -639,7 +570,7 @@ By Bank
 </button>
 </div>
 </div>
-<div class="section-summary" id="pf_summary" style="--section-accent:#e67e22">
+<div class="section-summary" id="pf_summary" style="--section-accent:#8b4049">
   <div class="section-summary-metrics">
     <span class="section-summary-badge" id="pf_allocation_pct"></span>
     <div class="section-summary-value" id="pf_corpus_value">0.00</div>
@@ -684,7 +615,7 @@ By Bank
 </div>
 
 <!-- SIP Rhythm Summary -->
-<div class="sip-rhythm" id="sip_rhythm" style="display:none;">
+<div class="sip-rhythm" id="sip_rhythm">
   <div class="sip-rhythm-main">
     <div class="sip-rhythm-amount">
       <span class="sip-rhythm-value" id="sip_monthly_total">₹0</span>

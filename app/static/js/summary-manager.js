@@ -185,6 +185,12 @@ class SummaryManager {
       pctEl.innerText = Formatter.formatPercentage(plPct);
       pctEl.style.color = Formatter.colorPL(pl);
     }
+    // Mirror P&L% to label strip tag
+    const tagPct = document.querySelector(`[data-snap-pct="${prefix}"]`);
+    if (tagPct) {
+      tagPct.innerText = Formatter.formatPercentage(plPct);
+      tagPct.style.color = Formatter.colorPL(pl);
+    }
   }
 
   _updateSnapshotGrid(stock, etf, gold, silver, mf, fd, pf) {
@@ -222,7 +228,7 @@ class SummaryManager {
         } else if (elementId === 'fd_allocation_pct') {
           color = '#5f9e8a'; // turtle green
         } else if (elementId === 'pf_allocation_pct') {
-          color = '#e67e22'; // warm orange
+          color = '#8b4049'; // subtle maroon
         }
         strip.style.setProperty('--allocation-color', color);
       }

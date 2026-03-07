@@ -542,7 +542,6 @@ class TableRenderer {
     if (!rhythm) return;
 
     const hasActive = counts.monthly + counts.weekly + counts.quarterly > 0;
-    rhythm.style.display = hasActive ? '' : 'none';
     if (!hasActive) return;
 
     // Monthly & annual totals
