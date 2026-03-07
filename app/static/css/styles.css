@@ -4456,246 +4456,61 @@ body.dark-theme .setup-guide-footer svg {
   padding: 18px 20px 12px;
 }
 .app-tour-tooltip-content .tour-tip-icon {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   margin-bottom: 6px;
   display: block;
-  position: relative;
+  background-size: 20px 20px;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.7;
 }
 
-/* ── Tour CSS Icons ────────────────────────────── */
+/* ── Tour CSS Icons (monochrome SVG) ───────────── */
 
 /* Wallet (net worth) */
 .tour-icon-wallet {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  border-radius: 5px;
-  position: relative;
-}
-.tour-icon-wallet::after {
-  content: '';
-  position: absolute;
-  top: 6px;
-  right: 4px;
-  width: 10px;
-  height: 8px;
-  border: 2px solid #fff;
-  border-radius: 2px;
-  background: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='4' width='16' height='13' rx='2'/%3E%3Cpath d='M2 8h16'/%3E%3Ccircle cx='14' cy='12' r='1' fill='%23111'/%3E%3C/svg%3E");
 }
 
 /* Refresh (sync arrows) */
 .tour-icon-refresh {
-  border: 3px solid #3b82f6;
-  border-top-color: transparent;
-  border-radius: 50%;
-  box-sizing: border-box;
-}
-.tour-icon-refresh::after {
-  content: '';
-  position: absolute;
-  top: -1px;
-  right: 2px;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 6px solid #3b82f6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 3v4h-4'/%3E%3Cpath d='M4 10a6 6 0 0 1 10.2-4.2L16 7'/%3E%3Cpath d='M4 17v-4h4'/%3E%3Cpath d='M16 10a6 6 0 0 1-10.2 4.2L4 13'/%3E%3C/svg%3E");
 }
 
 /* Trending up (market indices) */
 .tour-icon-trending {
-  border-bottom: 3px solid #22c55e;
-  box-sizing: border-box;
-}
-.tour-icon-trending::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 3px;
-  width: 20px;
-  height: 14px;
-  border-left: 3px solid #22c55e;
-  border-top: 3px solid #22c55e;
-  transform: skewY(-20deg);
-  border-radius: 2px 0 0 0;
-  box-sizing: border-box;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 14 8 9 11 12 16 6'/%3E%3Cpolyline points='12 6 16 6 16 10'/%3E%3C/svg%3E");
 }
 
 /* Bar chart (asset breakdown) */
 .tour-icon-barchart {
-  display: flex !important;
-  align-items: flex-end;
-  gap: 3px;
-  padding: 2px 4px;
-  box-sizing: border-box;
-}
-.tour-icon-barchart::before {
-  content: '';
-  width: 5px;
-  height: 10px;
-  background: #8b5cf6;
-  border-radius: 1px;
-  flex-shrink: 0;
-}
-.tour-icon-barchart::after {
-  content: '';
-  width: 5px;
-  height: 18px;
-  background: #a78bfa;
-  border-radius: 1px;
-  flex-shrink: 0;
-  box-shadow: 7px 0 0 0 #c4b5fd;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='10' width='3' height='7' rx='.5'/%3E%3Crect x='8.5' y='6' width='3' height='11' rx='.5'/%3E%3Crect x='14' y='3' width='3' height='14' rx='.5'/%3E%3C/svg%3E");
 }
 
 /* Medal (gold summary) */
 .tour-icon-medal {
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(135deg, #facc15, #eab308);
-  border-radius: 50%;
-  border: 2px solid #ca8a04;
-  margin-left: 5px;
-  box-sizing: border-box;
-}
-.tour-icon-medal::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid #ca8a04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='8' r='5'/%3E%3Cpath d='M7 12.5 6 18l4-2 4 2-1-5.5'/%3E%3C/svg%3E");
 }
 
 /* Pencil (add/edit) */
 .tour-icon-pencil {
-  width: 4px;
-  height: 18px;
-  background: #f97316;
-  border-radius: 1px 1px 0 0;
-  transform: rotate(-45deg);
-  margin: 4px 0 0 10px;
-}
-.tour-icon-pencil::before {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
-  border-top: 6px solid #f97316;
-}
-.tour-icon-pencil::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -1px;
-  width: 6px;
-  height: 5px;
-  background: #fb923c;
-  border-radius: 1px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 3.5a2.12 2.12 0 0 1 3 3L6 17H3v-3L13.5 3.5z'/%3E%3Cpath d='M11 6l3 3'/%3E%3C/svg%3E");
 }
 
 /* Clipboard (holdings tables) */
 .tour-icon-clipboard {
-  width: 20px;
-  height: 24px;
-  border: 2px solid #6366f1;
-  border-radius: 3px;
-  margin: 2px 4px;
-  box-sizing: border-box;
-}
-.tour-icon-clipboard::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 5px;
-  background: #6366f1;
-  border-radius: 2px;
-}
-.tour-icon-clipboard::after {
-  content: '';
-  position: absolute;
-  top: 6px;
-  left: 4px;
-  width: 8px;
-  height: 2px;
-  background: #6366f1;
-  box-shadow: 0 4px 0 #6366f1, 0 8px 0 #6366f1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='3' width='12' height='15' rx='2'/%3E%3Cpath d='M8 2h4a1 1 0 0 1 1 1v1H7V3a1 1 0 0 1 1-1z'/%3E%3Cline x1='7' y1='9' x2='13' y2='9'/%3E%3Cline x1='7' y1='12' x2='11' y2='12'/%3E%3C/svg%3E");
 }
 
 /* Compass (navigation) */
 .tour-icon-compass {
-  width: 24px;
-  height: 24px;
-  border: 2.5px solid #0ea5e9;
-  border-radius: 50%;
-  margin: 2px;
-  box-sizing: border-box;
-}
-.tour-icon-compass::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-bottom: 10px solid #ef4444;
-  transform: translate(-50%, -100%);
-}
-.tour-icon-compass::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 10px solid #94a3b8;
-  transform: translate(-50%, 0);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='10' r='7.5'/%3E%3Cpolygon points='12 8 14 14 10 12 6 14 8 8 10 6' fill='%23111'/%3E%3C/svg%3E");
 }
 
 /* Gear (settings) */
 .tour-icon-gear {
-  width: 12px;
-  height: 12px;
-  background: #64748b;
-  border-radius: 50%;
-  margin: 8px;
-  border: 3px solid #64748b;
-  box-shadow:
-    0 -9px 0 -3px #64748b,
-    0 9px 0 -3px #64748b,
-    9px 0 0 -3px #64748b,
-    -9px 0 0 -3px #64748b,
-    6px -6px 0 -3px #64748b,
-    -6px 6px 0 -3px #64748b,
-    6px 6px 0 -3px #64748b,
-    -6px -6px 0 -3px #64748b;
-  box-sizing: border-box;
-}
-.tour-icon-gear::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 5px;
-  height: 5px;
-  background: #fff;
-  border-radius: 50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='10' r='2.5'/%3E%3Cpath d='M16.2 12.2a1.2 1.2 0 0 0 .2 1.3l.1.1a1.5 1.5 0 1 1-2.1 2.1l-.1-.1a1.2 1.2 0 0 0-1.3-.2 1.2 1.2 0 0 0-.7 1.1v.2a1.5 1.5 0 0 1-3 0v-.1a1.2 1.2 0 0 0-.8-1.1 1.2 1.2 0 0 0-1.3.2l-.1.1a1.5 1.5 0 1 1-2.1-2.1l.1-.1a1.2 1.2 0 0 0 .2-1.3 1.2 1.2 0 0 0-1.1-.7h-.2a1.5 1.5 0 0 1 0-3h.1a1.2 1.2 0 0 0 1.1-.8 1.2 1.2 0 0 0-.2-1.3l-.1-.1a1.5 1.5 0 1 1 2.1-2.1l.1.1a1.2 1.2 0 0 0 1.3.2h.1a1.2 1.2 0 0 0 .7-1.1v-.2a1.5 1.5 0 0 1 3 0v.1a1.2 1.2 0 0 0 .7 1.1 1.2 1.2 0 0 0 1.3-.2l.1-.1a1.5 1.5 0 1 1 2.1 2.1l-.1.1a1.2 1.2 0 0 0-.2 1.3v.1a1.2 1.2 0 0 0 1.1.7h.2a1.5 1.5 0 0 1 0 3h-.1a1.2 1.2 0 0 0-1.1.7z'/%3E%3C/svg%3E");
 }
 .app-tour-tooltip-content .tour-tip-title {
   font-family: 'Inter', sans-serif;
@@ -4801,8 +4616,8 @@ body.dark-theme .app-tour-tooltip-content .tour-tip-title {
 body.dark-theme .app-tour-tooltip-content .tour-tip-desc {
   color: #999;
 }
-body.dark-theme .tour-icon-gear::after {
-  background: #1a1a1a;
+body.dark-theme .app-tour-tooltip-content .tour-tip-icon {
+  filter: invert(1);
 }
 body.dark-theme .app-tour-tooltip-footer {
   border-top-color: #282828;
