@@ -341,6 +341,7 @@ class CrudManager {
       }
     }
 
+    this._fieldSuggestions = suggestions;
     let fieldsHtml = '';
     for (const f of schema.fields) {
       const val = (values && values[f.key] !== undefined) ? values[f.key] : '';
@@ -386,10 +387,13 @@ class CrudManager {
     const firstInput = tr.querySelector('input, select');
     if (firstInput) setTimeout(() => firstInput.focus(), 100);
 
-    // Wire up custom suggestion dropdowns for fields with data-suggestions
-    tr.querySelectorAll('input[data-suggestions]').forEach(inp => {
-      this._initSuggestDropdown(inp);
-    });
+    // Wire up custom suggestion dropdowns
+    if (this._fieldSuggestions) {
+      tr.querySelectorAll('input.crud-inline-input').forEach(inp => {
+        const items = this._fieldSuggestions[inp.name];
+        if (items && items.length) this._initSuggestDropdown(inp, items);
+      });
+    }
 
     // Event handlers
     const form = tr.querySelector('.crud-inline-form');
@@ -434,7 +438,6 @@ class CrudManager {
       if (f.placeholder) attrs.push(`placeholder="${this._esc(f.placeholder)}"`);
       if (f.step) attrs.push(`step="${f.step}"`);
       if (f.min) attrs.push(`min="${f.min}"`);
-      if (hasSuggestions) attrs.push(`data-suggestions="${this._esc(JSON.stringify(datalistItems))}"`);
       input = `<input ${attrs.join(' ')}>`;
     }
 
@@ -444,9 +447,8 @@ class CrudManager {
     </div>`;
   }
 
-  _initSuggestDropdown(inp) {
-    const items = JSON.parse(inp.dataset.suggestions || '[]');
-    if (!items.length) return;
+  _initSuggestDropdown(inp, items) {
+    if (!items || !items.length) return;
 
     const wrap = inp.closest('.crud-suggest-wrap');
     const dropdown = document.createElement('div');
@@ -463,8 +465,11 @@ class CrudManager {
       dropdown.classList.add('open');
     };
 
-    inp.addEventListener('focus', () => render(inp.value));
-    inp.addEventListener('input', () => render(inp.value));
+    inp.addEventListener('focus', () => { if (inp.value) render(inp.value); });
+    inp.addEventListener('input', () => {
+      if (inp.value) render(inp.value);
+      else dropdown.classList.remove('open');
+    });
 
     dropdown.addEventListener('mousedown', (e) => {
       e.preventDefault();            // keep focus on input
