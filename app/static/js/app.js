@@ -656,26 +656,32 @@ class PortfolioApp {
    */
   async _initialLoad() {
     try {
-      const status = await this._fetchStatus();
-      this._applyStatus(status);
-
       if (this._hasInitialData) {
         // Warm cache — data already rendered from server-inlined payload.
-        // Just update status UI.
+        // Just fetch & apply status UI.
+        const status = await this._fetchStatus();
+        this._applyStatus(status);
         Log.info('App', 'Initial status applied (warm cache)');
         return;
       }
 
-      // Cold start: if backend hasn't fetched yet, trigger refresh
-      const needsRefresh = status.portfolio_state === null ||
-                           (status.authenticated_accounts?.length > 0 && status.portfolio_state !== 'updating');
+      // Cold start — check backend state first
+      this._setUpdatingUI();
+      const status = await this._fetchStatus();
 
-      if (needsRefresh) {
-        this._setUpdatingUI();
+      if (this._isStatusUpdating(status)) {
+        // Backend is already fetching — just wait for it
+        Log.info('App', 'Backend already updating — polling');
+        await this._pollUntilDone();
+      } else if (this._hasDataReady(status)) {
+        // Data already fetched (pill navigation) — just grab it
+        Log.info('App', 'Data already available — loading');
+      } else {
+        // No data yet — trigger a refresh
+        Log.info('App', 'No data — triggering refresh');
         try {
           await this.dataManager.triggerRefresh();
         } catch (e) {
-          // 409 = already in progress, which is fine
           if (!e.message?.includes('409')) {
             Log.warn('App', 'Initial refresh failed:', e.message);
           }
@@ -684,10 +690,20 @@ class PortfolioApp {
       }
 
       await this.updateData();
+      const finalStatus = await this._fetchStatus();
+      this._applyStatus(finalStatus);
       this._updateRefreshButton(false);
     } catch (error) {
       Log.error('App', 'Initial load error:', error);
+      this._updateRefreshButton(false);
     }
+  }
+
+  _hasDataReady(status) {
+    // Data is ready if any tracked state has been updated at least once
+    return status.portfolio_last_updated != null ||
+           status.physical_gold_last_updated != null ||
+           status.fixed_deposits_last_updated != null;
   }
 
   /**
@@ -708,7 +724,6 @@ class PortfolioApp {
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise(r => setTimeout(r, POLL_INTERVAL));
       const status = await this._fetchStatus();
-      this._applyStatus(status);
       if (!this._isStatusUpdating(status)) return status;
     }
     Log.warn('App', 'Poll timeout — proceeding with available data');
@@ -1054,10 +1069,10 @@ class PortfolioApp {
       Log.error('Refresh', 'Error during polling/fetch:', error);
     }
 
-    this._updateRefreshButton(false);
-    // Update status tag to final state
+    // Apply final state, then stop spinner
     const finalStatus = await this._fetchStatus();
     this._applyStatus(finalStatus);
+    this._updateRefreshButton(false);
   }
 
   _updateRefreshButton(isUpdating) {

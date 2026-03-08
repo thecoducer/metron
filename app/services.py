@@ -41,6 +41,13 @@ def ensure_user_loaded(google_id: str, *, force: bool = False) -> None:
 
     logger.info("ensure_user_loaded: loading user=%s force=%s", google_id[:8], force)
     session_manager.load_user(google_id)
+
+    # Only fetch data if PIN is in server memory — no data fetching
+    # before PIN verification (global market data included).
+    if not session_manager.get_pin(google_id):
+        logger.info("ensure_user_loaded: no PIN in memory for %s, skipping background fetch", google_id[:8])
+        return
+
     from .fetchers import run_background_fetch
     run_background_fetch(google_id=google_id)
 

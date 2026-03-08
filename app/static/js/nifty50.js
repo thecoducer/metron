@@ -15,13 +15,34 @@ class Nifty50App {
     this.setupHeaderSortListeners();
     this.renderNifty50Table();
     this._startRelativeStatusUpdater();
-    // Fetch data once on load
-    await this.updateNifty50();
-    // Fetch initial status
+
     try {
+      // Check backend state before deciding what to do
+      this._updateRefreshButton(true);
+      this._setUpdatingUI();
       const status = await this._fetchStatus();
-      this._applyStatus(status);
-    } catch (e) { /* ignore */ }
+
+      if (this._isStatusUpdating(status)) {
+        // Backend is already fetching — just wait for it
+        await this._pollUntilDone();
+      } else if (status.nifty50_last_updated) {
+        // Data already fetched (pill navigation) — just grab it
+      } else {
+        // No data yet — trigger a refresh
+        try {
+          await metronFetch('/api/refresh', { method: 'POST' });
+        } catch (e) { /* 409 = already in progress, fine */ }
+        await this._pollUntilDone();
+      }
+
+      await this.updateNifty50();
+      const finalStatus = await this._fetchStatus();
+      this._applyStatus(finalStatus);
+    } catch (e) {
+      // Fallback: still try to show whatever data is available
+      await this.updateNifty50();
+      this._updateRefreshButton(false);
+    }
   }
 
   setupHeaderSortListeners() {
@@ -125,7 +146,6 @@ class Nifty50App {
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise(r => setTimeout(r, POLL_INTERVAL));
       const status = await this._fetchStatus();
-      this._applyStatus(status);
       if (!this._isStatusUpdating(status)) return status;
     }
     return this._fetchStatus();
@@ -146,6 +166,14 @@ class Nifty50App {
     }
   }
 
+  _setUpdatingUI() {
+    const statusTag = document.getElementById('status_tag');
+    const statusText = document.getElementById('status_text');
+    statusTag.className = 'updating';
+    statusText.innerText = 'updating';
+    this._updateRefreshButton(true);
+  }
+
   _formatStatusUpdatedText() {
     if (!this.lastNifty50UpdatedAt) return 'updated';
     const relative = Formatter.formatRelativeTime(this.lastNifty50UpdatedAt);
@@ -155,8 +183,8 @@ class Nifty50App {
   _refreshRelativeStatusText() {
     const statusText = document.getElementById('status_text');
     if (!statusText) return;
-    const isUpdating = this._wasUpdating;
-    if (isUpdating) return;
+    const statusTag = document.getElementById('status_tag');
+    if (statusTag?.classList.contains('updating')) return;
     statusText.innerText = this._formatStatusUpdatedText();
   }
 
@@ -326,10 +354,7 @@ window.triggerRefresh = async function() {
   if (refreshBtn?.disabled) return;
 
   app._updateRefreshButton(true);
-  const statusTag = document.getElementById('status_tag');
-  const statusText = document.getElementById('status_text');
-  if (statusTag) statusTag.className = 'updating';
-  if (statusText) statusText.innerText = 'updating';
+  app._setUpdatingUI();
 
   try {
     const response = await metronFetch('/api/refresh', { method: 'POST' });
@@ -343,11 +368,12 @@ window.triggerRefresh = async function() {
     console.error('Error triggering refresh:', error);
   }
 
-  app._updateRefreshButton(false);
+  // Apply final state, then stop spinner
   try {
     const status = await app._fetchStatus();
     app._applyStatus(status);
   } catch (e) { /* ignore */ }
+  app._updateRefreshButton(false);
 };
 
 window.sortNifty50Table = function(sortOrder) {

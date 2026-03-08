@@ -287,6 +287,10 @@ def _prefetch_all_user_sheets(user):
                 google_id[:8], _elapsed, len(gold), len(deposits),
                 len(pf_entries), manual_counts,
             )
+
+            # Persist refreshed Google credentials if the library auto-refreshed
+            from .api.google_auth import persist_refreshed_credentials
+            persist_refreshed_credentials(creds, google_id)
         except Exception as exc:
             _elapsed = _time.monotonic() - _t0
             # Detect Google OAuth credential refresh failures and log a
@@ -1015,10 +1019,18 @@ def portfolio_page():
     google_id = user.get("google_id", "")
     pin_verified = session.get("pin_verified", False)
 
-    # Only kick off background fetches if PIN is already verified
-    # (return visit with session cookie).  For first login / unverified
-    # sessions the frontend shows the PIN overlay first, and the
-    # pin_verify / pin_setup endpoints trigger the load afterward.
+    # Validate that the in-memory PIN is still present — the session
+    # cookie can be stale after a server restart.
+    if pin_verified and not session_manager.get_pin(google_id):
+        logger.info("portfolio_page: stale pin_verified for %s — clearing", google_id[:8])
+        session["pin_verified"] = False
+        session.modified = True
+        pin_verified = False
+
+    # Only kick off background fetches if PIN is verified *and* in memory.
+    # For first login / unverified sessions the frontend shows the PIN
+    # overlay first, and the pin_verify / pin_setup endpoints trigger
+    # the load afterward.
     if pin_verified:
         threading.Thread(
             target=ensure_user_loaded,
