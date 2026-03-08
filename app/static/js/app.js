@@ -61,9 +61,6 @@ class PortfolioApp {
     // If the server didn't inline cached data, trigger a backend refresh
     // first so fresh data is generated.
     this._initialLoad();
-    
-    // Start live market index ticker (NIFTY 50 / SENSEX) — single fetch, no auto-refresh
-    this.indexTicker.init();
 
     this._startRelativeStatusUpdater();
   }
@@ -1142,6 +1139,8 @@ class PortfolioApp {
       Log.timeEnd('Data', 'fetchAllData');
       this._hideLoadingIndicators();
       this._applyData(data);
+      // Update market indices ticker after portfolio data loads
+      await this.indexTicker.fetchAndRender();
 
       // Update status tracking from the response
       const respTimestamp = data.status?.portfolio_last_updated || null;
@@ -1176,6 +1175,8 @@ class PortfolioApp {
       Log.timeEnd('Data', 'fetchSheetsData');
       this._hideLoadingIndicators();
       this._applySheetsData(data);
+      // Update market indices ticker after sheets data loads
+      await this.indexTicker.fetchAndRender();
     } catch (error) {
       Log.error('Data', 'Error updating sheets data:', error);
     }
