@@ -1,6 +1,5 @@
 # Production dependencies (includes everything from requirements.txt)
 -r requirements.txt
 
-# Production WSGI server (gevent worker for non-blocking SSE)
+# Production WSGI server
 gunicorn==22.0.0
-gevent==24.2.1

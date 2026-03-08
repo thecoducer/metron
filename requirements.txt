@@ -14,8 +14,3 @@ google-api-python-client==2.108.0
 
 # Firebase for user data storage
 firebase-admin==6.4.0
-
-# Testing dependencies
-pytest==7.4.3
-pytest-cov==4.1.0
-pytest-mock==3.12.0

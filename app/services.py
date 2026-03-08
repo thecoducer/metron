@@ -1,13 +1,11 @@
-"""Service wiring, per-user lifecycle, status helpers, and state broadcasting."""
+"""Service wiring, per-user lifecycle, and status helpers."""
 
-import json
 import threading
 from typing import Any, Dict, List, Optional
 
 from .api import (AuthenticationManager, HoldingsService, SIPService,
                   ZerodhaAPIClient)
 from .logging_config import logger
-from .sse import sse_manager
 from .utils import (SessionManager, StateManager, format_timestamp,
                     is_market_open_ist)
 
@@ -43,6 +41,13 @@ def ensure_user_loaded(google_id: str, *, force: bool = False) -> None:
 
     logger.info("ensure_user_loaded: loading user=%s force=%s", google_id[:8], force)
     session_manager.load_user(google_id)
+
+    # Only fetch data if PIN is in server memory — no data fetching
+    # before PIN verification (global market data included).
+    if not session_manager.get_pin(google_id):
+        logger.info("ensure_user_loaded: no PIN in memory for %s, skipping background fetch", google_id[:8])
+        return
+
     from .fetchers import run_background_fetch
     run_background_fetch(google_id=google_id)
 
@@ -106,23 +111,3 @@ def _build_status_response(google_id: str = None) -> Dict[str, Any]:
         response[f"{st}_last_updated"] = format_timestamp(
             getattr(state_manager, f"{st}_last_updated"))
     return response
-
-
-def broadcast_state_change(google_id: str = None) -> None:
-    """Broadcast status to SSE clients (per-user if google_id given, else all)."""
-    try:
-        if google_id:
-            sse_manager.broadcast_to_user(google_id, json.dumps(_build_status_response(google_id)))
-        else:
-            connected = sse_manager.connected_user_ids()
-            logger.debug("broadcast_state_change: global broadcast to %d users", len(connected))
-            for gid in connected:
-                try:
-                    sse_manager.broadcast_to_user(gid, json.dumps(_build_status_response(gid)))
-                except Exception:
-                    logger.exception("Error building state for user %s", gid)
-    except Exception:
-        logger.exception("Error broadcasting state change")
-
-
-state_manager.add_change_listener(lambda google_id=None: broadcast_state_change(google_id))

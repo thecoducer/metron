@@ -6,7 +6,6 @@ import SummaryManager from './summary-manager.js';
 import SortManager from './sort-manager.js';
 import ThemeManager from './theme-manager.js';
 import PrivacyManager from './visibility-manager.js';
-import SSEConnectionManager from './sse-manager.js';
 import { Formatter } from './utils.js';
 import IndexTicker from './index-ticker.js';
 import CrudManager from './crud-manager.js';
@@ -20,16 +19,13 @@ class PortfolioApp {
     this.sortManager = new SortManager();
     this.themeManager = new ThemeManager();
     this.privacyManager = new PrivacyManager();
-    this.sseManager = new SSEConnectionManager();
     this.indexTicker = new IndexTicker();
     this.crudManager = new CrudManager((partialData) => this._handleCrudChange(partialData));
     this.needsLogin = false;
     this.lastStatus = null;
     this.lastPortfolioUpdatedAt = null;
-    this._lastFetchedPortfolioTimestamp = null; // tracks last-fetched portfolio_last_updated for change detection
     this.relativeStatusTimer = null;
     this.searchTimeout = null;
-    // _wasUpdating intentionally left undefined to detect first SSE on page load
   }
 
   async init() {
@@ -55,17 +51,18 @@ class PortfolioApp {
       Log.info('App', 'Cold start — waiting for SSE + fetch');
     }
 
-    // Check if a security PIN is required before connecting SSE and
-    // fetching broker data.  The overlay blocks until the user enters
-    // their PIN (or sets one up for the first time).
+    // Check if a security PIN is required before fetching data.
+    // The overlay blocks until the user enters their PIN.
     if (typeof window.checkAndPromptPin === 'function') {
       await window.checkAndPromptPin();
     }
 
-    // Connect SSE for live status updates
-    this.connectEventSource();
+    // After PIN verification, fetch all data once (non-blocking).
+    // If the server didn't inline cached data, trigger a backend refresh
+    // first so fresh data is generated.
+    this._initialLoad();
     
-    // Start live market index ticker (NIFTY 50 / SENSEX)
+    // Start live market index ticker (NIFTY 50 / SENSEX) — single fetch, no auto-refresh
     this.indexTicker.init();
 
     this._startRelativeStatusUpdater();
@@ -361,11 +358,11 @@ class PortfolioApp {
         title: 'Provident Fund',
         items: [
           'Track your EPF/PF across employers with compounding interest.',
-          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter company name, start date, end date (leave blank if current), monthly contribution, and interest rate.',
-          '<strong>Interest Rate:</strong> Enter 0 or leave blank to auto-apply the EPFO rate for each financial year (8.25% for FY 2023\u201324). Or enter a custom rate.',
+          '<strong>Active Employment:</strong> Enter company, start date, end date (blank if current), monthly contribution, and interest rate.',
+          '<strong>Past Employer:</strong> Enter accumulated balance and your contribution (from EPFO passbook) to track carry-forward interest accurately.',
+          '<strong>Interest Rate:</strong> Enter 0 or leave blank to auto-apply the official EPFO rate for each financial year. Or enter a custom rate.',
           'Multiple stints at the same company are grouped \u2014 click to expand.',
-          '<strong>Months:</strong> Auto-computed from start and end dates.',
-          '<strong>Balance:</strong> Your closing balance for that stint (contributions + interest compounded monthly).',
+          '<strong>P&L:</strong> For past employers, the split between your contribution and interest earned is based on the contribution you enter. This ensures accurate portfolio-level profit tracking.',
         ]
       },
       sips: {
@@ -652,34 +649,97 @@ class PortfolioApp {
     });
   }
 
-  connectEventSource() {
-    this.sseManager.onMessage((status) => this.handleStatusUpdate(status));
-    this.sseManager.connect();
+  /**
+   * Initial load after PIN verification.
+   * If we have inlined data, just fetch status. Otherwise trigger a
+   * backend refresh and poll until done, then fetch all data.
+   */
+  async _initialLoad() {
+    try {
+      if (this._hasInitialData) {
+        // Warm cache — data already rendered from server-inlined payload.
+        // Just fetch & apply status UI.
+        const status = await this._fetchStatus();
+        this._applyStatus(status);
+        Log.info('App', 'Initial status applied (warm cache)');
+        return;
+      }
+
+      // Cold start — check backend state first
+      this._setUpdatingUI();
+      const status = await this._fetchStatus();
+
+      if (this._isStatusUpdating(status)) {
+        // Backend is already fetching — just wait for it
+        Log.info('App', 'Backend already updating — polling');
+        await this._pollUntilDone();
+      } else if (this._hasDataReady(status)) {
+        // Data already fetched (pill navigation) — just grab it
+        Log.info('App', 'Data already available — loading');
+      } else {
+        // No data yet — trigger a refresh
+        Log.info('App', 'No data — triggering refresh');
+        try {
+          await this.dataManager.triggerRefresh();
+        } catch (e) {
+          if (!e.message?.includes('409')) {
+            Log.warn('App', 'Initial refresh failed:', e.message);
+          }
+        }
+        await this._pollUntilDone();
+      }
+
+      await this.updateData();
+      const finalStatus = await this._fetchStatus();
+      this._applyStatus(finalStatus);
+      this._updateRefreshButton(false);
+    } catch (error) {
+      Log.error('App', 'Initial load error:', error);
+      this._updateRefreshButton(false);
+    }
   }
 
-  handleStatusUpdate(status) {
+  _hasDataReady(status) {
+    // Data is ready if any tracked state has been updated at least once
+    return status.portfolio_last_updated != null ||
+           status.physical_gold_last_updated != null ||
+           status.fixed_deposits_last_updated != null;
+  }
+
+  /**
+   * Fetch /api/status and return the parsed JSON.
+   */
+  async _fetchStatus() {
+    const resp = await fetch('/api/status', { credentials: 'same-origin' });
+    if (!resp.ok) throw new Error(`Status fetch failed: ${resp.status}`);
+    return resp.json();
+  }
+
+  /**
+   * Poll /api/status until no state is "updating", then return final status.
+   */
+  async _pollUntilDone() {
+    const POLL_INTERVAL = 2000;
+    const MAX_POLLS = 90; // 3 minutes max
+    for (let i = 0; i < MAX_POLLS; i++) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL));
+      const status = await this._fetchStatus();
+      if (!this._isStatusUpdating(status)) return status;
+    }
+    Log.warn('App', 'Poll timeout — proceeding with available data');
+    return this._fetchStatus();
+  }
+
+  /**
+   * Apply a status object to the UI (status tag, login banner, etc.)
+   * without triggering data fetches.
+   */
+  _applyStatus(status) {
+    this.lastStatus = status;
     const statusTag = document.getElementById('status_tag');
     const statusText = document.getElementById('status_text');
     const isUpdating = this._isStatusUpdating(status);
-    const isFirstSSE = this._wasUpdating === undefined;
 
-    // Detect if the backend has newer data than what we last fetched.
-    // This catches cases where the updating→updated SSE transition was
-    // missed (connection hiccup, exception during rendering, SSE
-    // reconnect after background auto-refresh, etc.).
-    const newPortfolioTimestamp = status.portfolio_last_updated || null;
-    const hasNewerData = !isUpdating && !isFirstSSE &&
-                         newPortfolioTimestamp !== null &&
-                         newPortfolioTimestamp !== this._lastFetchedPortfolioTimestamp;
-
-    this.lastStatus = status;
-
-    // ── Derive login state from new response fields ──
-    const unauthenticated = status.unauthenticated_accounts || [];
-    const hasAuthenticatedAccounts = (status.authenticated_accounts || []).length > 0;
-    const hasUnauthenticated = unauthenticated.length > 0;
-
-    // ── Status tag: always visible, reflects data-fetch state ──
     statusTag.classList.toggle('updating', isUpdating);
     statusTag.classList.toggle('updated', !isUpdating);
     statusTag.classList.toggle('market_closed', status.market_open === false);
@@ -691,79 +751,28 @@ class PortfolioApp {
       statusText.innerText = this._formatStatusUpdatedText();
     }
 
-    // ── Login banner (floating toast for unauthenticated accounts) ──
+    const unauthenticated = status.unauthenticated_accounts || [];
     this._updateLoginBanner(unauthenticated, isUpdating);
-
-    // ── Connect-broker nudge (inline banner for zero accounts) ──
     this._updateConnectNudge(status);
 
-    // ── Refresh settings drawer pills if drawer is open ──
+    // Refresh settings drawer pills if drawer is open
     if (typeof window.loadDrawerAccounts === 'function') {
       const drawer = document.getElementById('settingsDrawer');
       if (drawer && drawer.classList.contains('open')) {
         window.loadDrawerAccounts();
       }
     }
+  }
 
-    // ── Auto-refresh on first load ──
-    // Trigger when: first SSE, server hasn't fetched yet, and at least
-    // one Zerodha account is authenticated (or user has no accounts at all
-    // and just needs a gold/nifty refresh with no cached data).
-    if (isFirstSSE && !isUpdating && status.portfolio_state === null) {
-      if (hasAuthenticatedAccounts || (!status.has_zerodha_accounts && !this._hasInitialData)) {
-        this.handleRefresh();
-        // Don't overwrite _wasUpdating here — handleRefresh() already
-        // sets it to true synchronously before await.  Overwriting with
-        // false causes a race where a fast updating→idle transition is
-        // missed and data never loads.
-        // Still fetch sheet-only data (gold, FD) that isn't part of the
-        // broker refresh so they render on first load.
-        this.updateData();
-        this._wasUpdating = true;
-        return;
-      }
-    }
-
-    // ── Fetch data on real state transitions ──
-    // 1. First SSE after page load (always – gold/FD are not inlined)
-    // 2. Transition from updating → done (refresh complete)
-    // 3. Backend has newer data than what we last fetched (safety net
-    //    for missed transitions, SSE reconnects, etc.)
-    const shouldFetchData = isFirstSSE ||
-                           (!isUpdating && this._wasUpdating) ||
-                           hasNewerData;
-
-    if (shouldFetchData) {
-      const reason = isFirstSSE ? 'firstSSE' : hasNewerData ? 'newerTimestamp' : 'updateComplete';
-      Log.debug('SSE', `Fetching data: reason=${reason} portfolio=${status.portfolio_state}`);
-      const isRealRefresh = !isFirstSSE && !isUpdating && this._wasUpdating;
-      if (isRealRefresh || hasNewerData) {
-        // Keep refresh button and status tag in "updating" state until data is loaded
-        statusTag.classList.add('updating');
-        statusTag.classList.remove('updated');
-        statusText.innerText = 'updating';
-      }
-      // Track what we're fetching so duplicate SSE messages with the
-      // same timestamp don't trigger redundant fetches.
-      this._lastFetchedPortfolioTimestamp = newPortfolioTimestamp;
-      this.updateData().then(() => {
-        this._updateRefreshButton(false);
-        // Restore final status tag state after data is rendered
-        statusTag.classList.remove('updating');
-        statusTag.classList.add('updated');
-        this.lastPortfolioUpdatedAt = status.portfolio_last_updated || null;
-        statusText.innerText = this._formatStatusUpdatedText();
-      });
-    } else {
-      // No data fetch needed — update refresh button immediately
-      this._updateRefreshButton(isUpdating);
-      const hasData = this.dataManager.getStocks().length > 0 ||
-                      this.dataManager.getMFHoldings().length > 0 ||
-                      this.dataManager.getSIPs().length > 0;
-      this._renderTablesAndSummary(hasData, status, isUpdating);
-    }
-
-    this._wasUpdating = isUpdating;
+  /**
+   * Set UI to "updating" state (status tag + refresh button).
+   */
+  _setUpdatingUI() {
+    const statusTag = document.getElementById('status_tag');
+    const statusText = document.getElementById('status_text');
+    statusTag.className = 'updating';
+    statusText.innerText = 'updating';
+    this._updateRefreshButton(true);
   }
 
   _renderTablesAndSummary(hasData, status, isUpdating) {
@@ -944,13 +953,9 @@ class PortfolioApp {
       this._hideLoadingIndicators();
       this._applyData(data);
 
-      // Sync timestamp tracking from the response so every /api/all_data
-      // call properly updates portfolio_last_updated — not just SSE events.
-      // This is critical for the first load where the early-return path
-      // calls updateData() fire-and-forget without timestamp tracking.
+      // Update status tracking from the response
       const respTimestamp = data.status?.portfolio_last_updated || null;
       if (respTimestamp) {
-        this._lastFetchedPortfolioTimestamp = respTimestamp;
         this.lastPortfolioUpdatedAt = respTimestamp;
         const statusText = document.getElementById('status_text');
         if (statusText && !this._isStatusUpdating(this.lastStatus || {})) {
@@ -1043,25 +1048,31 @@ class PortfolioApp {
   }
 
   async handleRefresh() {
-    const statusTag = document.getElementById('status_tag');
-    const statusText = document.getElementById('status_text');
-    
-    statusTag.className = 'updating';
-    statusText.innerText = 'updating';
-    this._updateRefreshButton(true);
-    // Ensure the next SSE transition triggers a data fetch
-    this._wasUpdating = true;
+    this._setUpdatingUI();
 
     try {
       await this.dataManager.triggerRefresh();
     } catch (error) {
-      // A 409 "Fetch already in progress" is expected when
-      // ensure_user_loaded already started a background fetch.
-      // Don't use alert() — it blocks the JS thread and freezes
-      // SSE event processing, preventing state transitions.
-      Log.warn('Refresh', 'Request failed:', error.message);
-      this._updateRefreshButton(false);
+      // 409 = already in progress — still poll for completion
+      if (!error.message?.includes('409')) {
+        Log.warn('Refresh', 'Request failed:', error.message);
+        this._updateRefreshButton(false);
+        return;
+      }
     }
+
+    // Poll until backend is done, then fetch fresh data
+    try {
+      await this._pollUntilDone();
+      await this.updateData();
+    } catch (error) {
+      Log.error('Refresh', 'Error during polling/fetch:', error);
+    }
+
+    // Apply final state, then stop spinner
+    const finalStatus = await this._fetchStatus();
+    this._applyStatus(finalStatus);
+    this._updateRefreshButton(false);
   }
 
   _updateRefreshButton(isUpdating) {

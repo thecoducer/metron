@@ -1,35 +1,26 @@
 """Gunicorn configuration for production deployment.
 
-Optimised for SSE (long-lived connections) on Google Cloud Run.
-Uses gevent async workers so each SSE connection does NOT block a thread.
+Optimised for request/response workloads (no SSE / long-lived connections).
 """
 
-import multiprocessing
 import os
 
 # --- Server socket ---
 bind = "0.0.0.0:" + os.environ.get("PORT", "8080")
 
 # --- Worker processes ---
-# Cloud Run: typically 1 worker (CPU is throttled per request).
-# On VM / GKE: 2 * CPU + 1 is the classic formula.
 workers = int(os.environ.get("WEB_CONCURRENCY", 1))
 
-# gevent worker — non-blocking IO, ideal for SSE streaming responses.
-worker_class = "gevent"
-
-# Max concurrent connections per worker (each SSE connection = 1 greenlet).
-worker_connections = int(os.environ.get("WORKER_CONNECTIONS", 500))
+# Default sync worker — no gevent needed without SSE.
+# worker_class defaults to "sync"
 
 # --- Timeouts ---
-# Keep-alive for upstream proxies (Cloud Run uses HTTP/1.1 keep-alive).
 keepalive = 65
 
-# Worker silence timeout — how long a worker can be silent before master
-# considers it dead.  Must be > SSE keepalive interval (30 s).
+# Worker silence timeout
 timeout = 120
 
-# Graceful shutdown window (seconds) — matches Cloud Run's default.
+# Graceful shutdown window (seconds)
 graceful_timeout = 30
 
 # --- Logging ---
@@ -50,7 +41,7 @@ proc_name = "metron"
 # --- Server hooks ---
 def on_starting(server):
     """Called just before the master process is initialized."""
-    server.log.info("Metron starting with %d worker(s) [%s]", workers, worker_class)
+    server.log.info("Metron starting with %d worker(s)", workers)
 
 
 def post_fork(server, worker):

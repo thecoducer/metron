@@ -294,6 +294,155 @@ class TestCalculatePfCorpus(unittest.TestCase):
         # Original dict should not have been modified
         self.assertEqual(set(entry.keys()), original_keys)
 
+    @patch("app.api.provident_fund.date")
+    def test_past_employer_lump_sum(self, mock_date):
+        """Past employer entry with opening_balance should inject lump sum."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [{
+            "company_name": "Old Corp",
+            "start_date": "2023-04-01",
+            "end_date": "",
+            "monthly_contribution": 0,
+            "interest_rate": 8.25,
+            "opening_balance": 500000,
+        }]
+        result = calculate_pf_corpus(entries)
+        self.assertEqual(len(result), 1)
+
+        r = result[0]
+        self.assertTrue(r["is_past_employer"])
+        # Total contribution should be the lump sum
+        self.assertEqual(r["total_contribution"], 500000.0)
+        # Interest should accrue on the lump sum
+        self.assertGreater(r["interest_earned"], 0)
+        # Closing balance should be lump sum + interest
+        self.assertGreater(r["closing_balance"], 500000)
+        # Opening balance should include the lump sum
+        self.assertEqual(r["opening_balance"], 500000.0)
+        # months_worked should count months of interest accrual
+        self.assertEqual(r["months_worked"], 12)
+
+    @patch("app.api.provident_fund.date")
+    def test_past_employer_then_current(self, mock_date):
+        """Past employer lump sum followed by current employer with monthly contributions."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [
+            {
+                "company_name": "Old Corp",
+                "start_date": "2022-04-01",
+                "end_date": "2023-03-31",
+                "monthly_contribution": 0,
+                "interest_rate": 8.10,
+                "opening_balance": 300000,
+            },
+            {
+                "company_name": "New Corp",
+                "start_date": "2023-04-01",
+                "end_date": "",
+                "monthly_contribution": 10000,
+                "interest_rate": 8.25,
+            },
+        ]
+        result = calculate_pf_corpus(entries)
+        self.assertEqual(len(result), 2)
+
+        # Past employer entry
+        self.assertTrue(result[0]["is_past_employer"])
+        self.assertEqual(result[0]["total_contribution"], 300000.0)
+
+        # Current employer should carry forward the balance
+        self.assertFalse(result[1]["is_past_employer"])
+        self.assertGreater(result[1]["opening_balance"], 300000)
+        # Corpus includes both lump sum + monthly contributions + all interest
+        corpus = result[1]["corpus_value"]
+        total_contrib = 300000 + 10000 * 12  # lump sum + 12 months of contributions
+        self.assertGreater(corpus, total_contrib)
+
+    @patch("app.api.provident_fund.date")
+    def test_multiple_past_employers(self, mock_date):
+        """Multiple past employer entries should accumulate correctly."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [
+            {
+                "company_name": "First Corp",
+                "start_date": "2021-04-01",
+                "end_date": "2022-03-31",
+                "monthly_contribution": 0,
+                "interest_rate": 0,
+                "opening_balance": 200000,
+            },
+            {
+                "company_name": "Second Corp",
+                "start_date": "2022-04-01",
+                "end_date": "2023-03-31",
+                "monthly_contribution": 0,
+                "interest_rate": 0,
+                "opening_balance": 150000,
+            },
+        ]
+        result = calculate_pf_corpus(entries)
+        self.assertEqual(len(result), 2)
+
+        # Both should be past employer entries
+        self.assertTrue(result[0]["is_past_employer"])
+        self.assertTrue(result[1]["is_past_employer"])
+
+        # Second entry's opening_balance should include first entry's balance + interest + second lump sum
+        self.assertGreater(result[1]["opening_balance"], 200000 + 150000)
+
+        # Corpus should be both lump sums + all interest
+        corpus = result[1]["corpus_value"]
+        self.assertGreater(corpus, 350000)
+
+    @patch("app.api.provident_fund.date")
+    def test_past_employer_auto_rate(self, mock_date):
+        """Past employer entry with rate=0 should use EPFO auto-rate."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [{
+            "company_name": "Old Corp",
+            "start_date": "2023-04-01",
+            "end_date": "",
+            "monthly_contribution": 0,
+            "interest_rate": 0,
+            "opening_balance": 500000,
+        }]
+        result = calculate_pf_corpus(entries)
+        r = result[0]
+        self.assertTrue(r["auto_rate"])
+        self.assertTrue(r["is_past_employer"])
+        self.assertGreater(r["interest_earned"], 0)
+
+    @patch("app.api.provident_fund.date")
+    def test_past_employer_no_start_date_defaults_to_today(self, mock_date):
+        """Past employer entry without start_date should default to today."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [{
+            "company_name": "Old Corp",
+            "start_date": "",
+            "monthly_contribution": 0,
+            "interest_rate": 0,
+            "opening_balance": 500000,
+        }]
+        result = calculate_pf_corpus(entries)
+        self.assertEqual(len(result), 1)
+
+        r = result[0]
+        self.assertTrue(r["is_past_employer"])
+        # Lump sum should be recorded
+        self.assertEqual(r["total_contribution"], 500000.0)
+        # With start=today and end=today, balance recorded (no interest — month incomplete)
+        self.assertEqual(r["months_worked"], 1)
+
 
 class TestProvidentFundServiceParser(unittest.TestCase):
     """Tests for ProvidentFundService._parse_row allowing rate=0."""
@@ -325,9 +474,151 @@ class TestProvidentFundServiceParser(unittest.TestCase):
             self.svc._parse_row(row, 5)
 
     def test_parse_row_zero_contribution_rejected(self):
+        """Zero contribution without opening_balance should be rejected."""
         row = ["Test", "2023-04-01", "", "0", "8.5"]
         with self.assertRaises(DataError):
             self.svc._parse_row(row, 6)
+
+    def test_parse_row_past_employer_with_opening_balance(self):
+        """Past employer entry: monthly_contribution=0 with opening_balance should be accepted."""
+        row = ["Old Corp", "2022-04-01", "2023-03-31", "0", "0", "500000"]
+        result = self.svc._parse_row(row, 7)
+        self.assertEqual(result["company_name"], "Old Corp")
+        self.assertEqual(result["monthly_contribution"], 0)
+        self.assertEqual(result["opening_balance"], 500000)
+
+    def test_parse_row_past_employer_with_actual_contribution(self):
+        """Past employer entry with actual_contribution in column 6."""
+        row = ["Old Corp", "2022-04-01", "2023-03-31", "0", "0", "500000", "350000"]
+        result = self.svc._parse_row(row, 7)
+        self.assertEqual(result["opening_balance"], 500000)
+        self.assertEqual(result["actual_contribution"], 350000)
+
+    def test_parse_row_actual_contribution_defaults_to_zero(self):
+        """Rows without column 6 should default actual_contribution to 0."""
+        row = ["Old Corp", "2022-04-01", "2023-03-31", "0", "0", "500000"]
+        result = self.svc._parse_row(row, 7)
+        self.assertEqual(result["actual_contribution"], 0)
+
+    def test_parse_row_past_employer_missing_balance_rejected(self):
+        """Zero contribution without opening_balance should still be rejected."""
+        row = ["Bad Corp", "2022-04-01", "", "0", "8.5", "0"]
+        with self.assertRaises(DataError):
+            self.svc._parse_row(row, 8)
+
+
+class TestActualContributionPL(unittest.TestCase):
+    """Tests for actual_contribution P&L split on past employer entries."""
+
+    @patch("app.api.provident_fund.date")
+    def test_actual_contribution_splits_pnl(self, mock_date):
+        """When actual_contribution is provided, total_contribution should use it as cost basis."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [{
+            "company_name": "Old Corp",
+            "start_date": "2023-04-01",
+            "end_date": "",
+            "monthly_contribution": 0,
+            "interest_rate": 8.25,
+            "opening_balance": 500000,
+            "actual_contribution": 350000,
+        }]
+        result = calculate_pf_corpus(entries)
+        r = result[0]
+        self.assertTrue(r["is_past_employer"])
+        # Cost basis should be 350000 (actual_contribution), not the full 500000
+        self.assertEqual(r["total_contribution"], 350000.0)
+        # Interest earned should include past historical interest (150000) + new accrual
+        self.assertGreater(r["interest_earned"], 0)
+        total_interest = r["closing_balance"] - r["total_contribution"]
+        # Historical interest (150k) should be reflected in the gap
+        self.assertGreater(total_interest, 150000)
+        # actual_contribution should be passed through
+        self.assertEqual(r["actual_contribution"], 350000.0)
+
+    @patch("app.api.provident_fund.date")
+    def test_no_actual_contribution_conservative(self, mock_date):
+        """Without actual_contribution, full lump sum should be treated as cost basis."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [{
+            "company_name": "Old Corp",
+            "start_date": "2023-04-01",
+            "end_date": "",
+            "monthly_contribution": 0,
+            "interest_rate": 8.25,
+            "opening_balance": 500000,
+        }]
+        result = calculate_pf_corpus(entries)
+        r = result[0]
+        # Full lump sum as cost basis (conservative)
+        self.assertEqual(r["total_contribution"], 500000.0)
+        self.assertEqual(r["actual_contribution"], 0.0)
+
+    @patch("app.api.provident_fund.date")
+    def test_actual_contribution_zero_treated_as_absent(self, mock_date):
+        """actual_contribution=0 should behave like not provided (conservative)."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [{
+            "company_name": "Old Corp",
+            "start_date": "2023-04-01",
+            "end_date": "",
+            "monthly_contribution": 0,
+            "interest_rate": 8.25,
+            "opening_balance": 500000,
+            "actual_contribution": 0,
+        }]
+        result = calculate_pf_corpus(entries)
+        r = result[0]
+        self.assertEqual(r["total_contribution"], 500000.0)
+
+    @patch("app.api.provident_fund.date")
+    def test_actual_contribution_with_current_employer(self, mock_date):
+        """Past employer with actual_contribution followed by active employment."""
+        mock_date.today.return_value = date(2024, 3, 31)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+
+        entries = [
+            {
+                "company_name": "Old Corp",
+                "start_date": "2022-04-01",
+                "end_date": "2023-03-31",
+                "monthly_contribution": 0,
+                "interest_rate": 8.10,
+                "opening_balance": 300000,
+                "actual_contribution": 200000,
+            },
+            {
+                "company_name": "New Corp",
+                "start_date": "2023-04-01",
+                "end_date": "",
+                "monthly_contribution": 10000,
+                "interest_rate": 8.25,
+            },
+        ]
+        result = calculate_pf_corpus(entries)
+
+        # Past employer cost basis should be actual_contribution
+        self.assertEqual(result[0]["total_contribution"], 200000.0)
+        self.assertTrue(result[0]["is_past_employer"])
+
+        # Current employer contributions should be independent
+        self.assertFalse(result[1]["is_past_employer"])
+        self.assertEqual(result[1]["total_contribution"], 10000.0 * 12)
+
+        # Total corpus contributions (across all entries) should include
+        # actual_contribution + monthly contributions
+        total_contributions = result[1]["total_corpus_contributions"]
+        self.assertEqual(total_contributions, 200000.0 + 120000.0)
+
+        # Total corpus interest should include the historical gap
+        total_interest = result[1]["total_corpus_interest"]
+        self.assertGreater(total_interest, 100000)  # at least the 100k historical gap
 
 
 if __name__ == "__main__":

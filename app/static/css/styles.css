@@ -4144,6 +4144,23 @@ body.privacy-mode #provident-fund-section tbody tr td:nth-child(9) {
   user-select: none;
 }
 
+/* Past employer badge */
+.pf-past-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b4049;
+  background: rgba(139, 64, 73, 0.12);
+  border: 1px solid rgba(139, 64, 73, 0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
 /* Loading placeholders styles */
 .loading-placeholder {
   text-align: center;

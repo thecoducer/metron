@@ -5,8 +5,7 @@ Application configuration loaded from environment variables.
 import os
 from dataclasses import dataclass, field
 
-from .constants import (DEFAULT_AUTO_REFRESH_INTERVAL,
-                        DEFAULT_REQUEST_TOKEN_TIMEOUT,
+from .constants import (DEFAULT_REQUEST_TOKEN_TIMEOUT,
                         DEFAULT_UI_HOST, DEFAULT_UI_PORT)
 
 
@@ -21,8 +20,6 @@ class AppConfig:
     ui_host: str
     ui_port: int
     request_token_timeout: int
-    auto_refresh_interval: int
-    auto_refresh_outside_market_hours: bool
     features: dict = field(default_factory=dict)
 
     @classmethod
@@ -33,8 +30,6 @@ class AppConfig:
             ui_host=os.environ.get("METRON_UI_HOST", DEFAULT_UI_HOST),
             ui_port=int(os.environ.get("METRON_UI_PORT", DEFAULT_UI_PORT)),
             request_token_timeout=int(os.environ.get("METRON_REQUEST_TOKEN_TIMEOUT", DEFAULT_REQUEST_TOKEN_TIMEOUT)),
-            auto_refresh_interval=int(os.environ.get("METRON_AUTO_REFRESH_INTERVAL", DEFAULT_AUTO_REFRESH_INTERVAL)),
-            auto_refresh_outside_market_hours=_env_bool("METRON_AUTO_REFRESH_OUTSIDE_MARKET_HOURS", False),
             features={"allow_browser_api_access": allow_browser_api},
         )
 

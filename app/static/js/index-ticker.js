@@ -3,8 +3,6 @@ import { metronFetch } from './utils.js';
 
 class IndexTicker {
   constructor() {
-    this.refreshInterval = 15_000;
-    this.timer = null;
     this.previousValues = {};
     /** Ordered keys – determines display order in the ticker bar */
     this._displayOrder = ['nifty50', 'sensex', 'sp500', 'gold', 'silver', 'usdinr'];
@@ -22,12 +20,6 @@ class IndexTicker {
 
   async init() {
     await this.fetchAndRender();
-    this.startAutoRefresh();
-  }
-
-  startAutoRefresh() {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = setInterval(() => this.fetchAndRender(), this.refreshInterval);
   }
 
   async fetchAndRender() {

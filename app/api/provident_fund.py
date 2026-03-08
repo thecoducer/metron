@@ -63,11 +63,16 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for entry in entries:
         start = parse_date(entry.get("start_date", ""))
         if not start:
-            logger.warning(
-                "PF: skipping entry for '%s' — cannot parse start_date '%s'",
-                entry.get("company_name", "?"), entry.get("start_date"),
-            )
-            continue
+            # Past employer entries can omit date — default to today
+            is_past = float(entry.get("opening_balance", 0) or 0) > 0 and float(entry.get("monthly_contribution", 0) or 0) <= 0
+            if is_past:
+                start = date.today()
+            else:
+                logger.warning(
+                    "PF: skipping entry for '%s' — cannot parse start_date '%s'",
+                    entry.get("company_name", "?"), entry.get("start_date"),
+                )
+                continue
         end = parse_date(entry.get("end_date", ""))
         parsed.append((entry, start, end))
 
@@ -142,6 +147,19 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             if prev_entry_idx >= 0:
                 ed = entry_data[prev_entry_idx]
                 ed["closing_balance"] = balance + accrued_interest_fy
+
+            # Inject lump sum for past employer entries (opening_balance field)
+            lump_sum = float(parsed[entry_idx][0].get("opening_balance", 0) or 0)
+            if lump_sum > 0:
+                balance += lump_sum
+                # If user provided actual_contribution, use it as cost basis;
+                # otherwise treat the full lump sum as contribution (conservative).
+                actual = float(parsed[entry_idx][0].get("actual_contribution", 0) or 0)
+                if actual > 0:
+                    entry_data[entry_idx]["total_contribution"] += actual
+                else:
+                    entry_data[entry_idx]["total_contribution"] += lump_sum
+
             entry_data[entry_idx]["opening_balance"] = balance + accrued_interest_fy
 
         # Add contribution
@@ -157,16 +175,20 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
         # Monthly interest accrual (EPF: interest accrues monthly,
         # compounded annually at end of financial year).
-        monthly_interest = balance * (rate / 12.0 / 100.0)
-        accrued_interest_fy += monthly_interest
+        # Only accrue interest for completed months; the current month
+        # is still in progress so no interest should be recognised yet.
+        is_current_month = (ym[0] == today.year and ym[1] == today.month)
+        if not is_current_month:
+            monthly_interest = balance * (rate / 12.0 / 100.0)
+            accrued_interest_fy += monthly_interest
 
-        if entry_idx >= 0 and entry_idx < len(entry_data):
-            entry_data[entry_idx]["interest_earned"] += monthly_interest
+            if entry_idx >= 0 and entry_idx < len(entry_data):
+                entry_data[entry_idx]["interest_earned"] += monthly_interest
 
-        # Credit interest at the end of financial year (March)
-        if ym[1] == 3:
-            balance += accrued_interest_fy
-            accrued_interest_fy = 0.0
+            # Credit interest at the end of financial year (March)
+            if ym[1] == 3:
+                balance += accrued_interest_fy
+                accrued_interest_fy = 0.0
 
         prev_entry_idx = entry_idx
 
@@ -197,6 +219,8 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         copy["start_date_parsed"] = start.strftime("%B %d, %Y")
         copy["end_date_parsed"] = end.strftime("%B %d, %Y") if end else ""
         copy["is_current"] = end is None
+        copy["is_past_employer"] = float(entry.get("opening_balance", 0) or 0) > 0 and float(entry.get("monthly_contribution", 0) or 0) <= 0
+        copy["actual_contribution"] = float(entry.get("actual_contribution", 0) or 0)
         copy["months_worked"] = ed["months_worked"]
         copy["total_contribution"] = round(ed["total_contribution"], 2)
         copy["opening_balance"] = round(ed["opening_balance"], 2)

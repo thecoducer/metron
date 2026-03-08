@@ -114,11 +114,23 @@ const SCHEMAS = {
     label: 'Provident Fund',
     sheetType: 'provident_fund',
     fields: [
+      { key: 'entry_type',          label: 'Entry Type',         type: 'select', required: true, options: ['Active Employment', 'Past Employer'], skipInPayload: true,
+        defaultFn: (values) => (values && Number(values.opening_balance || 0) > 0 && Number(values.monthly_contribution || 0) <= 0) ? 'Past Employer' : 'Active Employment' },
       { key: 'company_name',        label: 'Company',            type: 'text',   required: true, placeholder: 'e.g. Infosys', datalistFrom: 'company_name' },
-      { key: 'start_date',          label: 'Start Date',         type: 'date',   required: true },
-      { key: 'end_date',            label: 'End Date',           type: 'date',   required: false },
-      { key: 'monthly_contribution', label: 'Monthly Contribution', type: 'number', required: true, step: '1', min: '1' },
-      { key: 'interest_rate',       label: 'Interest Rate (%)',  type: 'number', required: false, step: '0.01', min: '0', placeholder: '0 = Auto (EPFO rate)' },
+      { key: 'start_date',          label: 'Start Date',         type: 'date',   required: true,
+        dynamicLabel: { 'Past Employer': 'Date Added' },
+        dynamicRequired: { 'Past Employer': false },
+        dynamicPlaceholder: { 'Past Employer': 'Defaults to today' } },
+      { key: 'end_date',            label: 'End Date',           type: 'date',   required: false,
+        showWhen: 'entry_type=Active Employment' },
+      { key: 'monthly_contribution', label: 'Monthly Contribution', type: 'number', required: true, step: '1', min: '1',
+        showWhen: 'entry_type=Active Employment' },
+      { key: 'opening_balance',     label: 'Accumulated Balance', type: 'number', required: true, step: '1', min: '1', placeholder: 'Total PF balance from past employer',
+        showWhen: 'entry_type=Past Employer' },
+      { key: 'actual_contribution',  label: 'Contribution', type: 'number', required: true, step: '1', min: '1', placeholder: 'Your total contribution from EPFO passbook',
+        showWhen: 'entry_type=Past Employer' },
+      { key: 'interest_rate',       label: 'Interest Rate (%)',  type: 'number', required: false, step: '0.01', min: '0', placeholder: '0 = Auto (EPFO rate)',
+        dynamicLabel: { 'Past Employer': 'Current Interest Rate (%)' } },
     ],
   },
 };
@@ -329,11 +341,19 @@ class CrudManager {
     for (const f of schema.fields) {
       if (f.datalistFrom) {
         const existing = new Set();
-        const colIdx = schema.fields.findIndex(sf => sf.key === f.datalistFrom);
+        // Count only non-virtual fields to map to actual table columns
+        let colIdx = 0;
+        for (const sf of schema.fields) {
+          if (sf.key === f.datalistFrom) break;
+          if (!sf.skipInPayload) colIdx++;
+        }
         tbody.querySelectorAll(`tr[data-schema="${schemaKey}"]`).forEach(row => {
           const cell = row.children[colIdx];
           if (cell) {
-            const v = cell.textContent.trim();
+            // Clone and strip badge/tag elements to get clean text
+            const clone = cell.cloneNode(true);
+            clone.querySelectorAll('.pf-past-badge, .badge').forEach(b => b.remove());
+            const v = clone.textContent.trim();
             if (v && v !== '-') existing.add(v);
           }
         });
@@ -344,7 +364,12 @@ class CrudManager {
     this._fieldSuggestions = suggestions;
     let fieldsHtml = '';
     for (const f of schema.fields) {
-      const val = (values && values[f.key] !== undefined) ? values[f.key] : '';
+      let val;
+      if (f.defaultFn && typeof f.defaultFn === 'function') {
+        val = f.defaultFn(values);
+      } else {
+        val = (values && values[f.key] !== undefined) ? values[f.key] : '';
+      }
       fieldsHtml += this._buildInlineField(f, val, suggestions[f.key]);
     }
 
@@ -395,6 +420,9 @@ class CrudManager {
       });
     }
 
+    // Wire up conditional field visibility (showWhen / dynamicLabel)
+    this._initConditionalFields(tr, schema);
+
     // Event handlers
     const form = tr.querySelector('.crud-inline-form');
     form.addEventListener('submit', (e) => {
@@ -441,10 +469,115 @@ class CrudManager {
       input = `<input ${attrs.join(' ')}>`;
     }
 
-    return `<div class="${hasSuggestions ? 'crud-inline-field crud-suggest-wrap' : 'crud-inline-field'}">
+    const showWhenAttr = f.showWhen ? ` data-show-when="${f.showWhen}"` : '';
+    const hideStyle = f.showWhen ? ' style="display:none"' : '';
+    const wrapClass = hasSuggestions ? 'crud-inline-field crud-suggest-wrap' : 'crud-inline-field';
+
+    return `<div class="${wrapClass}" data-field-key="${f.key}"${showWhenAttr}${hideStyle}>
       <label class="crud-inline-label">${f.label}${req}</label>
       ${input}
     </div>`;
+  }
+
+  /**
+   * Wire up conditional field visibility based on showWhen, dynamicLabel,
+   * dynamicRequired, and dynamicPlaceholder.
+   * showWhen format: "fieldKey=value" — field is visible only when the
+   * control field has the specified value.
+   */
+  _initConditionalFields(formRow, schema) {
+    const conditionalFields = formRow.querySelectorAll('[data-show-when]');
+    const hasDynamicProps = schema.fields.some(f => f.dynamicLabel || f.dynamicRequired || f.dynamicPlaceholder);
+    if (!conditionalFields.length && !hasDynamicProps) return;
+
+    // Collect control fields and their dependents
+    const controlMap = {};  // controlKey → [{ el, value, fieldDef }]
+    conditionalFields.forEach(el => {
+      const [controlKey, controlValue] = el.dataset.showWhen.split('=');
+      if (!controlMap[controlKey]) controlMap[controlKey] = [];
+      const fieldDef = schema.fields.find(f => f.key === el.dataset.fieldKey);
+      controlMap[controlKey].push({ el, value: controlValue, fieldDef });
+    });
+
+    // Collect fields with dynamic properties (label, required, placeholder)
+    const dynamicFields = schema.fields.filter(f => f.dynamicLabel || f.dynamicRequired || f.dynamicPlaceholder);
+
+    // Ensure control keys from dynamicRequired/dynamicLabel/dynamicPlaceholder are tracked
+    for (const f of dynamicFields) {
+      for (const prop of [f.dynamicLabel, f.dynamicRequired, f.dynamicPlaceholder]) {
+        if (!prop) continue;
+        // The keys of these maps are the control field values; the control field
+        // itself is inferred from the showWhen fields. For PF, it's 'entry_type'.
+      }
+    }
+
+    const applyVisibility = () => {
+      for (const [controlKey, deps] of Object.entries(controlMap)) {
+        const controlEl = formRow.querySelector(`[name="${controlKey}"]`);
+        if (!controlEl) continue;
+        const currentValue = controlEl.value;
+
+        deps.forEach(({ el, value, fieldDef }) => {
+          const visible = currentValue === value;
+          el.style.display = visible ? '' : 'none';
+          // Toggle required attribute based on visibility
+          const input = el.querySelector('.crud-inline-input');
+          if (input && fieldDef) {
+            if (visible && fieldDef.required) {
+              input.setAttribute('required', '');
+            } else {
+              input.removeAttribute('required');
+            }
+          }
+        });
+
+        // Handle dynamic properties for always-visible fields
+        dynamicFields.forEach(f => {
+          const fieldEl = formRow.querySelector(`[data-field-key="${f.key}"]`);
+          if (!fieldEl) return;
+          const input = fieldEl.querySelector('.crud-inline-input');
+          const label = fieldEl.querySelector('.crud-inline-label');
+
+          // Dynamic required
+          if (f.dynamicRequired && currentValue in f.dynamicRequired) {
+            const isReq = f.dynamicRequired[currentValue];
+            if (input) {
+              if (isReq) input.setAttribute('required', '');
+              else input.removeAttribute('required');
+            }
+          } else if (f.dynamicRequired && input) {
+            // Revert to schema default
+            if (f.required) input.setAttribute('required', '');
+            else input.removeAttribute('required');
+          }
+
+          // Dynamic label
+          if (f.dynamicLabel && label) {
+            const dynamicText = f.dynamicLabel[currentValue];
+            const isReq = f.dynamicRequired ? (currentValue in f.dynamicRequired ? f.dynamicRequired[currentValue] : f.required) : f.required;
+            const req = isReq ? '<span class="crud-req">*</span>' : '';
+            label.innerHTML = (dynamicText || f.label) + req;
+          }
+
+          // Dynamic placeholder
+          if (f.dynamicPlaceholder && input) {
+            const ph = f.dynamicPlaceholder[currentValue] || '';
+            input.placeholder = ph;
+          }
+        });
+      }
+    };
+
+    // Apply initial state
+    applyVisibility();
+
+    // Listen for changes on control fields
+    for (const controlKey of Object.keys(controlMap)) {
+      const controlEl = formRow.querySelector(`[name="${controlKey}"]`);
+      if (controlEl) {
+        controlEl.addEventListener('change', applyVisibility);
+      }
+    }
   }
 
   _initSuggestDropdown(inp, items) {
@@ -493,16 +626,33 @@ class CrudManager {
     // Gather values, converting date inputs back to MM/DD/YYYY for Sheets
     const payload = {};
     for (const f of schema.fields) {
+      if (f.skipInPayload) continue;
+      const fieldWrap = form.querySelector(`[data-field-key="${f.key}"]`);
+      const isHidden = fieldWrap && fieldWrap.style.display === 'none';
       const el = form.querySelector(`[name="${f.key}"]`);
       let val = el ? el.value.trim() : '';
+      // Hidden fields get default empty values
+      if (isHidden) val = '';
       if (f.type === 'date' && val) val = toSheetDate(val);
       if (f.uppercase) val = val.toUpperCase();
       payload[f.key] = val;
     }
 
-    // Validate required fields
+    // Auto-fill start_date with today for past employer entries if left blank
+    if (schema.sheetType === 'provident_fund' && !payload.start_date && payload.opening_balance) {
+      const d = new Date();
+      payload.start_date = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+    }
+
+    // Validate required fields (only visible ones, respecting dynamic required state)
     for (const f of schema.fields) {
-      if (f.required && !payload[f.key]) {
+      if (f.skipInPayload) continue;
+      const fieldWrap = form.querySelector(`[data-field-key="${f.key}"]`);
+      const isHidden = fieldWrap && fieldWrap.style.display === 'none';
+      if (isHidden) continue;
+      const el = form.querySelector(`[name="${f.key}"]`);
+      const isRequired = el ? el.hasAttribute('required') : f.required;
+      if (isRequired && !payload[f.key]) {
         this._toast(`${f.label} is required`, 'error');
         const el = form.querySelector(`[name="${f.key}"]`);
         if (el) {

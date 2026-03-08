@@ -293,7 +293,6 @@ class StateManager:
             setattr(self, f'{st}_last_updated', None)
         self._user_state: Dict[str, Dict[str, Any]] = {}
         self.last_error: str = None
-        self._change_listeners = []
 
     def _get_user_state(self, google_id: str) -> Dict[str, Any]:
         with self._lock:
@@ -303,20 +302,8 @@ class StateManager:
                 "last_error": None,
             })
 
-    def _notify_change(self, google_id: str = None):
-        for listener in self._change_listeners:
-            try:
-                listener(google_id=google_id)
-            except TypeError:
-                try:
-                    listener()
-                except Exception as e:
-                    logger.exception("Error notifying listener: %s", e)
-            except Exception as e:
-                logger.exception("Error notifying listener: %s", e)
-
     def add_change_listener(self, callback):
-        self._change_listeners.append(callback)
+        pass  # No-op: SSE broadcasting removed
 
     # Per-user portfolio state
 
@@ -326,7 +313,6 @@ class StateManager:
             us["portfolio_state"] = STATE_UPDATING
             if error:
                 us["last_error"] = error
-        self._notify_change(google_id)
 
     def set_portfolio_updated(self, google_id: str = None, error: str = None):
         if google_id:
@@ -338,7 +324,6 @@ class StateManager:
                 us["portfolio_last_updated"] = time.time()
                 us["last_error"] = None
                 us["portfolio_state"] = STATE_UPDATED
-        self._notify_change(google_id)
 
     def get_portfolio_state(self, google_id: str) -> Any:
         return self._get_user_state(google_id).get("portfolio_state")
@@ -355,7 +340,6 @@ class StateManager:
         setattr(self, f'{state_type}_state', STATE_UPDATING)
         if error:
             self.last_error = error
-        self._notify_change()
 
     def _set_updated(self, state_type: str, error: str = None, clear_global_error: bool = False):
         if error:
@@ -366,7 +350,6 @@ class StateManager:
             if clear_global_error:
                 self.last_error = None
             setattr(self, f'{state_type}_state', STATE_UPDATED)
-        self._notify_change()
 
     def __getattr__(self, name: str):
         for st in self.GLOBAL_STATE_TYPES:
@@ -387,7 +370,6 @@ class StateManager:
         self.last_error = None
         if google_id:
             self._get_user_state(google_id)["last_error"] = None
-        self._notify_change(google_id)
 
 
 def format_timestamp(ts: float) -> str:

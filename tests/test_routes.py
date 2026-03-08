@@ -264,51 +264,6 @@ class TestUIServerRoutes(unittest.TestCase):
         self.assertIn('error', data)
 
 
-class TestSSE(unittest.TestCase):
-    """Test Server-Sent Events functionality."""
-
-    def setUp(self):
-        self.client = app_ui.test_client()
-        app_ui.testing = True
-
-    def test_events_endpoint(self):
-        """Test /api/events SSE endpoint returns text/event-stream with production headers."""
-        with patch('app.services.state_manager') as mock_state, \
-             patch('app.services.session_manager') as mock_session, \
-             patch('app.services.format_timestamp', return_value=None), \
-             patch('app.services.is_market_open_ist', return_value=True), \
-             patch('app.services.get_user_accounts', return_value=[]):
-            mock_state.last_error = None
-            mock_state.get_portfolio_state.return_value = 'updated'
-            mock_state.get_portfolio_last_updated.return_value = None
-            mock_state.get_user_last_error.return_value = None
-            mock_state.nifty50_state = 'updated'
-            mock_state.nifty50_last_updated = None
-            mock_state.physical_gold_state = 'updated'
-            mock_state.physical_gold_last_updated = None
-            mock_state.fixed_deposits_state = 'updated'
-            mock_state.fixed_deposits_last_updated = None
-
-            mock_session.is_valid.return_value = True
-
-            _inject_user(self.client)
-            response = self.client.get('/api/events')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('text/event-stream', response.content_type)
-        self.assertEqual(
-            response.headers.get('Cache-Control'),
-            'no-cache, no-store, must-revalidate',
-        )
-        self.assertEqual(response.headers.get('X-Accel-Buffering'), 'no')
-        self.assertEqual(response.headers.get('X-Content-Type-Options'), 'nosniff')
-
-    def test_events_unauthenticated(self):
-        """Unauthenticated request to /api/events returns 401."""
-        response = self.client.get('/api/events')
-        self.assertEqual(response.status_code, 401)
-
-
 class TestJsonResponse(unittest.TestCase):
     """Test the _json_response helper."""
 
@@ -647,7 +602,7 @@ class TestDataRoutes(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# SSE token, healthz, other routes
+# Healthz, other routes
 # ---------------------------------------------------------------------------
 
 
@@ -662,14 +617,6 @@ class TestMiscRoutes(unittest.TestCase):
         data = json.loads(resp.data)
         self.assertEqual(data["status"], "ok")
 
-    def test_sse_token(self):
-        _inject_user(self.client)
-        resp = self.client.get("/api/sse-token", headers=_APP_HEADERS)
-        self.assertEqual(resp.status_code, 200)
-        data = json.loads(resp.data)
-        self.assertIn("token", data)
-        self.assertIn("ttl", data)
-
     def test_privacy_page(self):
         resp = self.client.get("/privacy")
         self.assertEqual(resp.status_code, 200)
@@ -682,8 +629,7 @@ class TestMiscRoutes(unittest.TestCase):
         resp = self.client.get("/contact")
         self.assertEqual(resp.status_code, 200)
 
-    @patch("app.routes._is_firebase_hosting_request", return_value=False)
-    def test_details_page_valid(self, mock_fb):
+    def test_details_page_valid(self):
         _inject_user(self.client)
         resp = self.client.get("/details/stocks")
         self.assertEqual(resp.status_code, 200)
@@ -946,65 +892,6 @@ class TestSheetsCRUD(unittest.TestCase):
 class TestRouteHelpers(unittest.TestCase):
     """Test internal route helper functions."""
 
-    def test_generate_validate_sse_token(self):
-        from app.routes import _generate_sse_token, _validate_sse_token
-        token = _generate_sse_token("user123")
-        result = _validate_sse_token(token)
-        self.assertEqual(result, "user123")
-
-    def test_validate_sse_token_bad(self):
-        from app.routes import _validate_sse_token
-        result = _validate_sse_token("bad_token")
-        self.assertIsNone(result)
-
-    def test_is_firebase_hosting_request(self):
-        from app.routes import _is_firebase_hosting_request, app_ui
-        with app_ui.test_request_context("/", headers={"Host": "metron.web.app"}):
-            self.assertTrue(_is_firebase_hosting_request())
-        with app_ui.test_request_context("/", headers={"Host": "localhost:5000"}):
-            self.assertFalse(_is_firebase_hosting_request())
-
-    def test_add_cors_headers_firebase(self):
-        from app.routes import _add_cors_headers, app_ui
-        with app_ui.test_request_context("/", headers={"Origin": "https://metron.web.app"}):
-            from flask import Response
-            resp = Response("ok")
-            resp = _add_cors_headers(resp)
-            self.assertEqual(resp.headers.get("Access-Control-Allow-Origin"), "https://metron.web.app")
-
-    def test_add_cors_headers_run_app(self):
-        from app.routes import _add_cors_headers, app_ui
-        with app_ui.test_request_context("/", headers={"Origin": "https://myapp.run.app"}):
-            from flask import Response
-            resp = Response("ok")
-            resp = _add_cors_headers(resp)
-            self.assertEqual(resp.headers.get("Access-Control-Allow-Origin"), "https://myapp.run.app")
-
-    def test_add_cors_headers_no_origin(self):
-        from app.routes import _add_cors_headers, app_ui
-        with app_ui.test_request_context("/"):
-            from flask import Response
-            resp = Response("ok")
-            resp = _add_cors_headers(resp)
-            self.assertIsNone(resp.headers.get("Access-Control-Allow-Origin"))
-
-    @patch.dict("os.environ", {"FLASK_ENV": "development"})
-    def test_add_cors_headers_dev_localhost(self):
-        from app.routes import _add_cors_headers, app_ui
-        with app_ui.test_request_context("/", headers={"Origin": "http://localhost:5000"}):
-            from flask import Response
-            resp = Response("ok")
-            resp = _add_cors_headers(resp)
-            self.assertEqual(resp.headers.get("Access-Control-Allow-Origin"), "http://localhost:5000")
-
-    def test_add_cors_headers_untrusted_origin(self):
-        from app.routes import _add_cors_headers, app_ui
-        with app_ui.test_request_context("/", headers={"Origin": "https://evil.com"}):
-            from flask import Response
-            resp = Response("ok")
-            resp = _add_cors_headers(resp)
-            self.assertIsNone(resp.headers.get("Access-Control-Allow-Origin"))
-
     def test_get_user_fetch_lock(self):
         from app.routes import _get_user_fetch_lock
         lock1 = _get_user_fetch_lock("user1")
@@ -1252,12 +1139,11 @@ class TestZerodhaCallback(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         # renders callback_error.html
 
-    @patch("app.routes.broadcast_state_change")
     @patch("app.routes.portfolio_cache")
     @patch("app.routes.ensure_user_loaded")
     @patch("app.routes.get_user_accounts", return_value=[{"name": "Acc1", "api_key": "k1", "api_secret": "s1"}])
     @patch("app.routes.session_manager")
-    def test_callback_success(self, mock_sm, mock_accs, mock_eul, mock_pc, mock_broadcast):
+    def test_callback_success(self, mock_sm, mock_accs, mock_eul, mock_pc):
         mock_sm.get_pin.return_value = "123456"
         mock_sm.is_valid.side_effect = [False, True]  # not valid initially, then valid
         mock_pc.is_fetch_in_progress.return_value = False
@@ -1290,7 +1176,7 @@ class TestZerodhaCallback(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Prefetch, batch-fetch, SSE events, refresh, portfolio_page, etc.
+# Prefetch, batch-fetch, refresh, portfolio_page, etc.
 # ---------------------------------------------------------------------------
 
 
@@ -1442,17 +1328,15 @@ class TestPortfolioPage(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
 
     @patch("app.firebase_store.has_pin", return_value=True)
-    @patch("app.routes._is_firebase_hosting_request", return_value=False)
     @patch("app.routes.user_sheets_cache")
     @patch("app.routes.ensure_user_loaded")
-    def test_authenticated_dashboard(self, mock_eul, mock_usc, mock_fb, mock_has_pin):
+    def test_authenticated_dashboard(self, mock_eul, mock_usc, mock_has_pin):
         mock_usc.is_fully_cached.return_value = False
         _inject_user(self.client)
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, 200)
 
     @patch("app.firebase_store.has_pin", return_value=True)
-    @patch("app.routes._is_firebase_hosting_request", return_value=False)
     @patch("app.routes._build_status_response", return_value={})
     @patch("app.routes._build_fd_data", return_value=[])
     @patch("app.routes._build_gold_data", return_value=[])
@@ -1464,34 +1348,11 @@ class TestPortfolioPage(unittest.TestCase):
     def test_authenticated_with_inlined_data(self, mock_eul, mock_usc,
                                               mock_stocks, mock_mf, mock_sips,
                                               mock_gold, mock_fd, mock_status,
-                                              mock_fb, mock_has_pin):
+                                              mock_has_pin):
         mock_usc.is_fully_cached.return_value = True
         _inject_user(self.client)
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, 200)
-
-
-class TestSSEEvents(unittest.TestCase):
-    def setUp(self):
-        self.client = app_ui.test_client()
-        app_ui.testing = True
-
-    def test_events_unauthenticated(self):
-        resp = self.client.get("/api/events", headers=_APP_HEADERS)
-        self.assertEqual(resp.status_code, 401)
-
-    def test_events_options(self):
-        resp = self.client.options("/api/events")
-        self.assertEqual(resp.status_code, 204)
-
-    @patch("app.routes._validate_sse_token", return_value="user123")
-    @patch("app.routes._build_status_response", return_value={"status": "ok"})
-    @patch("app.routes.sse_manager")
-    def test_events_with_token(self, mock_sse, mock_status, mock_validate):
-        mock_sse.add_client.return_value = True
-        resp = self.client.get("/api/events?token=valid_token")
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn("text/event-stream", resp.content_type)
 
 
 class TestPinVerifyRoute(unittest.TestCase):
@@ -1499,14 +1360,13 @@ class TestPinVerifyRoute(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes.broadcast_state_change")
     @patch("app.routes.ensure_user_loaded")
     @patch("app.routes.verify_user_pin", return_value=True)
     @patch("app.routes.pin_rate_limiter")
     @patch("app.firebase_store.has_pin", return_value=True)
     @patch("app.firebase_store.store_pin_check")
     def test_pin_verify_success(self, mock_store, mock_has, mock_limiter,
-                                 mock_verify, mock_eul, mock_broadcast):
+                                 mock_verify, mock_eul):
         mock_limiter.check.return_value = (True, None)
         _inject_user(self.client)
         resp = self.client.post(
@@ -2101,7 +1961,7 @@ class TestSheetsDeleteRoute(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# SSE event_stream inner logic, _validate_nse_symbol, _fetch_uncached_manual_ltps
+# _validate_nse_symbol, _fetch_uncached_manual_ltps
 # ---------------------------------------------------------------------------
 
 
@@ -2215,12 +2075,11 @@ class TestPortfolioPageEdgeCases(unittest.TestCase):
         app_ui.testing = True
 
     @patch("app.firebase_store.has_pin", return_value=True)
-    @patch("app.routes._is_firebase_hosting_request", return_value=False)
     @patch("app.routes._build_status_response", side_effect=Exception("boom"))
     @patch("app.routes.user_sheets_cache")
     @patch("app.routes.ensure_user_loaded")
     def test_initial_data_exception(self, mock_eul, mock_usc, mock_status,
-                                     mock_fb, mock_has_pin):
+                                     mock_has_pin):
         """Cover the except branch when building initial_data fails."""
         mock_usc.is_fully_cached.return_value = True
         _inject_user(self.client)
@@ -2229,23 +2088,8 @@ class TestPortfolioPageEdgeCases(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Cover remaining uncovered lines (128-129, 234, 284, 335, 438-443,
-# 772-774, 782-810, 816-822, 920-921, 955-957, 1380-1385, 1438, 1465,
-# 1502, 1518, 1522, 1567, 1574, 1583, 1619, 1634)
+# Cover remaining uncovered lines
 # ---------------------------------------------------------------------------
-
-
-class TestCORSOriginParseException(unittest.TestCase):
-    """Lines 128-129: except Exception when urlparse fails."""
-
-    def test_malformed_origin_caught(self):
-        from app.routes import _add_cors_headers, app_ui
-        with patch("urllib.parse.urlparse", side_effect=Exception("parse fail")):
-            with app_ui.test_request_context("/", headers={"Origin": "http://metron.web.app"}):
-                from flask import Response
-                resp = _add_cors_headers(Response("ok"))
-                # Host falls back to "" → not in allowed → no CORS header
-                self.assertIsNone(resp.headers.get("Access-Control-Allow-Origin"))
 
 
 class TestFetchUserSheetsDataCacheMiss(unittest.TestCase):
@@ -2379,95 +2223,6 @@ class TestBackgroundSheetCreation(unittest.TestCase):
         self.assertEqual(resp.status_code, 302)
         # Execute the captured bg function — exception is caught internally
         captured["target"](*captured["args"])
-
-
-class TestSSEEventStreamGenerator(unittest.TestCase):
-    """Lines 772-774, 782-810, 816-822: SSE event_stream generator."""
-
-    def setUp(self):
-        self.client = app_ui.test_client()
-        app_ui.testing = True
-
-    @patch("app.routes._validate_sse_token", return_value="user123")
-    @patch("app.routes._build_status_response", return_value={"status": "ok"})
-    @patch("app.routes.sse_manager")
-    def test_sse_limit_exceeded(self, mock_sse, mock_status, mock_validate):
-        """Lines 772-774: add_client returns False → limit error."""
-        mock_sse.add_client.return_value = False
-        resp = self.client.get("/api/events?token=valid")
-        self.assertEqual(resp.status_code, 200)
-        data = b"".join(resp.response)
-        self.assertIn(b"too_many_connections", data)
-
-    @patch("app.routes._validate_sse_token", return_value="user123")
-    @patch("app.routes._build_status_response", return_value={"status": "ok"})
-    @patch("app.routes.sse_manager")
-    def test_sse_keepalive_then_timeout(self, mock_sse, mock_status, mock_validate):
-        """Lines 782-810: keepalive and connection aging."""
-        mock_sse.add_client.return_value = True
-
-        # Patch SSE_MAX_CONNECTION_AGE to a tiny value so the loop ages out
-        with patch("app.routes.SSE_MAX_CONNECTION_AGE", 0), \
-             patch("app.routes.SSE_KEEPALIVE_INTERVAL", 0.01):
-            resp = self.client.get("/api/events?token=valid")
-            data = b"".join(resp.response)
-        # Should contain retry hint and initial data, then reconnect
-        self.assertIn(b"retry:", data)
-        self.assertIn(b"reconnect", data)
-
-    @patch("app.routes._validate_sse_token", return_value="user123")
-    @patch("app.routes._build_status_response", return_value={"status": "ok"})
-    @patch("app.routes.sse_manager")
-    def test_sse_message_forwarding(self, mock_sse, mock_status, mock_validate):
-        """Lines 807-808: forward a message from queue."""
-        def capture_add_client(q, gid):
-            q.put('{"update": true}')
-            return True
-        mock_sse.add_client.side_effect = capture_add_client
-
-        with patch("app.routes.SSE_MAX_CONNECTION_AGE", 0.05), \
-             patch("app.routes.SSE_KEEPALIVE_INTERVAL", 0.01):
-            resp = self.client.get("/api/events?token=valid")
-            data = b"".join(resp.response)
-        self.assertIn(b'"update": true', data)
-
-    @patch("app.routes._validate_sse_token", return_value="user123")
-    @patch("app.routes._build_status_response", return_value={"status": "ok"})
-    @patch("app.routes.sse_manager")
-    def test_sse_evict_sentinel(self, mock_sse, mock_status, mock_validate):
-        """Lines 798-805: EVICT_SENTINEL causes reconnect."""
-        from app.sse import EVICT_SENTINEL
-
-        def capture_add_client(q, gid):
-            q.put(EVICT_SENTINEL)
-            return True
-        mock_sse.add_client.side_effect = capture_add_client
-
-        with patch("app.routes.SSE_KEEPALIVE_INTERVAL", 0.5):
-            resp = self.client.get("/api/events?token=valid")
-            data = b"".join(resp.response)
-        self.assertIn(b"reconnect", data)
-
-    @patch("app.routes._validate_sse_token", return_value="user123")
-    @patch("app.routes._build_status_response", side_effect=Exception("boom"))
-    @patch("app.routes.sse_manager")
-    def test_sse_generic_exception(self, mock_sse, mock_status, mock_validate):
-        """Line 822: generic exception in event_stream."""
-        mock_sse.add_client.return_value = True
-        resp = self.client.get("/api/events?token=valid")
-        # Should not crash; generator handles exception
-        data = b"".join(resp.response)
-        self.assertIn(b"retry:", data)
-
-    @patch("app.routes._validate_sse_token", return_value="user123")
-    @patch("app.routes._build_status_response", side_effect=BrokenPipeError("broken"))
-    @patch("app.routes.sse_manager")
-    def test_sse_broken_pipe(self, mock_sse, mock_status, mock_validate):
-        """Lines 818-819: BrokenPipeError in event_stream."""
-        mock_sse.add_client.return_value = True
-        resp = self.client.get("/api/events?token=valid")
-        data = b"".join(resp.response)
-        self.assertIn(b"retry:", data)
 
 
 class TestFetchUncachedLTPsException(unittest.TestCase):

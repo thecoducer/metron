@@ -238,7 +238,7 @@ function removeDrawerAccount(name) {
       target: '.overview-top-right',
       iconClass: 'tour-icon-refresh',
       title: 'Refresh & status',
-      desc: 'Hit refresh to fetch the latest data. Auto-refresh runs during market hours.<br><br><strong>Status dot:</strong> <span style="color:#f59e0b">●</span>&nbsp;updating, <span style="color:#22c55e">●</span>&nbsp;market open, <span style="color:#ef4444">●</span>&nbsp;market closed. Shows how long ago data was last refreshed.',
+      desc: 'Hit refresh to fetch the latest data.<br><br><strong>Status dot:</strong> <span style="color:#f59e0b">●</span>&nbsp;updating, <span style="color:#22c55e">●</span>&nbsp;market open, <span style="color:#ef4444">●</span>&nbsp;market closed. Shows how long ago data was last refreshed.',
       position: 'bottom-end',
     },
     {

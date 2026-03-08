@@ -103,6 +103,18 @@ def credentials_from_dict(data: dict) -> Credentials:
 
     The dict is the format stored in Firebase (token, refresh_token, etc.).
     """
+    from datetime import datetime
+
+    expiry = None
+    raw_expiry = data.get("expiry")
+    if raw_expiry:
+        try:
+            expiry = datetime.fromisoformat(raw_expiry)
+            if expiry.tzinfo is not None:
+                expiry = expiry.replace(tzinfo=None)
+        except (ValueError, TypeError):
+            pass
+
     return Credentials(
         token=data.get("token"),
         refresh_token=data.get("refresh_token"),
@@ -110,12 +122,13 @@ def credentials_from_dict(data: dict) -> Credentials:
         client_id=data.get("client_id"),
         client_secret=data.get("client_secret"),
         scopes=data.get("scopes", USER_SCOPES),
+        expiry=expiry,
     )
 
 
 def credentials_to_dict(creds: Credentials) -> dict:
     """Serialise a :class:`Credentials` object to a plain dict for storage."""
-    return {
+    d = {
         "token": creds.token,
         "refresh_token": creds.refresh_token,
         "token_uri": creds.token_uri,
@@ -123,6 +136,21 @@ def credentials_to_dict(creds: Credentials) -> dict:
         "client_secret": creds.client_secret,
         "scopes": list(creds.scopes) if creds.scopes else USER_SCOPES,
     }
+    if creds.expiry:
+        d["expiry"] = creds.expiry.isoformat()
+    return d
+
+
+def persist_refreshed_credentials(creds: Credentials, google_id: str) -> None:
+    """If the library auto-refreshed the token, persist the new credentials."""
+    if not creds.token or not google_id:
+        return
+    try:
+        from ..firebase_store import update_google_credentials
+        update_google_credentials(google_id, credentials_to_dict(creds))
+        logger.debug("Persisted refreshed Google credentials for %s", google_id[:8])
+    except Exception:
+        logger.warning("Failed to persist refreshed credentials for %s", google_id[:8])
 
 
 def get_user_info(credentials: Credentials) -> dict:

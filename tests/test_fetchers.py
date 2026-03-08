@@ -1,21 +1,19 @@
 """
-Unit tests for fetchers.py (data fetching and auto-refresh logic).
+Unit tests for fetchers.py (data fetching logic).
 """
 import threading
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 from requests.exceptions import Timeout, ConnectionError
 
-from app.fetchers import (_should_auto_refresh, _should_fetch_gold_prices,
+from app.fetchers import (_should_fetch_gold_prices,
                           _filter_symbols_to_fetch, _batch_fetch_quotes,
                           _update_ltp_cache, _wait_for_symbols,
                           _bg_fetch_and_broadcast_ltps,
-                          _process_pending_ltp_retries,
                           _start_ltp_fetch_thread, _fetch_all_data,
                           collect_manual_symbols, fetch_manual_ltps,
                           fetch_gold_prices, fetch_nifty50_data,
-                          fetch_portfolio_data, run_background_fetch,
-                          run_auto_refresh)
+                          fetch_portfolio_data, run_background_fetch)
 
 
 class TestFetchPortfolioData(unittest.TestCase):
@@ -145,44 +143,6 @@ class TestRunBackgroundFetch(unittest.TestCase):
             run_background_fetch(google_id="user1", accounts=[{"name": "Acc1"}])
 
             mock_thread.assert_called()
-
-
-class TestShouldAutoRefresh(unittest.TestCase):
-    """Test _should_auto_refresh decision logic."""
-
-    @patch('app.fetchers.sse_manager')
-    @patch('app.fetchers.is_market_open_ist')
-    def test_market_closed(self, mock_market_open, mock_sse):
-        with patch('app.fetchers.app_config') as mock_config:
-            mock_config.auto_refresh_outside_market_hours = False
-            mock_market_open.return_value = False
-
-            should_run, reason = _should_auto_refresh()
-
-            self.assertFalse(should_run)
-            self.assertIn("market closed", reason)
-
-    @patch('app.fetchers.sse_manager')
-    @patch('app.fetchers.is_market_open_ist')
-    def test_no_connected_users(self, mock_market, mock_sse):
-        mock_market.return_value = True
-        mock_sse.connected_user_ids.return_value = set()
-
-        should_run, reason = _should_auto_refresh()
-
-        self.assertFalse(should_run)
-        self.assertIn("no active", reason)
-
-    @patch('app.fetchers.sse_manager')
-    @patch('app.fetchers.is_market_open_ist')
-    def test_allowed(self, mock_market_open, mock_sse):
-        mock_market_open.return_value = True
-        mock_sse.connected_user_ids.return_value = {"user1"}
-
-        should_run, reason = _should_auto_refresh()
-
-        self.assertTrue(should_run)
-        self.assertIsNone(reason)
 
 
 class TestZerodhaClientFetchAccountData(unittest.TestCase):
@@ -336,32 +296,10 @@ class TestBgFetchAndBroadcastLtps(unittest.TestCase):
         mock_state.set_portfolio_updated.assert_called_once()
 
     @patch('app.fetchers._wait_for_symbols', return_value=[])
-    @patch('app.fetchers._pending_ltp_retries', set())
-    def test_no_symbols_queues_retry(self, mock_wait):
-        import app.fetchers as f
+    def test_no_symbols_returns_early(self, mock_wait):
+        """No symbols means return early (no retry queue)."""
         _bg_fetch_and_broadcast_ltps("user1", None, False)
-        self.assertIn("user1", f._pending_ltp_retries)
-
-
-class TestProcessPendingLtpRetries(unittest.TestCase):
-    @patch('app.fetchers.threading.Thread')
-    @patch('app.fetchers.collect_manual_symbols', return_value=["INFY"])
-    @patch('app.fetchers.sse_manager')
-    def test_retries_connected_user(self, mock_sse, mock_collect, mock_thread):
-        import app.fetchers as f
-        f._pending_ltp_retries.add("user1")
-        mock_sse.connected_user_ids.return_value = {"user1"}
-        mock_thread.return_value = Mock()
-        _process_pending_ltp_retries()
-        mock_thread.assert_called_once()
-
-    @patch('app.fetchers.sse_manager')
-    def test_discards_disconnected(self, mock_sse):
-        import app.fetchers as f
-        f._pending_ltp_retries.add("user1")
-        mock_sse.connected_user_ids.return_value = set()
-        _process_pending_ltp_retries()
-        self.assertNotIn("user1", f._pending_ltp_retries)
+        # Should not raise or crash
 
 
 class TestStartLtpFetchThread(unittest.TestCase):
@@ -444,25 +382,10 @@ class TestBgFetchBroadcastException(unittest.TestCase):
     @patch('app.fetchers.state_manager')
     @patch('app.fetchers.fetch_manual_ltps', side_effect=Exception("boom"))
     @patch('app.fetchers._wait_for_symbols', return_value=["INFY"])
-    @patch('app.fetchers._pending_ltp_lock', new_callable=lambda: threading.Lock)
-    def test_exception_caught(self, mock_lock, mock_wait, mock_fetch, mock_state):
+    def test_exception_caught(self, mock_wait, mock_fetch, mock_state):
         from app.fetchers import _bg_fetch_and_broadcast_ltps
         _bg_fetch_and_broadcast_ltps("user1", None, False)
         # Should not raise
-
-
-class TestProcessPendingDisconnected(unittest.TestCase):
-    @patch('app.fetchers.collect_manual_symbols')
-    @patch('app.fetchers.sse_manager')
-    def test_disconnected_user_removed(self, mock_sse, mock_collect):
-        from app.fetchers import _process_pending_ltp_retries, _pending_ltp_retries, _pending_ltp_lock
-        with _pending_ltp_lock:
-            _pending_ltp_retries.add("disconnected_user")
-        mock_sse.connected_user_ids.return_value = set()
-        _process_pending_ltp_retries()
-        with _pending_ltp_lock:
-            self.assertNotIn("disconnected_user", _pending_ltp_retries)
-        mock_collect.assert_not_called()
 
 
 class TestFetchPortfolioPartialError(unittest.TestCase):
@@ -558,103 +481,6 @@ class TestFetchNifty50Errors(unittest.TestCase):
             target = mock_thread.call_args.kwargs.get('target') or mock_thread.call_args[1].get('target')
             target()
         mock_state.set_nifty50_updated.assert_called()
-
-
-class TestRunAutoRefresh(unittest.TestCase):
-    @patch('app.fetchers._start_ltp_fetch_thread')
-    @patch('app.fetchers.get_authenticated_accounts', return_value=[])
-    @patch('app.fetchers.user_sheets_cache')
-    @patch('app.fetchers.collect_manual_symbols', return_value=[])
-    @patch('app.fetchers.fetch_gold_prices')
-    @patch('app.fetchers.fetch_nifty50_data')
-    @patch('app.fetchers._process_pending_ltp_retries')
-    @patch('app.fetchers.broadcast_state_change')
-    @patch('app.fetchers.is_market_open_ist', return_value=True)
-    @patch('app.fetchers.sse_manager')
-    @patch('app.fetchers.app_config')
-    @patch('time.sleep', side_effect=[None, StopIteration])
-    def test_one_cycle(self, mock_sleep, mock_config, mock_sse, mock_market,
-                        mock_broadcast, mock_retries, mock_n50, mock_gold,
-                        mock_collect, mock_usc, mock_auth, mock_ltp):
-        mock_config.auto_refresh_interval = 1
-        mock_config.auto_refresh_outside_market_hours = False
-        mock_sse.connected_user_ids.return_value = {"user1"}
-        with self.assertRaises(StopIteration):
-            run_auto_refresh()
-        mock_retries.assert_called()
-        mock_n50.assert_called()
-
-    @patch('app.fetchers._start_ltp_fetch_thread')
-    @patch('app.fetchers.fetch_portfolio_data')
-    @patch('app.fetchers.get_authenticated_accounts', return_value=[{"name": "A"}])
-    @patch('app.fetchers.user_sheets_cache')
-    @patch('app.fetchers.collect_manual_symbols', return_value=["INFY"])
-    @patch('app.fetchers.fetch_gold_prices')
-    @patch('app.fetchers.fetch_nifty50_data')
-    @patch('app.fetchers._process_pending_ltp_retries')
-    @patch('app.fetchers.broadcast_state_change')
-    @patch('app.fetchers.is_market_open_ist', return_value=True)
-    @patch('app.fetchers.sse_manager')
-    @patch('app.fetchers.app_config')
-    @patch('app.fetchers.portfolio_cache')
-    @patch('time.sleep', side_effect=[None, StopIteration])
-    def test_with_auth_accounts_and_symbols(self, mock_sleep, mock_pc, mock_config,
-                                             mock_sse, mock_market, mock_broadcast,
-                                             mock_retries, mock_n50, mock_gold,
-                                             mock_collect, mock_usc, mock_auth,
-                                             mock_fetch_pf, mock_ltp):
-        mock_config.auto_refresh_interval = 1
-        mock_config.auto_refresh_outside_market_hours = False
-        mock_sse.connected_user_ids.return_value = {"user1"}
-        mock_pc.is_fetch_in_progress.return_value = False
-        with self.assertRaises(StopIteration):
-            run_auto_refresh()
-        mock_ltp.assert_called()
-
-    @patch('app.fetchers._process_pending_ltp_retries')
-    @patch('app.fetchers.broadcast_state_change')
-    @patch('app.fetchers.is_market_open_ist')
-    @patch('app.fetchers.sse_manager')
-    @patch('app.fetchers.app_config')
-    @patch('time.sleep', side_effect=[None, None, StopIteration])
-    def test_market_state_transition(self, mock_sleep, mock_config, mock_sse,
-                                      mock_market, mock_broadcast, mock_retries):
-        mock_config.auto_refresh_interval = 1
-        mock_config.auto_refresh_outside_market_hours = False
-        mock_sse.connected_user_ids.return_value = set()
-        # First cycle: market open, second: market closed => transition
-        mock_market.side_effect = [True, False, False]
-        with self.assertRaises(StopIteration):
-            run_auto_refresh()
-        mock_broadcast.assert_called()
-
-    @patch('app.fetchers._process_pending_ltp_retries')
-    @patch('app.fetchers.is_market_open_ist', return_value=False)
-    @patch('app.fetchers.sse_manager')
-    @patch('app.fetchers.app_config')
-    @patch('time.sleep', side_effect=[None, StopIteration])
-    def test_skipped_market_closed(self, mock_sleep, mock_config, mock_sse,
-                                    mock_market, mock_retries):
-        """Auto-refresh skips when market is closed and no SSE connections."""
-        mock_config.auto_refresh_interval = 1
-        mock_config.auto_refresh_outside_market_hours = False
-        mock_sse.connected_user_ids.return_value = set()
-        with self.assertRaises(StopIteration):
-            run_auto_refresh()
-
-
-class TestProcessPendingLtpRetryEmpty(unittest.TestCase):
-    """Cover fetchers.py line 174: user connected but no manual symbols."""
-
-    @patch('app.fetchers.collect_manual_symbols', return_value=[])
-    @patch('app.fetchers.sse_manager')
-    def test_connected_no_symbols_continues(self, mock_sse, mock_collect):
-        from app.fetchers import _process_pending_ltp_retries, _pending_ltp_retries, _pending_ltp_lock
-        mock_sse.connected_user_ids.return_value = {"u1"}
-        with _pending_ltp_lock:
-            _pending_ltp_retries.add("u1")
-        _process_pending_ltp_retries()
-        mock_collect.assert_called_once_with("u1")
 
 
 class TestFetchNifty50Success(unittest.TestCase):

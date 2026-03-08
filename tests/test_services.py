@@ -5,7 +5,7 @@ import json
 import unittest
 from unittest.mock import PropertyMock, patch, MagicMock
 
-from app.services import (_build_status_response, broadcast_state_change,
+from app.services import (_build_status_response,
                           ensure_user_loaded, get_user_accounts,
                           get_authenticated_accounts)
 
@@ -70,63 +70,6 @@ class TestBuildStatusResponse(unittest.TestCase):
             self.assertFalse(response['has_zerodha_accounts'])
             self.assertEqual(response['authenticated_accounts'], [])
             self.assertIsNone(response['portfolio_state'])
-
-
-class TestBroadcastStateChange(unittest.TestCase):
-    """Test broadcast_state_change sends to correct SSE clients."""
-
-    def test_user_specific_broadcast(self):
-        """When google_id is given, broadcast only to that user."""
-        with patch('app.services.sse_manager') as mock_sse, \
-             patch('app.services.state_manager') as mock_state, \
-             patch('app.services.session_manager') as mock_session, \
-             patch('app.services.format_timestamp', return_value=None), \
-             patch('app.services.is_market_open_ist', return_value=True), \
-             patch('app.services.get_user_accounts', return_value=[]):
-            mock_state.last_error = None
-            mock_state.get_portfolio_state.return_value = 'updated'
-            mock_state.get_portfolio_last_updated.return_value = None
-            mock_state.get_user_last_error.return_value = None
-            mock_state.nifty50_state = 'updated'
-            mock_state.nifty50_last_updated = None
-            mock_state.physical_gold_state = None
-            mock_state.physical_gold_last_updated = None
-            mock_state.fixed_deposits_state = None
-            mock_state.fixed_deposits_last_updated = None
-
-            broadcast_state_change(google_id="user123")
-
-            mock_sse.broadcast_to_user.assert_called_once()
-            call_args = mock_sse.broadcast_to_user.call_args
-            self.assertEqual(call_args[0][0], "user123")
-            message = json.loads(call_args[0][1])
-            self.assertEqual(message['portfolio_state'], 'updated')
-
-    def test_global_broadcast_sends_to_all_connected(self):
-        """When no google_id, broadcast to every connected user."""
-        with patch('app.services.sse_manager') as mock_sse, \
-             patch('app.services.state_manager') as mock_state, \
-             patch('app.services.session_manager') as mock_session, \
-             patch('app.services.format_timestamp', return_value=None), \
-             patch('app.services.is_market_open_ist', return_value=True), \
-             patch('app.services.get_user_accounts', return_value=[]):
-            mock_state.last_error = None
-            mock_state.get_portfolio_state.return_value = None
-            mock_state.get_portfolio_last_updated.return_value = None
-            mock_state.get_user_last_error.return_value = None
-            mock_state.nifty50_state = 'updated'
-            mock_state.nifty50_last_updated = None
-            mock_state.physical_gold_state = None
-            mock_state.physical_gold_last_updated = None
-            mock_state.fixed_deposits_state = None
-            mock_state.fixed_deposits_last_updated = None
-
-            mock_sse.connected_user_ids.return_value = {"userA", "userB"}
-
-            broadcast_state_change()
-
-            # Should call broadcast_to_user for each connected user
-            self.assertEqual(mock_sse.broadcast_to_user.call_count, 2)
 
 
 class TestEnsureUserLoaded(unittest.TestCase):
@@ -227,25 +170,6 @@ class TestBuildStatusResponseUnauthenticated(unittest.TestCase):
         self.assertIn("login_url", result["unauthenticated_accounts"][0])
 
 
-class TestBroadcastError(unittest.TestCase):
-    """Test broadcast_state_change error handling."""
-
-    @patch('app.services.sse_manager')
-    @patch('app.services._build_status_response', side_effect=Exception("boom"))
-    def test_per_user_error_is_caught(self, mock_build, mock_sse):
-        mock_sse.connected_user_ids.return_value = {"u1"}
-        mock_sse.broadcast_to_user.side_effect = Exception("sse fail")
-        # Should not raise
-        broadcast_state_change()
-
-    @patch('app.services.sse_manager')
-    def test_global_broadcast_per_user_error(self, mock_sse):
-        mock_sse.connected_user_ids.return_value = {"u1"}
-        mock_sse.broadcast_to_user.side_effect = Exception("sse fail")
-        with patch('app.services._build_status_response', return_value={"status": "ok"}):
-            broadcast_state_change()  # should not raise
-
-
 class TestGetAuthenticatedAccounts(unittest.TestCase):
     """Test get_authenticated_accounts helper."""
 
@@ -307,23 +231,6 @@ class TestBuildStatusKiteConnectException(unittest.TestCase):
         self.assertEqual(len(result["unauthenticated_accounts"]), 1)
         self.assertIsNone(result["unauthenticated_accounts"][0]["login_url"])
         self.assertIsNone(result["login_urls"]["Acc1"])
-
-
-class TestBroadcastGlobalPerUserBuildException(unittest.TestCase):
-    """Test broadcast_state_change outer exception handler (lines 124-125)."""
-
-    @patch('app.services.sse_manager')
-    def test_outer_exception_from_single_user_broadcast(self, mock_sse):
-        """When google_id is given and broadcast fails, outer except catches it."""
-        with patch('app.services._build_status_response', side_effect=RuntimeError("build boom")):
-            broadcast_state_change(google_id="u1")  # should not raise
-        # The outer except at line 124 caught RuntimeError
-
-    @patch('app.services.sse_manager')
-    def test_outer_exception_from_connected_user_ids(self, mock_sse):
-        """When connected_user_ids() itself fails, outer except catches it."""
-        mock_sse.connected_user_ids.side_effect = RuntimeError("SSE boom")
-        broadcast_state_change()  # should not raise
 
 
 if __name__ == '__main__':
