@@ -9,12 +9,11 @@ RUN pip install --no-cache-dir -r requirements-prod.txt
 # Copy application code (secrets excluded via .dockerignore)
 COPY . .
 
-# Cloud Run injects PORT env var (default 8080)
+# Render injects PORT env var; default 8080 for local Docker testing
 ENV PORT=8080
 
-# Allow OAUTHLIB to work over HTTP behind Cloud Run's HTTPS proxy
+# Allow OAUTHLIB to work over HTTP behind Render's HTTPS proxy
 ENV OAUTHLIB_INSECURE_TRANSPORT=0
 ENV OAUTHLIB_RELAX_TOKEN_SCOPE=1
 
-# Gunicorn with gevent for SSE streaming support
 CMD exec gunicorn wsgi:app -c gunicorn.conf.py

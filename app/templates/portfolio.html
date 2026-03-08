@@ -934,9 +934,6 @@ window.metronFetch = async function(url, options) {
 {% if initial_data_json %}
 <script>window.__INITIAL_DATA__ = {{ initial_data_json | safe }};</script>
 {% endif %}
-{% if sse_base_url %}
-<script>window.__SSE_CONFIG__ = { baseUrl: "{{ sse_base_url }}" };</script>
-{% endif %}
 <script>window.__TABLE_ROW_LIMIT__ = {{ table_row_limit }};</script>
 <script type="module" src="/static/js/app.js"></script>
 </body>

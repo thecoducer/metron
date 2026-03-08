@@ -1,4 +1,4 @@
-"""Background data fetching and auto-refresh scheduling.
+"""Background data fetching (on-demand).
 
 Portfolio fetching is per-user; market data (Nifty 50, gold) is global.
 Manual stock/ETF LTP fetching is per-user and non-blocking.
@@ -15,23 +15,10 @@ from .api import MarketDataClient
 from .api.ibja_gold_price import get_gold_price_service
 from .cache import (market_cache, manual_ltp_cache, nifty50_fetch_in_progress,
                     portfolio_cache, user_sheets_cache)
-from .config import app_config
 from .constants import GOLD_PRICE_FETCH_HOURS, NIFTY50_FALLBACK_SYMBOLS
 from .logging_config import logger
 from .services import (state_manager, zerodha_client, session_manager,
-                       get_user_accounts, get_authenticated_accounts,
-                       broadcast_state_change)
-from .sse import sse_manager
-from .utils import is_market_open_ist
-
-
-# ---------------------------------------------------------------------------
-# Manual LTP retry queue
-# ---------------------------------------------------------------------------
-# Users whose initial LTP fetch couldn't resolve symbols (cold sheets cache).
-# Retried on the next auto-refresh cycle regardless of market hours.
-_pending_ltp_retries: set = set()
-_pending_ltp_lock = threading.Lock()
+                       get_user_accounts, get_authenticated_accounts)
 
 _LTP_CACHE_WARMUP_INTERVAL = 2   # seconds between polls
 _LTP_CACHE_WARMUP_ATTEMPTS = 6   # max polls (~12 s total)
@@ -124,29 +111,23 @@ def _bg_fetch_and_broadcast_ltps(
     symbols: list | None,
     force: bool,
 ) -> None:
-    """Background thread: fetch LTPs then push an SSE update.
+    """Background thread: fetch LTPs then update state.
 
     If *symbols* is empty (first load, cold cache), polls until the sheets
     cache is populated by the concurrent ``/api/all_data`` request.
-    Falls back to the retry queue on failure.
     """
     try:
         syms = symbols or _wait_for_symbols(google_id)
 
         if not syms:
-            logger.info("Manual LTP: no symbols for %s, queuing retry", google_id[:8])
-            with _pending_ltp_lock:
-                _pending_ltp_retries.add(google_id)
+            logger.info("Manual LTP: no symbols for %s", google_id[:8])
             return
-
-        with _pending_ltp_lock:
-            _pending_ltp_retries.discard(google_id)
 
         fetch_manual_ltps(syms, force=force)
         state_manager.set_portfolio_updated(google_id=google_id)
-        logger.debug("Manual LTP SSE broadcast fired for %s", google_id[:8])
+        logger.debug("Manual LTP fetch complete for %s", google_id[:8])
     except Exception:
-        logger.exception("Error in LTP fetch+broadcast for %s", google_id[:8])
+        logger.exception("Error in LTP fetch for %s", google_id[:8])
 
 
 def _wait_for_symbols(google_id: str) -> list:
@@ -158,33 +139,6 @@ def _wait_for_symbols(google_id: str) -> list:
             return syms
         time.sleep(_LTP_CACHE_WARMUP_INTERVAL)
     return []
-
-
-def _process_pending_ltp_retries() -> None:
-    """Retry LTP fetches for users that failed on first load."""
-    with _pending_ltp_lock:
-        pending = set(_pending_ltp_retries)
-
-    connected = sse_manager.connected_user_ids()
-    for gid in pending:
-        if gid not in connected:
-            with _pending_ltp_lock:
-                _pending_ltp_retries.discard(gid)
-            continue
-
-        syms = collect_manual_symbols(gid)
-        if not syms:
-            continue
-
-        logger.debug("Manual LTP retry for %s: %d symbols", gid[:8], len(syms))
-        with _pending_ltp_lock:
-            _pending_ltp_retries.discard(gid)
-        threading.Thread(
-            target=_bg_fetch_and_broadcast_ltps,
-            args=(gid, syms, False),
-            name=f"RetryLTP-{gid[:8]}",
-            daemon=True,
-        ).start()
 
 
 def _start_ltp_fetch_thread(google_id: str, symbols: list | None,
@@ -381,94 +335,4 @@ def _fetch_all_data(google_id: Optional[str], accounts: Optional[list],
     if google_id and not has_portfolio:
         portfolio_cache.clear(google_id)
         state_manager.set_portfolio_updated(google_id=google_id)
-
-
-# ===================================================================
-# Auto-refresh loop
-# ===================================================================
-
-def _should_auto_refresh() -> tuple[bool, Optional[str]]:
-    if not is_market_open_ist() and not app_config.auto_refresh_outside_market_hours:
-        return False, "market closed"
-    if not sse_manager.connected_user_ids():
-        return False, "no active SSE connections"
-    return True, None
-
-
-def run_auto_refresh() -> None:
-    """Periodically refresh data for all connected users.
-
-    Runs in its own thread (started at server boot). Each cycle:
-    1. Broadcasts market open/close transitions
-    2. Processes pending LTP retries (any market state)
-    3. Fetches Nifty 50 + gold (global)
-    4. Fetches portfolio per user (concurrent)
-    5. Fires non-blocking per-user manual LTP fetch + SSE broadcast
-    """
-    last_market_open: Optional[bool] = None
-
-    while True:
-        time.sleep(app_config.auto_refresh_interval)
-
-        # 1. Broadcast market state transitions
-        current_market_open = is_market_open_ist()
-        if last_market_open is not None and current_market_open != last_market_open:
-            logger.info("Market state changed: %s → %s",
-                        "open" if last_market_open else "closed",
-                        "open" if current_market_open else "closed")
-            broadcast_state_change()
-        last_market_open = current_market_open
-
-        # 2. Retry failed LTP fetches (runs regardless of market hours)
-        _process_pending_ltp_retries()
-
-        # 3. Check if full refresh should run
-        should_run, reason = _should_auto_refresh()
-        if not should_run:
-            logger.debug("Auto-refresh skipped: %s", reason)
-            continue
-
-        connected = list(sse_manager.connected_user_ids())
-        logger.info("Auto-refresh cycle: %d connected users, market=%s",
-                    len(connected),
-                    "open" if current_market_open else "closed")
-
-        # 4. Global market data
-        fetch_nifty50_data()
-        fetch_gold_prices()
-
-        # 5. Per-user: collect symbols → invalidate → fetch portfolio → LTP
-        connected = list(sse_manager.connected_user_ids())
-
-        # Collect symbols BEFORE invalidation (cache will be cleared)
-        per_user_symbols = {
-            gid: syms
-            for gid in connected
-            if (syms := collect_manual_symbols(gid))
-        }
-
-        user_threads = []
-        for gid in connected:
-            user_sheets_cache.invalidate(gid)
-
-            if not portfolio_cache.is_fetch_in_progress(gid):
-                auth = get_authenticated_accounts(gid)
-                if auth:
-                    t = threading.Thread(
-                        target=fetch_portfolio_data, args=(gid, auth),
-                        name=f"AutoRefresh-{gid[:8]}", daemon=True)
-                    user_threads.append(t)
-                    t.start()
-                else:
-                    state_manager.set_portfolio_updating(google_id=gid)
-                    state_manager.set_portfolio_updated(google_id=gid)
-
-        for t in user_threads:
-            t.join()
-
-        # 6. Non-blocking LTP fetch per user
-        for gid in connected:
-            syms = per_user_symbols.get(gid)
-            if syms:
-                _start_ltp_fetch_thread(gid, syms, force=True, prefix="AutoLTP")
 

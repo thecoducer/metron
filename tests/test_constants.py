@@ -7,7 +7,6 @@ from app.constants import (HTTP_ACCEPTED, HTTP_CONFLICT, HTTP_OK, STATE_ERROR,
                            STATE_UPDATED, STATE_UPDATING,
                            NSE_REQUEST_TIMEOUT, NSE_REQUEST_DELAY,
                            GOOGLE_SHEETS_TIMEOUT, IBJA_GOLD_PRICE_TIMEOUT,
-                           SSE_KEEPALIVE_INTERVAL,
                            TOKEN_WAIT_POLL_INTERVAL,
                            EPF_HISTORICAL_RATES, EPF_DEFAULT_RATE)
 
@@ -50,8 +49,6 @@ class TestConstants(unittest.TestCase):
 
     def test_timing_constants(self):
         """Test timing / polling constants"""
-        self.assertIsInstance(SSE_KEEPALIVE_INTERVAL, (int, float))
-        self.assertGreater(SSE_KEEPALIVE_INTERVAL, 0)
         self.assertIsInstance(TOKEN_WAIT_POLL_INTERVAL, (int, float))
         self.assertGreater(TOKEN_WAIT_POLL_INTERVAL, 0)
 

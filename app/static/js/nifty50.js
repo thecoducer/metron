@@ -1,28 +1,27 @@
 // Nifty 50 Page Application
 import { Formatter, metronFetch } from './utils.js';
 import PaginationManager from './pagination.js';
-import SSEConnectionManager from './sse-manager.js';
 
 class Nifty50App {
   constructor() {
     this.nifty50Data = [];
     this.nifty50SortOrder = 'default';
     this.nifty50Pagination = new PaginationManager(50, 1);
-    this.sseManager = new SSEConnectionManager();
-    this._wasUpdating = false;
-    this._lastNifty50Timestamp = 0;  // Track last Nifty 50 update timestamp
-    this.lastNifty50UpdatedAt = null;  // Track last update time for relative display
+    this.lastNifty50UpdatedAt = null;
   }
 
   async init() {
     this.setupTheme();
     this.setupHeaderSortListeners();
-    this.connectEventSource();
     this.renderNifty50Table();
     this._startRelativeStatusUpdater();
-    if (!this.nifty50Data || this.nifty50Data.length === 0) {
-      await this.updateNifty50();
-    }
+    // Fetch data once on load
+    await this.updateNifty50();
+    // Fetch initial status
+    try {
+      const status = await this._fetchStatus();
+      this._applyStatus(status);
+    } catch (e) { /* ignore */ }
   }
 
   setupHeaderSortListeners() {
@@ -95,23 +94,21 @@ class Nifty50App {
     }
   }
 
-  connectEventSource() {
-    this.sseManager.onMessage((status) => this.handleStatusUpdate(status));
-    this.sseManager.connect();
+  async _fetchStatus() {
+    const resp = await metronFetch('/api/status');
+    if (!resp.ok) throw new Error(`Status fetch failed: ${resp.status}`);
+    return resp.json();
   }
 
-  handleStatusUpdate(status) {
+  _applyStatus(status) {
     const statusTag = document.getElementById('status_tag');
     const statusText = document.getElementById('status_text');
     const isUpdating = this._isStatusUpdating(status);
-    
-    // Nifty50 doesn't need login - it uses public NSE API
-    // So we ignore waitingForLogin and needsLogin states
-    
+
     statusTag.classList.toggle('updating', isUpdating);
     statusTag.classList.toggle('updated', !isUpdating);
     statusTag.classList.toggle('market_closed', status.market_open === false);
-    
+
     if (isUpdating) {
       statusText.innerText = 'updating';
     } else {
@@ -120,31 +117,18 @@ class Nifty50App {
     }
 
     this._updateRefreshButton(isUpdating);
-    
-    if (this.nifty50Data && this.nifty50Data.length > 0) {
-      this.renderNifty50Table(status);
-    }
+  }
 
-    // Fetch new data when:
-    // 1. Status changed from 'updating' to 'updated' (refresh completed)
-    // 2. Status is 'updated' but we have no data yet (initial load)
-    // 3. Nifty 50 timestamp has changed (new data available)
-    // Important: Use > instead of !== to handle any timestamp updates (including same values from rapid refreshes)
-    const nifty50Updated = status.nifty50_last_updated && 
-                          status.nifty50_last_updated > 0 &&
-                          status.nifty50_last_updated !== this._lastNifty50Timestamp;
-    
-    const statusTransitioned = !isUpdating && this._wasUpdating;
-    const noData = !isUpdating && this.nifty50Data.length === 0;
-    
-    const shouldFetchData = statusTransitioned || noData || nifty50Updated;
-    
-    if (shouldFetchData) {
-      this._lastNifty50Timestamp = status.nifty50_last_updated;
-      this.updateNifty50();
+  async _pollUntilDone() {
+    const POLL_INTERVAL = 2000;
+    const MAX_POLLS = 90;
+    for (let i = 0; i < MAX_POLLS; i++) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL));
+      const status = await this._fetchStatus();
+      this._applyStatus(status);
+      if (!this._isStatusUpdating(status)) return status;
     }
-    
-    this._wasUpdating = isUpdating;
+    return this._fetchStatus();
   }
 
   _isStatusUpdating(status) {
@@ -314,7 +298,6 @@ class Nifty50App {
   }
 
   cleanup() {
-    this.sseManager.disconnect();
     if (this.relativeStatusTimer) clearInterval(this.relativeStatusTimer);
   }
 }
@@ -337,17 +320,34 @@ window.toggleTheme = function() {
 };
 
 window.triggerRefresh = async function() {
+  const app = window.nifty50App;
+  if (!app) return;
   const refreshBtn = document.getElementById('refresh_btn');
-  if (refreshBtn.disabled) return;
+  if (refreshBtn?.disabled) return;
+
+  app._updateRefreshButton(true);
+  const statusTag = document.getElementById('status_tag');
+  const statusText = document.getElementById('status_text');
+  if (statusTag) statusTag.className = 'updating';
+  if (statusText) statusText.innerText = 'updating';
 
   try {
     const response = await metronFetch('/api/refresh', { method: 'POST' });
-    if (!response.ok) {
+    if (!response.ok && response.status !== 409) {
       console.error('Refresh failed:', response.status);
     }
+    // Poll until done, then re-fetch data
+    await app._pollUntilDone();
+    await app.updateNifty50();
   } catch (error) {
     console.error('Error triggering refresh:', error);
   }
+
+  app._updateRefreshButton(false);
+  try {
+    const status = await app._fetchStatus();
+    app._applyStatus(status);
+  } catch (e) { /* ignore */ }
 };
 
 window.sortNifty50Table = function(sortOrder) {

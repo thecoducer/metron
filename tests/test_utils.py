@@ -385,36 +385,6 @@ class TestStateManager(unittest.TestCase):
         self.sm.set_portfolio_updated(google_id=_GID)
         self.assertFalse(self.sm.is_any_running(google_id=_GID))
 
-    # -- change listeners --------------------------------------------------
-
-    def test_change_listener_called(self):
-        called = []
-
-        def cb(**kwargs):
-            called.append(kwargs)
-
-        self.sm.add_change_listener(cb)
-        self.sm.set_portfolio_updating(google_id=_GID)
-        self.assertTrue(len(called) > 0)
-
-    def test_change_listener_receives_google_id(self):
-        received = []
-
-        def cb(google_id=None):
-            received.append(google_id)
-
-        self.sm.add_change_listener(cb)
-        self.sm.set_portfolio_updating(google_id=_GID)
-        self.assertEqual(received[-1], _GID)
-
-    def test_change_listener_error_handling(self):
-        """Bad listener should not crash state updates."""
-        def bad_cb(**kwargs):
-            raise RuntimeError("boom")
-
-        self.sm.add_change_listener(bad_cb)
-        self.sm.set_portfolio_updating(google_id=_GID)  # should not raise
-
     # -- clear_error -------------------------------------------------------
 
     def test_clear_error_global(self):
@@ -440,25 +410,6 @@ class TestStateManager(unittest.TestCase):
     def test_dynamic_unknown_attr_raises(self):
         with self.assertRaises(AttributeError):
             _ = self.sm.nonexistent_attribute
-
-    def test_listener_without_kwargs_fallback(self):
-        """Listener that doesn't accept kwargs calls without args."""
-        called = []
-
-        def no_kwargs_cb():
-            called.append(True)
-
-        self.sm.add_change_listener(no_kwargs_cb)
-        self.sm.set_portfolio_updating(google_id=_GID)
-        self.assertTrue(len(called) > 0)
-
-    def test_listener_no_kwargs_raises_also(self):
-        """Listener that raises even without kwargs is caught."""
-        def bad_no_kwargs():
-            raise RuntimeError("both paths fail")
-
-        self.sm.add_change_listener(bad_no_kwargs)
-        self.sm.set_portfolio_updating(google_id=_GID)  # should not raise
 
     def test_set_updating_with_error(self):
         """_set_updating with error sets last_error."""

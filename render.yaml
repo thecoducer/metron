@@ -1,0 +1,21 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy: connect this repo in the Render dashboard or use `render blueprint apply`
+
+services:
+  - type: web
+    name: metron
+    runtime: docker
+    plan: free
+    region: singapore          # closest to asia-south1 (current Cloud Run region)
+    healthCheckPath: /healthz
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_SECRET_KEY
+        sync: false            # prompted on first deploy
+      - key: ZERODHA_TOKEN_SECRET
+        sync: false
+      - key: FIREBASE_CREDENTIALS
+        sync: false            # paste full JSON of Firebase service account key
+      - key: GOOGLE_OAUTH_CREDENTIALS
+        sync: false            # paste full JSON of Google OAuth client secrets

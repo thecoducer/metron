@@ -22,8 +22,6 @@ class TestAppConfig(unittest.TestCase):
         self.assertEqual(cfg.ui_host, "127.0.0.1")
         self.assertEqual(cfg.ui_port, 8000)
         self.assertEqual(cfg.request_token_timeout, 180)
-        self.assertEqual(cfg.auto_refresh_interval, 60)
-        self.assertFalse(cfg.auto_refresh_outside_market_hours)
         self.assertFalse(cfg.features.get("allow_browser_api_access"))
 
     def test_from_env_custom_values(self):
@@ -32,8 +30,6 @@ class TestAppConfig(unittest.TestCase):
             "METRON_UI_HOST": "0.0.0.0",
             "METRON_UI_PORT": "9000",
             "METRON_REQUEST_TOKEN_TIMEOUT": "300",
-            "METRON_AUTO_REFRESH_INTERVAL": "30",
-            "METRON_AUTO_REFRESH_OUTSIDE_MARKET_HOURS": "true",
             "METRON_ALLOW_BROWSER_API_ACCESS": "1",
         }
         with patch.dict(os.environ, env, clear=True):
@@ -41,8 +37,6 @@ class TestAppConfig(unittest.TestCase):
         self.assertEqual(cfg.ui_host, "0.0.0.0")
         self.assertEqual(cfg.ui_port, 9000)
         self.assertEqual(cfg.request_token_timeout, 300)
-        self.assertEqual(cfg.auto_refresh_interval, 30)
-        self.assertTrue(cfg.auto_refresh_outside_market_hours)
         self.assertTrue(cfg.features["allow_browser_api_access"])
 
     def test_no_session_cache_file(self):

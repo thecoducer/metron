@@ -21,7 +21,6 @@ from flask import Flask
 
 from .config import app_config
 from .constants import SERVER_STARTUP_DELAY
-from .fetchers import fetch_nifty50_data, run_auto_refresh
 from .logging_config import configure, logger
 from .routes import app_ui
 
@@ -49,11 +48,6 @@ def start_server(app: Flask, host: str, port: int) -> threading.Thread:
     return thread
 
 
-def _start_auto_refresh_service() -> None:
-    """Initialize and start the auto-refresh background service."""
-    threading.Thread(target=run_auto_refresh, daemon=True, name="AutoRefresh").start()
-
-
 _shutdown_event = threading.Event()
 
 
@@ -69,9 +63,7 @@ def main() -> None:
 
     1. Configures logging.
     2. Starts the UI Flask server.
-    3. Triggers initial data fetch.
-    4. Starts the auto-refresh service.
-    5. Keeps the application running until SIGTERM/SIGINT.
+    3. Keeps the application running until SIGTERM/SIGINT.
     """
     try:
         configure()
@@ -87,11 +79,6 @@ def main() -> None:
         start_server(app_ui, app_config.ui_host, app_config.ui_port)
 
         logger.info("Servers ready. Press CTRL+C to stop.")
-
-        logger.info("Fetching initial Nifty50 data...")
-        fetch_nifty50_data()
-
-        _start_auto_refresh_service()
 
         # Block until shutdown signal
         _shutdown_event.wait()

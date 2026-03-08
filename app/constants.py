@@ -22,7 +22,6 @@ GOLD_PRICE_FETCH_HOURS = [13, 20]  # 1pm and 8pm IST
 
 # Default server configuration values
 DEFAULT_REQUEST_TOKEN_TIMEOUT = 180  # seconds
-DEFAULT_AUTO_REFRESH_INTERVAL = 60  # seconds
 DEFAULT_UI_HOST = "127.0.0.1"
 DEFAULT_UI_PORT = 8000
 
@@ -47,11 +46,7 @@ YF_RETRY_BASE_DELAY = 1.0   # exponential backoff base (1s, 2s, 4s)
 
 # Server startup / UI timing (seconds)
 SERVER_STARTUP_DELAY = 0.5
-SSE_KEEPALIVE_INTERVAL = 25  # SSE keepalive — must be < 60s (Firebase Hosting idle timeout)
 TOKEN_WAIT_POLL_INTERVAL = 5  # interval for polling request token
-SSE_TOKEN_MAX_AGE = 60        # SSE auth token validity (seconds) — short-lived;
-                              # only needs to be valid at connection time, not
-                              # for the full SSE session duration
 
 # Portfolio table row limit (displayed per table on the dashboard)
 # Only a developer should change this value from the backend.

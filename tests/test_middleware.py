@@ -252,7 +252,6 @@ class TestProtectedEndpoints(unittest.TestCase):
             "/api/fixed_deposits_data",
             "/api/fd_summary_data",
             "/api/status",
-            "/api/events",
             "/api/settings",
         ]
         for endpoint in protected_gets:

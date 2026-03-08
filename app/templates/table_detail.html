@@ -90,9 +90,6 @@ window.metronFetch = function(url, options) {
 };
 window.__TABLE_KEY__ = "{{ table_key }}";
 </script>
-{% if sse_base_url %}
-<script>window.__SSE_CONFIG__ = { baseUrl: "{{ sse_base_url }}" };</script>
-{% endif %}
 <script type="module" src="/static/js/table-detail.js"></script>
 </body>
 </html>
