@@ -302,6 +302,8 @@ class StateManager:
                 "last_error": None,
                 "manual_ltp_state": None,
                 "manual_ltp_last_updated": None,
+                "sheets_state": None,
+                "sheets_last_updated": None,
             })
 
     def add_change_listener(self, callback):
@@ -354,6 +356,28 @@ class StateManager:
 
     def get_manual_ltp_last_updated(self, google_id: str) -> Any:
         return self._get_user_state(google_id).get("manual_ltp_last_updated")
+
+    # Per-user sheets state
+
+    def set_sheets_updating(self, google_id: str) -> None:
+        if google_id:
+            us = self._get_user_state(google_id)
+            us["sheets_state"] = STATE_UPDATING
+
+    def set_sheets_updated(self, google_id: str, error: str = None) -> None:
+        if google_id:
+            us = self._get_user_state(google_id)
+            if error:
+                us["sheets_state"] = STATE_ERROR
+            else:
+                us["sheets_state"] = STATE_UPDATED
+                us["sheets_last_updated"] = time.time()
+
+    def get_sheets_state(self, google_id: str) -> Any:
+        return self._get_user_state(google_id).get("sheets_state")
+
+    def get_sheets_last_updated(self, google_id: str) -> Any:
+        return self._get_user_state(google_id).get("sheets_last_updated")
 
     # Global state (dynamic set_<type>_updating / set_<type>_updated)
 

@@ -54,6 +54,8 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_state.get_user_last_error.return_value = None
             mock_state.get_manual_ltp_state.return_value = None
             mock_state.get_manual_ltp_last_updated.return_value = None
+            mock_state.get_sheets_state.return_value = None
+            mock_state.get_sheets_last_updated.return_value = None
             mock_state.nifty50_state = 'updated'
             mock_state.nifty50_last_updated = None
             mock_state.physical_gold_state = 'updated'
@@ -566,7 +568,6 @@ class TestDataRoutes(unittest.TestCase):
         self.assertGreater(data["currentRate"], 0)
         self.assertGreater(data["defaultRate"], 0)
 
-    @patch("app.routes._prefetch_all_user_sheets")
     @patch("app.routes._build_stocks_data", return_value=[])
     @patch("app.routes._build_mf_data", return_value=[])
     @patch("app.routes._build_sips_data", return_value=[])
@@ -574,7 +575,7 @@ class TestDataRoutes(unittest.TestCase):
     @patch("app.routes._build_fd_data", return_value=[])
     @patch("app.routes._build_status_response", return_value={})
     def test_all_data(self, mock_status, mock_fd, mock_gold, mock_sips,
-                      mock_mf, mock_stocks, mock_prefetch):
+                      mock_mf, mock_stocks):
         _inject_user(self.client)
         resp = self.client.get("/api/all_data", headers=_APP_HEADERS)
         self.assertEqual(resp.status_code, 200)
@@ -895,7 +896,7 @@ class TestRouteHelpers(unittest.TestCase):
     """Test internal route helper functions."""
 
     def test_get_user_fetch_lock(self):
-        from app.routes import _get_user_fetch_lock
+        from app.fetchers import _get_user_fetch_lock
         lock1 = _get_user_fetch_lock("user1")
         lock2 = _get_user_fetch_lock("user1")
         self.assertIs(lock1, lock2)  # same lock for same user
@@ -1189,8 +1190,8 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
+    @patch("app.fetchers.user_sheets_cache")
+    @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
     @patch("app.api.google_auth.credentials_from_dict")
     @patch("app.api.google_sheets_client.GoogleSheetsClient")
     @patch("app.api.google_sheets_client.PhysicalGoldService")
@@ -1217,8 +1218,8 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         _prefetch_all_user_sheets({"google_id": "g1234567", "spreadsheet_id": "sid"})
         mock_usc.put_all.assert_called_once()
 
-    @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
+    @patch("app.fetchers.user_sheets_cache")
+    @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
     @patch("app.api.google_auth.credentials_from_dict", side_effect=Exception("boom"))
     def test_prefetch_exception(self, mock_creds, mock_get_creds, mock_usc):
         from app.routes import _prefetch_all_user_sheets
@@ -1226,8 +1227,8 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         _prefetch_all_user_sheets({"google_id": "g1234567", "spreadsheet_id": "sid"})
         # Should not raise
 
-    @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
+    @patch("app.fetchers.user_sheets_cache")
+    @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
     @patch("app.api.google_auth.credentials_from_dict",
            side_effect=type("RefreshError", (Exception,), {})("creds expired"))
     def test_prefetch_refresh_error_logs_warning(self, mock_creds, mock_get_creds, mock_usc):
@@ -1267,8 +1268,7 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         self.assertEqual(result, {"token": "stored"})
 
     @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._prefetch_all_user_sheets")
-    def test_fetch_user_sheets_data_cached(self, mock_prefetch, mock_usc):
+    def test_fetch_user_sheets_data_cached(self, mock_usc):
         from app.routes import _fetch_user_sheets_data
         cached_entry = Mock(physical_gold=[{"g": 1}], fixed_deposits=[{"fd": 1}], provident_fund=[{"pf": 1}])
         mock_usc.get.return_value = cached_entry
@@ -1277,16 +1277,16 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         gold, fds, pf = _fetch_user_sheets_data(user)
         self.assertEqual(gold, [{"g": 1}])
 
-    @patch("app.firebase_store.get_google_credentials", return_value=None)
-    @patch("app.routes._prefetch_all_user_sheets")
-    def test_fetch_user_sheets_data_no_creds(self, mock_prefetch, mock_get_creds):
+    @patch("app.routes.user_sheets_cache")
+    def test_fetch_user_sheets_data_no_cache(self, mock_usc):
         from app.routes import _fetch_user_sheets_data
+        mock_usc.get.return_value = None
         gold, fds, pf = _fetch_user_sheets_data({"google_id": "g1"})
         self.assertIsNone(gold)
         self.assertIsNone(fds)
 
     def test_fetch_lock_eviction(self):
-        from app.routes import _get_user_fetch_lock, _user_fetch_locks
+        from app.fetchers import _get_user_fetch_lock, _user_fetch_locks
         _user_fetch_locks.clear()
         for i in range(600):
             _get_user_fetch_lock(f"user_{i}")
@@ -1549,41 +1549,28 @@ class TestFetchManualEntries(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes._prefetch_all_user_sheets")
     @patch("app.routes.user_sheets_cache")
-    def test_fetch_manual_entries_unknown_type(self, mock_usc, mock_prefetch):
+    def test_fetch_manual_entries_unknown_type(self, mock_usc):
         from app.routes import _fetch_manual_entries
+        mock_usc.get_manual.return_value = None
         result = _fetch_manual_entries({"google_id": "g1"}, "nonexistent")
         self.assertEqual(result, [])
 
-    @patch("app.routes._prefetch_all_user_sheets")
     @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value=None)
-    def test_fetch_manual_entries_no_creds(self, mock_gc, mock_usc, mock_prefetch):
-        from app.routes import _fetch_manual_entries
-        result = _fetch_manual_entries(
-            {"google_id": "g1", "spreadsheet_id": "sid"}, "stocks")
-        self.assertEqual(result, [])
-
-    @patch("app.routes._prefetch_all_user_sheets")
-    @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
-    def test_fetch_manual_entries_cached(self, mock_gc, mock_usc, mock_prefetch):
-        from app.routes import _fetch_manual_entries
-        mock_usc.get_manual.return_value = [{"symbol": "INFY"}]
-        result = _fetch_manual_entries(
-            {"google_id": "g1", "spreadsheet_id": "sid"}, "stocks")
-        self.assertEqual(result, [{"symbol": "INFY"}])
-
-    @patch("app.routes._prefetch_all_user_sheets")
-    @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
-    def test_fetch_manual_entries_cache_miss(self, mock_gc, mock_usc, mock_prefetch):
+    def test_fetch_manual_entries_no_cache(self, mock_usc):
         from app.routes import _fetch_manual_entries
         mock_usc.get_manual.return_value = None
         result = _fetch_manual_entries(
             {"google_id": "g1", "spreadsheet_id": "sid"}, "stocks")
         self.assertEqual(result, [])
+
+    @patch("app.routes.user_sheets_cache")
+    def test_fetch_manual_entries_cached(self, mock_usc):
+        from app.routes import _fetch_manual_entries
+        mock_usc.get_manual.return_value = [{"symbol": "INFY"}]
+        result = _fetch_manual_entries(
+            {"google_id": "g1", "spreadsheet_id": "sid"}, "stocks")
+        self.assertEqual(result, [{"symbol": "INFY"}])
 
 
 class TestEnrichManualEntriesWithLtp(unittest.TestCase):
@@ -2095,12 +2082,10 @@ class TestPortfolioPageEdgeCases(unittest.TestCase):
 
 
 class TestFetchUserSheetsDataCacheMiss(unittest.TestCase):
-    """Line 234: return None, None, None when cache is empty after prefetch."""
+    """Cache miss returns None, None, None."""
 
     @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._prefetch_all_user_sheets")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
-    def test_cache_miss_returns_none(self, mock_creds, mock_prefetch, mock_usc):
+    def test_cache_miss_returns_none(self, mock_usc):
         from app.routes import _fetch_user_sheets_data
         mock_usc.get.return_value = None  # cache miss
         user = {"google_id": "g1", "spreadsheet_id": "sid",
@@ -2109,14 +2094,13 @@ class TestFetchUserSheetsDataCacheMiss(unittest.TestCase):
         self.assertIsNone(gold)
         self.assertIsNone(fds)
         self.assertIsNone(pf)
-        mock_prefetch.assert_called_once()
 
 
 class TestPrefetchDoubleCheckAfterLock(unittest.TestCase):
     """Line 284: double-check returns early inside lock."""
 
-    @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
+    @patch("app.fetchers.user_sheets_cache")
+    @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
     def test_lock_double_check_returns_early(self, mock_creds, mock_usc):
         from app.routes import _prefetch_all_user_sheets
         # First call: not cached; inside lock: cached
@@ -2128,8 +2112,8 @@ class TestPrefetchDoubleCheckAfterLock(unittest.TestCase):
 class TestPrefetchBlankRowBreak(unittest.TestCase):
     """Line 335: break on blank row in manual tab during batch-fetch."""
 
-    @patch("app.routes.user_sheets_cache")
-    @patch("app.routes._get_google_creds_dict", return_value={"token": "t"})
+    @patch("app.fetchers.user_sheets_cache")
+    @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
     @patch("app.api.google_auth.credentials_from_dict")
     @patch("app.api.google_sheets_client.GoogleSheetsClient")
     @patch("app.api.google_sheets_client.PhysicalGoldService")

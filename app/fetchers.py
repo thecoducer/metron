@@ -7,7 +7,7 @@ Manual stock/ETF LTP fetching is per-user and non-blocking.
 import threading
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from requests.exceptions import ConnectionError, Timeout
 
@@ -22,6 +22,184 @@ from .services import (state_manager, zerodha_client, session_manager,
 
 _LTP_CACHE_WARMUP_INTERVAL = 2   # seconds between polls
 _LTP_CACHE_WARMUP_ATTEMPTS = 6   # max polls (~12 s total)
+
+
+# ===================================================================
+# Google credentials & per-user fetch locking
+# ===================================================================
+
+def get_google_creds_dict(user: Dict[str, Any]) -> Optional[dict]:
+    """Return decrypted Google OAuth credentials for *user*.
+
+    Checks the user dict first (populated at OAuth callback) and falls
+    back to the encrypted copy in Firestore.
+    """
+    if not user:
+        return None
+
+    creds = user.get("google_credentials")
+    if isinstance(creds, dict):
+        return creds
+
+    from .firebase_store import get_google_credentials
+    return get_google_credentials(user.get("google_id", ""))
+
+
+_user_fetch_locks: Dict[str, threading.Lock] = {}
+_user_fetch_locks_guard = threading.Lock()
+_USER_FETCH_LOCKS_MAX = 500
+
+
+def _get_user_fetch_lock(google_id: str) -> threading.Lock:
+    with _user_fetch_locks_guard:
+        if len(_user_fetch_locks) >= _USER_FETCH_LOCKS_MAX:
+            keys_to_remove = list(_user_fetch_locks.keys())[: _USER_FETCH_LOCKS_MAX // 2]
+            for k in keys_to_remove:
+                _user_fetch_locks.pop(k, None)
+        return _user_fetch_locks.setdefault(google_id, threading.Lock())
+
+
+# ===================================================================
+# Google Sheets batch prefetch
+# ===================================================================
+
+def prefetch_all_user_sheets(user, *, track_state: bool = False):
+    """Batch-fetch all sheet tabs in a single Google Sheets API call.
+
+    On a cache miss this acquires the per-user lock, double-checks the
+    cache, and issues one ``batchGet`` request for Gold, FixedDeposits,
+    Stocks, ETFs, MutualFunds, and SIPs.  The parsed results are stored
+    in ``user_sheets_cache`` so that subsequent calls find data already
+    cached.
+
+    When *track_state* is True (background fetch), updates
+    ``state_manager.sheets_state`` so the frontend can poll for
+    completion and render incrementally.
+    """
+    google_id = user.get("google_id", "")
+    spreadsheet_id = user.get("spreadsheet_id")
+    creds_dict = get_google_creds_dict(user)
+    if not spreadsheet_id or not creds_dict:
+        if track_state and google_id:
+            state_manager.set_sheets_updated(google_id)
+        return
+
+    # Fast path — everything already in cache.
+    if user_sheets_cache.is_fully_cached(google_id):
+        logger.debug("Sheets cache hit for user=%s", google_id[:8])
+        if track_state and google_id:
+            state_manager.set_sheets_updated(google_id)
+        return
+
+    with _get_user_fetch_lock(google_id):
+        # Double-check after acquiring lock.
+        if user_sheets_cache.is_fully_cached(google_id):
+            return
+
+        _t0 = time.monotonic()
+        logger.info("Sheets batch-fetch started for user=%s", google_id[:8])
+
+        try:
+            from .api.google_auth import credentials_from_dict
+            from .api.google_sheets_client import (
+                GoogleSheetsClient, PhysicalGoldService, FixedDepositsService,
+                ProvidentFundService,
+            )
+            from .api.fixed_deposits import calculate_current_value
+            from .api.provident_fund import calculate_pf_corpus
+            from .api.user_sheets import SHEET_CONFIGS
+
+            creds = credentials_from_dict(creds_dict)
+            client = GoogleSheetsClient(user_credentials=creds)
+
+            for stype in ("stocks", "etfs", "mutual_funds", "sips", "provident_fund"):
+                cfg = SHEET_CONFIGS[stype]
+                client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
+
+            sheet_names = [
+                "Gold", "FixedDeposits", "ProvidentFund",
+                *(SHEET_CONFIGS[st]["sheet_name"] for st in ("stocks", "etfs", "mutual_funds", "sips")),
+            ]
+
+            batch = client.batch_fetch_sheet_data_until_blank(spreadsheet_id, sheet_names)
+
+            gold_svc = PhysicalGoldService(client)
+            fd_svc = FixedDepositsService(client)
+            pf_svc = ProvidentFundService(client)
+            gold = gold_svc._parse_batch_data(batch.get("Gold", []))
+            deposits = calculate_current_value(
+                fd_svc._parse_batch_data(batch.get("FixedDeposits", []))
+            )
+            pf_entries = calculate_pf_corpus(
+                pf_svc._parse_batch_data(batch.get("ProvidentFund", []))
+            )
+
+            manual: dict = {}
+            for sheet_type in ("stocks", "etfs", "mutual_funds", "sips"):
+                cfg = SHEET_CONFIGS[sheet_type]
+                raw = batch.get(cfg["sheet_name"], [])
+                if not raw or len(raw) < 2:
+                    manual[sheet_type] = []
+                    continue
+                fields = cfg["fields"]
+                rows = []
+                for idx, row in enumerate(raw[1:], start=2):
+                    if not row or all(not v or str(v).strip() == "" for v in row):
+                        break
+                    entry = {"row_number": idx, "source": "manual"}
+                    for fi, fname in enumerate(fields):
+                        entry[fname] = row[fi] if fi < len(row) else ""
+                    rows.append(entry)
+                manual[sheet_type] = rows
+
+            user_sheets_cache.put_all(
+                google_id,
+                physical_gold=gold,
+                fixed_deposits=deposits,
+                provident_fund=pf_entries,
+                manual=manual,
+            )
+            _elapsed = time.monotonic() - _t0
+            manual_counts = {k: len(v) for k, v in manual.items() if v}
+            logger.info(
+                "Sheets batch-fetch done for user=%s in %.1fs: "
+                "gold=%d fds=%d pf=%d manual=%s",
+                google_id[:8], _elapsed, len(gold), len(deposits),
+                len(pf_entries), manual_counts,
+            )
+
+            from .api.google_auth import persist_refreshed_credentials
+            persist_refreshed_credentials(creds, google_id)
+
+            if track_state:
+                state_manager.set_sheets_updated(google_id)
+        except Exception as exc:
+            _elapsed = time.monotonic() - _t0
+            _exc_type = type(exc).__name__
+            if "RefreshError" in _exc_type or "InvalidGrantError" in _exc_type:
+                logger.warning(
+                    "Sheets batch-fetch FAILED for user=%s after %.1fs: "
+                    "Google credentials expired or incomplete (%s). "
+                    "User must re-authenticate.",
+                    google_id[:8], _elapsed, exc,
+                )
+            else:
+                logger.exception(
+                    "Sheets batch-fetch FAILED for user=%s after %.1fs",
+                    google_id[:8], _elapsed,
+                )
+            if track_state:
+                state_manager.set_sheets_updated(google_id, error=str(exc))
+
+
+def _build_user_dict_for_sheets(google_id: str) -> Optional[Dict[str, Any]]:
+    """Build a minimal user dict from Firestore for sheets prefetch."""
+    from .firebase_store import get_user
+    user = get_user(google_id)
+    if not user:
+        return None
+    user.setdefault("google_id", google_id)
+    return user
 
 
 # ===================================================================
@@ -277,67 +455,65 @@ def run_background_fetch(
     google_id: Optional[str] = None,
     manual_symbols: Optional[list] = None,
 ) -> None:
-    """Kick off concurrent portfolio + market data fetch in a background thread.
+    """Fire independent background threads for each data source.
 
-    After all fetches complete, fires a non-blocking manual LTP fetch
-    that will SSE-broadcast when done.
+    Each source (broker, sheets, nifty, gold) runs in its own thread
+    and updates state independently.  The frontend polls ``/api/status``
+    and renders incrementally as each source completes.
     """
-    def _run():
-        t0 = time.monotonic()
-        logger.info(
-            "background_fetch start: user=%s manual=%s accounts=%d",
-            (google_id or "")[:8], is_manual,
-            len(accounts) if accounts else 0,
-        )
-        _fetch_all_data(google_id, accounts, is_manual)
-        logger.info(
-            "background_fetch done: user=%s in %.2fs",
-            (google_id or "")[:8], time.monotonic() - t0,
-        )
+    logger.info(
+        "background_fetch start: user=%s manual=%s accounts=%d",
+        (google_id or "")[:8], is_manual,
+        len(accounts) if accounts else 0,
+    )
 
-        # Non-blocking: fetch manual LTPs and broadcast when ready.
-        # Always mark as updating before the thread starts so the
-        # frontend can detect the in-progress state and poll.
-        if google_id:
-            state_manager.set_manual_ltp_updating(google_id)
-            _start_ltp_fetch_thread(google_id, manual_symbols, is_manual)
-
-        if on_complete:
-            on_complete()
-
-    threading.Thread(target=_run, daemon=True).start()
-
-
-def _fetch_all_data(google_id: Optional[str], accounts: Optional[list],
-                    is_manual: bool) -> None:
-    """Fetch portfolio, Nifty 50, and gold in parallel. Blocks until done."""
     force_gold = is_manual or (market_cache.gold_prices_last_fetch is None)
-    threads = []
-    has_portfolio = False
 
+    # --- Portfolio (Zerodha) ---
     if google_id:
         auth_accs = accounts if accounts is not None else get_authenticated_accounts(google_id)
         if auth_accs:
-            has_portfolio = True
-            threads.append(threading.Thread(
+            threading.Thread(
                 target=fetch_portfolio_data, args=(google_id, auth_accs),
-                name=f"PortfolioFetch-{google_id[:8]}", daemon=True))
+                name=f"PortfolioFetch-{google_id[:8]}", daemon=True,
+            ).start()
         else:
-            logger.info("_fetch_all_data: no auth accounts for user=%s, skipping portfolio", google_id[:8])
+            logger.info("background_fetch: no auth accounts for user=%s, skipping portfolio", google_id[:8])
             state_manager.set_portfolio_updating(google_id=google_id)
+            portfolio_cache.clear(google_id)
+            state_manager.set_portfolio_updated(google_id=google_id)
 
-    threads.append(threading.Thread(
-        target=fetch_nifty50_data, name="Nifty50Fetch", daemon=True))
-    threads.append(threading.Thread(
+    # --- Google Sheets ---
+    if google_id:
+        user_dict = _build_user_dict_for_sheets(google_id)
+        if user_dict:
+            state_manager.set_sheets_updating(google_id)
+
+            def _sheets_then_ltps():
+                """Fetch sheets, then kick off manual LTP fetch."""
+                prefetch_all_user_sheets(user_dict, track_state=True)
+                # Manual LTP fetch needs symbols from sheets cache.
+                state_manager.set_manual_ltp_updating(google_id)
+                _start_ltp_fetch_thread(google_id, manual_symbols, is_manual)
+                if on_complete:
+                    on_complete()
+
+            threading.Thread(
+                target=_sheets_then_ltps,
+                name=f"SheetsPrefetch-{google_id[:8]}", daemon=True,
+            ).start()
+        else:
+            # No sheets linked — mark done immediately.
+            state_manager.set_sheets_updated(google_id)
+            if on_complete:
+                on_complete()
+
+    # --- Global market data ---
+    threading.Thread(
+        target=fetch_nifty50_data, name="Nifty50Fetch", daemon=True,
+    ).start()
+    threading.Thread(
         target=fetch_gold_prices, args=(force_gold,),
-        name="GoldPriceFetch", daemon=True))
-
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-
-    if google_id and not has_portfolio:
-        portfolio_cache.clear(google_id)
-        state_manager.set_portfolio_updated(google_id=google_id)
+        name="GoldPriceFetch", daemon=True,
+    ).start()
 

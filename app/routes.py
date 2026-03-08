@@ -12,6 +12,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .api.physical_gold import enrich_holdings_with_prices
 from .cache import market_cache, manual_ltp_cache, portfolio_cache, user_sheets_cache
+from .fetchers import get_google_creds_dict, prefetch_all_user_sheets
 
 _REAUTH_MESSAGE = "Google session expired. Please sign in again."
 
@@ -106,54 +107,19 @@ def _current_user() -> Optional[Dict[str, Any]]:
 
 
 def _get_google_creds_dict(user: Optional[Dict[str, Any]] = None) -> Optional[dict]:
-    """Return decrypted Google OAuth credentials for the current/given user.
-
-    Checks the session first (populated at OAuth callback) and falls back
-    to the encrypted copy in Firestore when the session value is missing or
-    is already an encrypted string.
-    """
+    """Return decrypted Google OAuth credentials for the current/given user."""
     if user is None:
         user = _current_user()
-    if not user:
-        return None
-
-    creds = user.get("google_credentials")
-    # The session stores creds as a plain dict right after OAuth login.
-    if isinstance(creds, dict):
-        return creds
-
-    # Fallback: fetch & decrypt from Firestore
-    from .firebase_store import get_google_credentials
-    return get_google_credentials(user.get("google_id", ""))
-
-
-_user_fetch_locks: Dict[str, threading.Lock] = {}
-_user_fetch_locks_guard = threading.Lock()
-_USER_FETCH_LOCKS_MAX = 500  # prevent unbounded growth
-
-
-def _get_user_fetch_lock(google_id: str) -> threading.Lock:
-    with _user_fetch_locks_guard:
-        # Evict oldest entries if the dict grows too large
-        if len(_user_fetch_locks) >= _USER_FETCH_LOCKS_MAX:
-            # Remove the first (oldest) half of entries
-            keys_to_remove = list(_user_fetch_locks.keys())[: _USER_FETCH_LOCKS_MAX // 2]
-            for k in keys_to_remove:
-                _user_fetch_locks.pop(k, None)
-        return _user_fetch_locks.setdefault(google_id, threading.Lock())
+    return get_google_creds_dict(user) if user else None
 
 
 def _fetch_user_sheets_data(user):
-    """Return (physical_gold, fixed_deposits, provident_fund) with TTL caching and per-user locking."""
+    """Return (physical_gold, fixed_deposits, provident_fund) from cache.
+
+    Returns whatever is available now (may be ``(None, None, None)`` when
+    the background sheets fetch hasn't completed yet).
+    """
     google_id = user.get("google_id", "")
-    spreadsheet_id = user.get("spreadsheet_id")
-    creds_dict = _get_google_creds_dict(user)
-    if not spreadsheet_id or not creds_dict:
-        return None, None, None
-
-    # Batch-fetch populates *all* sheet types into the cache in one API call.
-    _prefetch_all_user_sheets(user)
-
     cached = user_sheets_cache.get(google_id)
     if cached:
         return cached.physical_gold, cached.fixed_deposits, cached.provident_fund
@@ -161,154 +127,15 @@ def _fetch_user_sheets_data(user):
 
 
 def _fetch_manual_entries(user, sheet_type):
-    """Fetch manual entries from a Google Sheet tab, returning a list of dicts.
-
-    Results are cached per-user with the same TTL as gold/FD data.
-    """
-    from .api.user_sheets import SHEET_CONFIGS
-
-    cfg = SHEET_CONFIGS.get(sheet_type)
-    if not cfg:
-        return []
-
+    """Fetch manual entries from the sheets cache, returning a list of dicts."""
     google_id = user.get("google_id", "")
-    spreadsheet_id = user.get("spreadsheet_id")
-    creds_dict = _get_google_creds_dict(user)
-    if not spreadsheet_id or not creds_dict:
-        return []
-
-    # Batch-fetch populates *all* sheet types into the cache in one API call.
-    _prefetch_all_user_sheets(user)
-
     cached = user_sheets_cache.get_manual(google_id, sheet_type)
     return cached if cached is not None else []
 
 
 def _prefetch_all_user_sheets(user):
-    """Batch-fetch all 6 sheet tabs in a single Google Sheets API call.
-
-    On a cache miss this acquires the per-user lock, double-checks the
-    cache, and issues one ``batchGet`` request for Gold, FixedDeposits,
-    Stocks, ETFs, MutualFunds, and SIPs.  The parsed results are stored
-    in `user_sheets_cache` so that subsequent calls (from concurrent HTTP
-    requests) find data already cached.
-    """
-    google_id = user.get("google_id", "")
-    spreadsheet_id = user.get("spreadsheet_id")
-    creds_dict = _get_google_creds_dict(user)
-    if not spreadsheet_id or not creds_dict:
-        return
-
-    # Fast path — everything already in cache.
-    if user_sheets_cache.is_fully_cached(google_id):
-        logger.debug("Sheets cache hit for user=%s", google_id[:8])
-        return
-
-    with _get_user_fetch_lock(google_id):
-        # Double-check after acquiring lock.
-        if user_sheets_cache.is_fully_cached(google_id):
-            return
-
-        import time as _time
-        _t0 = _time.monotonic()
-        logger.info("Sheets batch-fetch started for user=%s", google_id[:8])
-
-        try:
-            from .api.google_auth import credentials_from_dict
-            from .api.google_sheets_client import (
-                GoogleSheetsClient, PhysicalGoldService, FixedDepositsService,
-                ProvidentFundService,
-            )
-            from .api.fixed_deposits import calculate_current_value
-            from .api.provident_fund import calculate_pf_corpus
-            from .api.user_sheets import SHEET_CONFIGS
-
-            creds = credentials_from_dict(creds_dict)
-            client = GoogleSheetsClient(user_credentials=creds)
-
-            # Ensure all manual tabs exist (single metadata call + create
-            # any missing tabs) before the batch read.
-            for stype in ("stocks", "etfs", "mutual_funds", "sips", "provident_fund"):
-                cfg = SHEET_CONFIGS[stype]
-                client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
-
-            # All 7 sheet names to fetch.
-            sheet_names = [
-                "Gold", "FixedDeposits", "ProvidentFund",
-                *(SHEET_CONFIGS[st]["sheet_name"] for st in ("stocks", "etfs", "mutual_funds", "sips")),
-            ]
-
-            batch = client.batch_fetch_sheet_data_until_blank(spreadsheet_id, sheet_names)
-
-            # ── Parse gold & FD & PF using existing service parsers ──
-            gold_svc = PhysicalGoldService(client)
-            fd_svc = FixedDepositsService(client)
-            pf_svc = ProvidentFundService(client)
-            gold = gold_svc._parse_batch_data(batch.get("Gold", []))
-            deposits = calculate_current_value(
-                fd_svc._parse_batch_data(batch.get("FixedDeposits", []))
-            )
-            pf_entries = calculate_pf_corpus(
-                pf_svc._parse_batch_data(batch.get("ProvidentFund", []))
-            )
-
-            # ── Parse manual entry tabs ──
-            manual: dict = {}
-            for sheet_type in ("stocks", "etfs", "mutual_funds", "sips"):
-                cfg = SHEET_CONFIGS[sheet_type]
-                raw = batch.get(cfg["sheet_name"], [])
-                if not raw or len(raw) < 2:
-                    manual[sheet_type] = []
-                    continue
-                fields = cfg["fields"]
-                rows = []
-                for idx, row in enumerate(raw[1:], start=2):
-                    if not row or all(not v or str(v).strip() == "" for v in row):
-                        break
-                    entry = {"row_number": idx, "source": "manual"}
-                    for fi, fname in enumerate(fields):
-                        entry[fname] = row[fi] if fi < len(row) else ""
-                    rows.append(entry)
-                manual[sheet_type] = rows
-
-            # Store everything in one atomic cache write.
-            user_sheets_cache.put_all(
-                google_id,
-                physical_gold=gold,
-                fixed_deposits=deposits,
-                provident_fund=pf_entries,
-                manual=manual,
-            )
-            _elapsed = _time.monotonic() - _t0
-            manual_counts = {k: len(v) for k, v in manual.items() if v}
-            logger.info(
-                "Sheets batch-fetch done for user=%s in %.1fs: "
-                "gold=%d fds=%d pf=%d manual=%s",
-                google_id[:8], _elapsed, len(gold), len(deposits),
-                len(pf_entries), manual_counts,
-            )
-
-            # Persist refreshed Google credentials if the library auto-refreshed
-            from .api.google_auth import persist_refreshed_credentials
-            persist_refreshed_credentials(creds, google_id)
-        except Exception as exc:
-            _elapsed = _time.monotonic() - _t0
-            # Detect Google OAuth credential refresh failures and log a
-            # concise warning instead of a full traceback — the user just
-            # needs to re-authenticate.
-            _exc_type = type(exc).__name__
-            if "RefreshError" in _exc_type or "InvalidGrantError" in _exc_type:
-                logger.warning(
-                    "Sheets batch-fetch FAILED for user=%s after %.1fs: "
-                    "Google credentials expired or incomplete (%s). "
-                    "User must re-authenticate.",
-                    google_id[:8], _elapsed, exc,
-                )
-            else:
-                logger.exception(
-                    "Sheets batch-fetch FAILED for user=%s after %.1fs",
-                    google_id[:8], _elapsed,
-                )
+    """Thin wrapper — delegates to fetchers.prefetch_all_user_sheets."""
+    prefetch_all_user_sheets(user)
 
 @app_ui.route("/api/auth/google/login", methods=["GET"])
 def google_login():
@@ -914,9 +741,9 @@ def all_data():
     user = _current_user()
     google_id = user["google_id"]
 
-    # Pre-populate the sheets cache (single batchGet) so the
-    # individual _build_*_data helpers all hit cache.
-    _prefetch_all_user_sheets(user)
+    # If sheets cache is already populated (from background fetch),
+    # the helpers below will use it.  Otherwise they return empty data
+    # and the frontend re-fetches once sheets_state flips to 'updated'.
 
     payload = {
         "stocks": _build_stocks_data(user),

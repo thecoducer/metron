@@ -115,10 +115,8 @@ class PortfolioApp {
   }
 
   _isStatusUpdating(status) {
-    // Portfolio page: check portfolio, physical gold, and fixed deposits (not Nifty50 background fetch)
-    return status.portfolio_state === 'updating' || 
-           status.physical_gold_state === 'updating' ||
-           status.fixed_deposits_state === 'updating';
+    // True when any primary data source is still fetching.
+    return status.portfolio_state === 'updating' || status.sheets_state === 'updating';
   }
 
   /**
@@ -359,7 +357,7 @@ class PortfolioApp {
         items: [
           'Track your EPF/PF across employers with compounding interest.',
           '<strong>Active Employment:</strong> Enter company, start date, end date (blank if current), monthly contribution, and interest rate.',
-          '<strong>Past Employer:</strong> Enter accumulated balance and your contribution (from EPFO passbook) to track carry-forward interest accurately.',
+          '<strong>Past Employer:</strong> Enter accumulated balance and your contribution (employer + employee contribution from EPFO passbook) to track carry-forward interest accurately.',
           '<strong>Interest Rate:</strong> Enter 0 or leave blank to auto-apply the official EPFO rate for each financial year. Or enter a custom rate.',
           'Multiple stints at the same company are grouped \u2014 click to expand.',
           '<strong>P&L:</strong> For past employers, the split between your contribution and interest earned is based on the contribution you enter. This ensures accurate portfolio-level profit tracking.',
@@ -652,7 +650,8 @@ class PortfolioApp {
   /**
    * Initial load after PIN verification.
    * If we have inlined data, just fetch status. Otherwise trigger a
-   * backend refresh and poll until done, then fetch all data.
+   * backend refresh and poll incrementally — rendering each data source
+   * as it becomes available rather than waiting for everything.
    */
   async _initialLoad() {
     try {
@@ -672,12 +671,18 @@ class PortfolioApp {
       const status = await this._fetchStatus();
 
       if (this._isStatusUpdating(status)) {
-        // Backend is already fetching — just wait for it
-        Log.info('App', 'Backend already updating — polling');
-        await this._pollUntilDone();
+        // Backend is already fetching — poll incrementally
+        Log.info('App', 'Backend already updating — polling incrementally');
+        const finalStatus = await this._pollIncremental(status);
+        this._updateRefreshButton(false);
+        this._pollForManualLTPs(finalStatus);
       } else if (this._hasDataReady(status)) {
         // Data already fetched (pill navigation) — just grab it
         Log.info('App', 'Data already available — loading');
+        await this.updateData();
+        this._applyStatus(status);
+        this._updateRefreshButton(false);
+        this._pollForManualLTPs(status);
       } else {
         // No data yet — trigger a refresh
         Log.info('App', 'No data — triggering refresh');
@@ -688,17 +693,11 @@ class PortfolioApp {
             Log.warn('App', 'Initial refresh failed:', e.message);
           }
         }
-        await this._pollUntilDone();
+        const afterTrigger = await this._fetchStatus();
+        const finalStatus = await this._pollIncremental(afterTrigger);
+        this._updateRefreshButton(false);
+        this._pollForManualLTPs(finalStatus);
       }
-
-      await this.updateData();
-      const finalStatus = await this._fetchStatus();
-      this._applyStatus(finalStatus);
-      this._updateRefreshButton(false);
-
-      // Manual LTP fetch runs after the main data fetch completes;
-      // poll in the background and re-fetch data when LTPs are ready.
-      this._pollForManualLTPs(finalStatus);
     } catch (error) {
       Log.error('App', 'Initial load error:', error);
       this._updateRefreshButton(false);
@@ -708,6 +707,7 @@ class PortfolioApp {
   _hasDataReady(status) {
     // Data is ready if any tracked state has been updated at least once
     return status.portfolio_last_updated != null ||
+           status.sheets_last_updated != null ||
            status.physical_gold_last_updated != null ||
            status.fixed_deposits_last_updated != null;
   }
@@ -722,18 +722,51 @@ class PortfolioApp {
   }
 
   /**
-   * Poll /api/status until no state is "updating", then return final status.
+   * Poll /api/status and render incrementally as each data source
+   * completes.  Detects transitions from 'updating' → terminal and
+   * re-fetches data so the UI shows results as they arrive.
+   *
+   * @param {Object} initialStatus - Status snapshot captured before polling starts,
+   *   used to detect the first transition.
+   * @returns {Promise<Object>} Final status when all sources are done.
    */
-  async _pollUntilDone() {
+  async _pollIncremental(initialStatus) {
     const POLL_INTERVAL = 2000;
     const MAX_POLLS = 90; // 3 minutes max
+    let prev = initialStatus || {};
+
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise(r => setTimeout(r, POLL_INTERVAL));
       const status = await this._fetchStatus();
-      if (!this._isStatusUpdating(status)) return status;
+
+      // Detect transitions from 'updating' → terminal for each source.
+      const tracked = ['portfolio_state', 'sheets_state'];
+      const anyCompleted = tracked.some(k =>
+        prev[k] === 'updating' && status[k] !== 'updating'
+      );
+
+      if (anyCompleted) {
+        Log.info('App', 'Data source completed — refreshing view');
+        await this.updateData();
+      }
+
+      this._applyStatus(status);
+      prev = { ...status };
+
+      if (!this._isStatusUpdating(status)) {
+        // Ensure final data is loaded
+        if (!anyCompleted) await this.updateData();
+        // Record LTP timestamp so _pollForManualLTPs doesn't re-fetch
+        if (status.manual_ltp_last_updated) {
+          this._lastManualLtpUpdate = status.manual_ltp_last_updated;
+        }
+        return status;
+      }
     }
     Log.warn('App', 'Poll timeout — proceeding with available data');
-    return this._fetchStatus();
+    const finalStatus = await this._fetchStatus();
+    await this.updateData();
+    return finalStatus;
   }
 
   /**
@@ -1104,21 +1137,15 @@ class PortfolioApp {
       }
     }
 
-    // Poll until backend is done, then fetch fresh data
     try {
-      await this._pollUntilDone();
-      await this.updateData();
+      const afterTrigger = await this._fetchStatus();
+      const finalStatus = await this._pollIncremental(afterTrigger);
+      this._updateRefreshButton(false);
+      this._pollForManualLTPs(finalStatus);
     } catch (error) {
       Log.error('Refresh', 'Error during polling/fetch:', error);
+      this._updateRefreshButton(false);
     }
-
-    // Apply final state, then stop spinner
-    const finalStatus = await this._fetchStatus();
-    this._applyStatus(finalStatus);
-    this._updateRefreshButton(false);
-
-    // Manual LTP fetch may still be running; poll and re-fetch when done.
-    this._pollForManualLTPs(finalStatus);
   }
 
   _updateRefreshButton(isUpdating) {

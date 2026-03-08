@@ -10,7 +10,7 @@ from app.fetchers import (_should_fetch_gold_prices,
                           _filter_symbols_to_fetch, _batch_fetch_quotes,
                           _update_ltp_cache, _wait_for_symbols,
                           _bg_fetch_and_broadcast_ltps,
-                          _start_ltp_fetch_thread, _fetch_all_data,
+                          _start_ltp_fetch_thread,
                           collect_manual_symbols, fetch_manual_ltps,
                           fetch_gold_prices, fetch_nifty50_data,
                           fetch_portfolio_data, run_background_fetch)
@@ -124,25 +124,36 @@ class TestFetchNifty50Data(unittest.TestCase):
 class TestRunBackgroundFetch(unittest.TestCase):
     """Test run_background_fetch orchestration."""
 
-    def test_starts_background_thread(self):
-        with patch('app.fetchers.threading.Thread') as mock_thread:
-            mock_instance = Mock()
-            mock_thread.return_value = mock_instance
+    @patch('app.fetchers.threading.Thread')
+    @patch('app.fetchers.market_cache')
+    @patch('app.fetchers.state_manager')
+    @patch('app.fetchers._build_user_dict_for_sheets', return_value=None)
+    @patch('app.fetchers.get_authenticated_accounts', return_value=[{"name": "A"}])
+    def test_starts_threads(self, mock_auth, mock_sheets, mock_state, mock_mc, mock_thread):
+        mock_instance = Mock()
+        mock_thread.return_value = mock_instance
+        mock_mc.gold_prices_last_fetch = None
 
-            run_background_fetch(google_id="user1")
+        run_background_fetch(google_id="user1")
 
-            mock_thread.assert_called()
-            mock_instance.start.assert_called_once()
+        # Portfolio + Nifty50 + Gold threads (no sheets since _build returns None)
+        self.assertGreaterEqual(mock_thread.call_count, 3)
+        self.assertGreaterEqual(mock_instance.start.call_count, 3)
 
-    def test_passes_google_id(self):
-        """run_background_fetch should propagate google_id to fetch_portfolio_data."""
-        with patch('app.fetchers.threading.Thread') as mock_thread:
-            mock_instance = Mock()
-            mock_thread.return_value = mock_instance
+    @patch('app.fetchers.threading.Thread')
+    @patch('app.fetchers.market_cache')
+    @patch('app.fetchers.state_manager')
+    @patch('app.fetchers._build_user_dict_for_sheets', return_value={"google_id": "user1"})
+    @patch('app.fetchers.get_authenticated_accounts', return_value=[{"name": "Acc1"}])
+    def test_passes_google_id(self, mock_auth, mock_sheets, mock_state, mock_mc, mock_thread):
+        mock_instance = Mock()
+        mock_thread.return_value = mock_instance
+        mock_mc.gold_prices_last_fetch = None
 
-            run_background_fetch(google_id="user1", accounts=[{"name": "Acc1"}])
+        run_background_fetch(google_id="user1", accounts=[{"name": "Acc1"}])
 
-            mock_thread.assert_called()
+        # Portfolio + Sheets + Nifty50 + Gold threads
+        self.assertGreaterEqual(mock_thread.call_count, 4)
 
 
 class TestZerodhaClientFetchAccountData(unittest.TestCase):
@@ -357,25 +368,41 @@ class TestFetchGoldPrices(unittest.TestCase):
         fetch_gold_prices(force=True)  # should not raise
 
 
-class TestFetchAllData(unittest.TestCase):
-    @patch('app.fetchers.fetch_gold_prices')
-    @patch('app.fetchers.fetch_nifty50_data')
-    @patch('app.fetchers.fetch_portfolio_data')
-    @patch('app.fetchers.get_authenticated_accounts', return_value=[{"name": "A"}])
-    @patch('app.fetchers.state_manager')
-    @patch('app.fetchers.portfolio_cache')
-    def test_with_accounts(self, mock_pc, mock_state, mock_auth, mock_fetch_pf,
-                           mock_fetch_n, mock_fetch_g):
-        _fetch_all_data("user1", None, False)
-        mock_fetch_pf.assert_called_once()
+class TestRunBackgroundFetchAccounts(unittest.TestCase):
+    """Test run_background_fetch with/without accounts."""
 
-    @patch('app.fetchers.fetch_gold_prices')
-    @patch('app.fetchers.fetch_nifty50_data')
-    @patch('app.fetchers.get_authenticated_accounts', return_value=[])
+    @patch('app.fetchers.threading.Thread')
+    @patch('app.fetchers.market_cache')
     @patch('app.fetchers.state_manager')
+    @patch('app.fetchers._build_user_dict_for_sheets', return_value=None)
+    @patch('app.fetchers.get_authenticated_accounts', return_value=[{"name": "A"}])
     @patch('app.fetchers.portfolio_cache')
-    def test_no_accounts(self, mock_pc, mock_state, mock_auth, mock_fetch_n, mock_fetch_g):
-        _fetch_all_data("user1", None, False)
+    def test_with_accounts(self, mock_pc, mock_auth, mock_sheets, mock_state,
+                           mock_mc, mock_thread):
+        mock_instance = Mock()
+        mock_thread.return_value = mock_instance
+        mock_mc.gold_prices_last_fetch = None
+
+        run_background_fetch(google_id="user1")
+
+        # A PortfolioFetch thread should be created
+        thread_names = [str(c) for c in mock_thread.call_args_list]
+        self.assertTrue(any('PortfolioFetch' in n for n in thread_names))
+
+    @patch('app.fetchers.threading.Thread')
+    @patch('app.fetchers.market_cache')
+    @patch('app.fetchers.state_manager')
+    @patch('app.fetchers._build_user_dict_for_sheets', return_value=None)
+    @patch('app.fetchers.get_authenticated_accounts', return_value=[])
+    @patch('app.fetchers.portfolio_cache')
+    def test_no_accounts(self, mock_pc, mock_auth, mock_sheets, mock_state,
+                         mock_mc, mock_thread):
+        mock_instance = Mock()
+        mock_thread.return_value = mock_instance
+        mock_mc.gold_prices_last_fetch = None
+
+        run_background_fetch(google_id="user1")
+
         mock_state.set_portfolio_updating.assert_called()
         mock_state.set_portfolio_updated.assert_called()
         mock_pc.clear.assert_called_with("user1")
@@ -515,17 +542,52 @@ class TestFetchNifty50Success(unittest.TestCase):
 
 
 class TestRunBackgroundFetchOnComplete(unittest.TestCase):
-    """Cover fetchers.py line 335: on_complete callback."""
+    """Cover run_background_fetch on_complete callback."""
 
-    @patch('app.fetchers._start_ltp_fetch_thread')
-    @patch('app.fetchers._fetch_all_data')
-    @patch('threading.Thread')
-    def test_on_complete_called(self, mock_thread, mock_fetch_all, mock_ltp):
-        from app.fetchers import run_background_fetch
+    @patch('app.fetchers.threading.Thread')
+    @patch('app.fetchers.market_cache')
+    @patch('app.fetchers.state_manager')
+    @patch('app.fetchers._build_user_dict_for_sheets', return_value=None)
+    @patch('app.fetchers.get_authenticated_accounts', return_value=[])
+    @patch('app.fetchers.portfolio_cache')
+    def test_on_complete_called_no_sheets(self, mock_pc, mock_auth,
+                                          mock_sheets_dict, mock_state,
+                                          mock_mc, mock_thread):
+        """on_complete is called immediately when no sheets are linked."""
         callback = Mock()
+        mock_instance = Mock()
+        mock_thread.return_value = mock_instance
+        mock_mc.gold_prices_last_fetch = None
+
         run_background_fetch(google_id="u1", on_complete=callback)
-        # Extract the _run function and run it directly
-        call_args = mock_thread.call_args
-        run_fn = call_args[1].get('target') or call_args[0][0] if call_args[0] else call_args[1]['target']
-        run_fn()
+
+        callback.assert_called_once()
+
+    @patch('app.fetchers.prefetch_all_user_sheets')
+    @patch('app.fetchers._start_ltp_fetch_thread')
+    @patch('app.fetchers.threading.Thread')
+    @patch('app.fetchers.market_cache')
+    @patch('app.fetchers.state_manager')
+    @patch('app.fetchers._build_user_dict_for_sheets',
+           return_value={"google_id": "u1", "spreadsheet_id": "s"})
+    @patch('app.fetchers.get_authenticated_accounts', return_value=[])
+    @patch('app.fetchers.portfolio_cache')
+    def test_on_complete_called_with_sheets(self, mock_pc, mock_auth,
+                                            mock_sheets_dict, mock_state,
+                                            mock_mc, mock_thread,
+                                            mock_ltp, mock_prefetch):
+        """on_complete is called from _sheets_then_ltps thread."""
+        callback = Mock()
+        mock_instance = Mock()
+        mock_thread.return_value = mock_instance
+        mock_mc.gold_prices_last_fetch = None
+
+        run_background_fetch(google_id="u1", on_complete=callback)
+
+        # Extract the _sheets_then_ltps function from the SheetsPrefetch Thread call
+        sheets_calls = [c for c in mock_thread.call_args_list
+                        if 'SheetsPrefetch' in str(c)]
+        self.assertEqual(len(sheets_calls), 1)
+        target = sheets_calls[0].kwargs.get('target')
+        target()  # Run _sheets_then_ltps
         callback.assert_called_once()
