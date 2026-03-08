@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Metron — Measure what matters</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Metron — an open-source investment dashboard for Indian investors. Track stocks, mutual funds, gold, FDs, SIPs and provident fund with real-time broker data. Your financial data stays private in your Google Drive.">
+<meta name="description" content="Metron — an open-source investment dashboard for Indian investors. Track stocks, mutual funds, gold, FDs, SIPs and provident fund with broker data. Your financial data stays private in your Google Drive.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -114,8 +114,8 @@
     <div class="features">
       <div class="feature-card">
         <div class="feature-icon violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-        <h3>Real-time streaming</h3>
-        <p>Live data pushed to your browser via Server-Sent Events. No polling, no reload &mdash; just a persistent stream that updates as prices move.</p>
+        <h3>On-demand data fetch</h3>
+        <p>Hit refresh to pull the latest holdings and prices from your broker, Google Sheets, and market APIs. Data loads fast and stays cached until you refresh again.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
@@ -149,7 +149,7 @@
   <section class="arch-section">
     <span class="section-label amber">Under the Hood</span>
     <h2 class="section-title">How it works</h2>
-    <p class="section-sub">A Flask backend pulls from brokers, Google Sheets, and market APIs &mdash; then streams everything to your browser in real time.</p>
+    <p class="section-sub">A Flask backend pulls from brokers, Google Sheets, and market APIs &mdash; then serves everything to your browser on demand.</p>
 
     <div class="arch-pipeline">
       <!-- Stage 1: Sources -->
@@ -182,6 +182,13 @@
             <div class="arch-stage-text">
               <span class="arch-node-label">NSE</span>
               <span class="arch-node-sub">Nifty 50 data</span>
+            </div>
+          </div>
+          <div class="arch-stage-item">
+            <div class="arch-node-icon n-nse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+            <div class="arch-stage-text">
+              <span class="arch-node-label">Yahoo Finance</span>
+              <span class="arch-node-sub">Market data</span>
             </div>
           </div>
         </div>
@@ -223,10 +230,10 @@
         <div class="arch-stage-label">Delivery</div>
         <div class="arch-stage-card">
           <div class="arch-stage-item">
-            <div class="arch-node-icon n-sse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg></div>
+            <div class="arch-node-icon n-sse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
             <div class="arch-stage-text">
-              <span class="arch-node-label">SSE Stream</span>
-              <span class="arch-node-sub">Real-time push</span>
+              <span class="arch-node-label">REST API</span>
+              <span class="arch-node-sub">On-demand fetch</span>
             </div>
           </div>
           <div class="arch-stage-item">
@@ -240,15 +247,7 @@
       </div>
     </div>
 
-    <div class="tech-grid">
-      <span class="tech-pill"><span class="tech-pill-dot python"></span>Python 3.9+</span>
-      <span class="tech-pill"><span class="tech-pill-dot flask"></span>Flask</span>
-      <span class="tech-pill"><span class="tech-pill-dot zerodha"></span>Broker APIs</span>
-      <span class="tech-pill"><span class="tech-pill-dot gsheets"></span>Google Sheets API</span>
-      <span class="tech-pill"><span class="tech-pill-dot firebase"></span>Firebase / Firestore</span>
-      <span class="tech-pill"><span class="tech-pill-dot sse"></span>Server-Sent Events</span>
-      <span class="tech-pill"><span class="tech-pill-dot vanilla"></span>Vanilla JS &mdash; no framework</span>
-    </div>
+
   </section>
 
   <!-- Security Deep Dive -->
@@ -444,7 +443,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
         <h4>Your Google Sheet = your database</h4>
-        <p>All your portfolio data &mdash; stocks, mutual funds, gold, FDs, SIPs, provident fund &mdash; lives in a Google Sheet auto-created in <em>your</em> Google Drive. The developer cannot see it. You can open it, edit it, or delete it anytime. It&rsquo;s just a spreadsheet, and it&rsquo;s yours.</p>
+        <p>All your portfolio data &mdash; stocks, mutual funds, gold, FDs, SIPs, provident fund &mdash; lives in a Google Sheet auto-created in <em>your</em> Google Drive. The developer cannot see it. You can view or delete it anytime. It&rsquo;s just a spreadsheet, and it&rsquo;s yours.</p>
+        <p style="margin-top:.5rem;font-size:.85em;color:var(--text-muted)"><strong>Important:</strong> Do not edit or add data directly in your Google Sheet. Manual changes may break data parsing in the app.</p>
       </div>
       <div class="sec-feature-card">
         <div class="sec-feature-icon cloud-icon">
