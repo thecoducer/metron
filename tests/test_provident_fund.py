@@ -296,7 +296,13 @@ class TestCalculatePfCorpus(unittest.TestCase):
 
     @patch("app.api.provident_fund.date")
     def test_past_employer_lump_sum(self, mock_date):
-        """Past employer entry with opening_balance should inject lump sum."""
+        """Past employer entry with opening_balance should inject lump sum.
+
+        Interest on past employer balances starts from TODAY, not from the
+        stored start_date.  The accumulated balance already contains historical
+        interest, so the closing balance equals the input opening_balance when
+        no new interest has accrued yet.
+        """
         mock_date.today.return_value = date(2024, 3, 31)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
 
@@ -313,20 +319,25 @@ class TestCalculatePfCorpus(unittest.TestCase):
 
         r = result[0]
         self.assertTrue(r["is_past_employer"])
-        # Total contribution should be the lump sum
+        # Total contribution should be the lump sum (no actual_contribution)
         self.assertEqual(r["total_contribution"], 500000.0)
-        # Interest should accrue on the lump sum
-        self.assertGreater(r["interest_earned"], 0)
-        # Closing balance should be lump sum + interest
-        self.assertGreater(r["closing_balance"], 500000)
-        # Opening balance should include the lump sum
+        # No interest accrued (lump sum injected at today, current month skipped)
+        self.assertEqual(r["interest_earned"], 0.0)
+        # Closing balance equals the input opening_balance
+        self.assertEqual(r["closing_balance"], 500000.0)
+        # Opening balance shows the input value
         self.assertEqual(r["opening_balance"], 500000.0)
-        # months_worked should count months of interest accrual
-        self.assertEqual(r["months_worked"], 12)
+        # Past employer entries show 0 months worked
+        self.assertEqual(r["months_worked"], 0)
 
     @patch("app.api.provident_fund.date")
     def test_past_employer_then_current(self, mock_date):
-        """Past employer lump sum followed by current employer with monthly contributions."""
+        """Past employer lump sum followed by current employer with monthly contributions.
+
+        The past employer lump sum is injected at today (not at its historical
+        start date).  The active employer processes normally; the lump sum adds
+        to the running balance at today so the corpus includes both.
+        """
         mock_date.today.return_value = date(2024, 3, 31)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
 
@@ -350,13 +361,14 @@ class TestCalculatePfCorpus(unittest.TestCase):
         result = calculate_pf_corpus(entries)
         self.assertEqual(len(result), 2)
 
-        # Past employer entry
+        # Past employer entry — balance is just the input opening_balance
         self.assertTrue(result[0]["is_past_employer"])
         self.assertEqual(result[0]["total_contribution"], 300000.0)
+        self.assertEqual(result[0]["closing_balance"], 300000.0)
 
-        # Current employer should carry forward the balance
+        # Current employer should NOT carry forward past employer balance
+        # (past employer is tracked separately in its own row)
         self.assertFalse(result[1]["is_past_employer"])
-        self.assertGreater(result[1]["opening_balance"], 300000)
         # Corpus includes both lump sum + monthly contributions + all interest
         corpus = result[1]["corpus_value"]
         total_contrib = 300000 + 10000 * 12  # lump sum + 12 months of contributions
@@ -364,7 +376,12 @@ class TestCalculatePfCorpus(unittest.TestCase):
 
     @patch("app.api.provident_fund.date")
     def test_multiple_past_employers(self, mock_date):
-        """Multiple past employer entries should accumulate correctly."""
+        """Multiple past employer entries should accumulate correctly.
+
+        Each past employer row shows its own input balance.  The total corpus
+        includes both lump sums (injected at today) plus any interest from
+        active employment.
+        """
         mock_date.today.return_value = date(2024, 3, 31)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
 
@@ -393,12 +410,15 @@ class TestCalculatePfCorpus(unittest.TestCase):
         self.assertTrue(result[0]["is_past_employer"])
         self.assertTrue(result[1]["is_past_employer"])
 
-        # Second entry's opening_balance should include first entry's balance + interest + second lump sum
-        self.assertGreater(result[1]["opening_balance"], 200000 + 150000)
+        # Each past employer row shows its own input opening_balance
+        self.assertEqual(result[0]["opening_balance"], 200000.0)
+        self.assertEqual(result[0]["closing_balance"], 200000.0)
+        self.assertEqual(result[1]["opening_balance"], 150000.0)
+        self.assertEqual(result[1]["closing_balance"], 150000.0)
 
-        # Corpus should be both lump sums + all interest
+        # Corpus should be both lump sums (no interest since injected at today)
         corpus = result[1]["corpus_value"]
-        self.assertGreater(corpus, 350000)
+        self.assertEqual(corpus, 350000.0)
 
     @patch("app.api.provident_fund.date")
     def test_past_employer_auto_rate(self, mock_date):
@@ -418,7 +438,10 @@ class TestCalculatePfCorpus(unittest.TestCase):
         r = result[0]
         self.assertTrue(r["auto_rate"])
         self.assertTrue(r["is_past_employer"])
-        self.assertGreater(r["interest_earned"], 0)
+        # Interest earned = 0 (no actual_contribution, lump sum treated as cost basis)
+        self.assertEqual(r["interest_earned"], 0.0)
+        # Auto rate should resolve to the current FY rate for display
+        self.assertGreater(r["effective_rate"], 0)
 
     @patch("app.api.provident_fund.date")
     def test_past_employer_no_start_date_defaults_to_today(self, mock_date):
@@ -440,8 +463,10 @@ class TestCalculatePfCorpus(unittest.TestCase):
         self.assertTrue(r["is_past_employer"])
         # Lump sum should be recorded
         self.assertEqual(r["total_contribution"], 500000.0)
-        # With start=today and end=today, balance recorded (no interest — month incomplete)
-        self.assertEqual(r["months_worked"], 1)
+        # Past employer entries show 0 months worked
+        self.assertEqual(r["months_worked"], 0)
+        # Balance equals input (no interest yet)
+        self.assertEqual(r["closing_balance"], 500000.0)
 
 
 class TestProvidentFundServiceParser(unittest.TestCase):
@@ -512,7 +537,7 @@ class TestActualContributionPL(unittest.TestCase):
 
     @patch("app.api.provident_fund.date")
     def test_actual_contribution_splits_pnl(self, mock_date):
-        """When actual_contribution is provided, total_contribution should use it as cost basis."""
+        """When actual_contribution is provided, interest_earned shows embedded gains (P&L)."""
         mock_date.today.return_value = date(2024, 3, 31)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
 
@@ -530,11 +555,13 @@ class TestActualContributionPL(unittest.TestCase):
         self.assertTrue(r["is_past_employer"])
         # Cost basis should be 350000 (actual_contribution), not the full 500000
         self.assertEqual(r["total_contribution"], 350000.0)
-        # Interest earned should include past historical interest (150000) + new accrual
-        self.assertGreater(r["interest_earned"], 0)
-        total_interest = r["closing_balance"] - r["total_contribution"]
-        # Historical interest (150k) should be reflected in the gap
-        self.assertGreater(total_interest, 150000)
+        # Interest earned = embedded gains = opening_balance - actual_contribution
+        self.assertEqual(r["interest_earned"], 150000.0)
+        # Closing balance = input opening_balance (no new interest accrued yet)
+        self.assertEqual(r["closing_balance"], 500000.0)
+        # P&L = closing_balance - total_contribution = 150000
+        pnl = r["closing_balance"] - r["total_contribution"]
+        self.assertEqual(pnl, 150000.0)
         # actual_contribution should be passed through
         self.assertEqual(r["actual_contribution"], 350000.0)
 
@@ -606,6 +633,10 @@ class TestActualContributionPL(unittest.TestCase):
         # Past employer cost basis should be actual_contribution
         self.assertEqual(result[0]["total_contribution"], 200000.0)
         self.assertTrue(result[0]["is_past_employer"])
+        # Past employer interest_earned = embedded gains = 300000 - 200000
+        self.assertEqual(result[0]["interest_earned"], 100000.0)
+        # Past employer closing_balance = input opening_balance
+        self.assertEqual(result[0]["closing_balance"], 300000.0)
 
         # Current employer contributions should be independent
         self.assertFalse(result[1]["is_past_employer"])
@@ -616,9 +647,10 @@ class TestActualContributionPL(unittest.TestCase):
         total_contributions = result[1]["total_corpus_contributions"]
         self.assertEqual(total_contributions, 200000.0 + 120000.0)
 
-        # Total corpus interest should include the historical gap
+        # Total corpus interest should include the historical gap (100k)
+        # plus interest on (lump sum + contributions) during active months
         total_interest = result[1]["total_corpus_interest"]
-        self.assertGreater(total_interest, 100000)  # at least the 100k historical gap
+        self.assertGreater(total_interest, 100000)
 
 
 if __name__ == "__main__":

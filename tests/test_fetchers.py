@@ -293,13 +293,16 @@ class TestBgFetchAndBroadcastLtps(unittest.TestCase):
     def test_with_symbols(self, mock_fetch, mock_state):
         _bg_fetch_and_broadcast_ltps("user1", ["INFY"], False)
         mock_fetch.assert_called_once()
-        mock_state.set_portfolio_updated.assert_called_once()
+        mock_state.set_manual_ltp_updating.assert_called_once_with("user1")
+        mock_state.set_manual_ltp_updated.assert_called_once_with("user1")
 
+    @patch('app.fetchers.state_manager')
     @patch('app.fetchers._wait_for_symbols', return_value=[])
-    def test_no_symbols_returns_early(self, mock_wait):
+    def test_no_symbols_returns_early(self, mock_wait, mock_state):
         """No symbols means return early (no retry queue)."""
         _bg_fetch_and_broadcast_ltps("user1", None, False)
-        # Should not raise or crash
+        mock_state.set_manual_ltp_updating.assert_not_called()
+        mock_state.set_manual_ltp_updated.assert_called_once_with("user1")
 
 
 class TestStartLtpFetchThread(unittest.TestCase):

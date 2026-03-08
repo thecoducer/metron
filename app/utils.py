@@ -300,6 +300,8 @@ class StateManager:
                 "portfolio_state": None,
                 "portfolio_last_updated": time.time(),
                 "last_error": None,
+                "manual_ltp_state": None,
+                "manual_ltp_last_updated": None,
             })
 
     def add_change_listener(self, callback):
@@ -333,6 +335,25 @@ class StateManager:
 
     def get_user_last_error(self, google_id: str) -> Any:
         return self._get_user_state(google_id).get("last_error")
+
+    # Per-user manual LTP state
+
+    def set_manual_ltp_updating(self, google_id: str) -> None:
+        if google_id:
+            us = self._get_user_state(google_id)
+            us["manual_ltp_state"] = STATE_UPDATING
+
+    def set_manual_ltp_updated(self, google_id: str) -> None:
+        if google_id:
+            us = self._get_user_state(google_id)
+            us["manual_ltp_state"] = STATE_UPDATED
+            us["manual_ltp_last_updated"] = time.time()
+
+    def get_manual_ltp_state(self, google_id: str) -> Any:
+        return self._get_user_state(google_id).get("manual_ltp_state")
+
+    def get_manual_ltp_last_updated(self, google_id: str) -> Any:
+        return self._get_user_state(google_id).get("manual_ltp_last_updated")
 
     # Global state (dynamic set_<type>_updating / set_<type>_updated)
 

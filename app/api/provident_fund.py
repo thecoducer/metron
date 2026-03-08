@@ -84,31 +84,59 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     today = date.today()
 
-    # Build a timeline: for each month from earliest start to today,
-    # determine the active entry (contribution + rate).
-    earliest = parsed[0][1]
-
-    # Build a lookup: for each month, which entry is active?
-    # An entry is "active" for a month if that month falls within
-    # [start_month, end_month].  If entries overlap, the later entry wins.
-    month_info: Dict[Tuple[int, int], Tuple[float, float, int]] = {}
-    # Maps (year, month) → (contribution, rate, entry_index)
+    # ── Separate past employer entries from active employment ─────
+    # Past employer entries carry a lump-sum accumulated balance.
+    # They must NOT participate in the month-by-month timeline because:
+    #   • The accumulated balance already includes historical interest
+    #   • Registering them would steal months from active employment
+    # Instead, lump sums are injected at TODAY so interest only accrues
+    # going forward.
+    past_employer_set: set = set()
+    past_lump_schedule: Dict[Tuple[int, int], List[Tuple[int, float, float]]] = {}
 
     for idx, (entry, start, end) in enumerate(parsed):
+        is_past = (
+            float(entry.get("opening_balance", 0) or 0) > 0
+            and float(entry.get("monthly_contribution", 0) or 0) <= 0
+        )
+        if is_past:
+            past_employer_set.add(idx)
+            lump = float(entry.get("opening_balance", 0) or 0)
+            actual = float(entry.get("actual_contribution", 0) or 0)
+            inject_ym = (today.year, today.month)
+            past_lump_schedule.setdefault(inject_ym, []).append(
+                (idx, lump, actual)
+            )
+
+    # Build month_info only from active employment entries
+    month_info: Dict[Tuple[int, int], Tuple[float, float, int]] = {}
+
+    for idx, (entry, start, end) in enumerate(parsed):
+        if idx in past_employer_set:
+            continue
         contribution = float(entry.get("monthly_contribution", 0) or 0)
         rate = float(entry.get("interest_rate", 0) or 0)
         effective_end = end if end else today
-        # Clamp future end dates to today
         if effective_end > today:
             effective_end = today
         for ym in _month_range(start, effective_end):
             month_info[ym] = (contribution, rate, idx)
 
+    # Determine the earliest date for the timeline walk
+    active_starts = [
+        start for idx, (_, start, _) in enumerate(parsed)
+        if idx not in past_employer_set
+    ]
+    earliest = min(active_starts) if active_starts else today
+
     # Walk month-by-month from earliest start to today
     balance = 0.0
     accrued_interest_fy = 0.0
-    last_rate = parsed[0][0].get("interest_rate", 0) or 0
-    last_rate = float(last_rate)
+    first_active = next(
+        (idx for idx in range(len(parsed)) if idx not in past_employer_set),
+        0,
+    )
+    last_rate = float(parsed[first_active][0].get("interest_rate", 0) or 0)
 
     # Per-entry accumulators
     entry_data = []
@@ -123,10 +151,23 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "rate_months": 0,
         })
 
+    # Pre-fill past employer entry_data (not touched by the walk)
+    for idx in past_employer_set:
+        entry = parsed[idx][0]
+        lump = float(entry.get("opening_balance", 0) or 0)
+        actual = float(entry.get("actual_contribution", 0) or 0)
+        entry_data[idx]["total_contribution"] = actual if actual > 0 else lump
+        entry_data[idx]["opening_balance"] = lump
+
     # Track which entry index is active each month for per-entry accounting
     prev_entry_idx = -1
 
     for ym in _month_range(earliest, today):
+        # ── Inject past employer lump sums at their scheduled month ──
+        if ym in past_lump_schedule:
+            for _past_idx, lump, _actual in past_lump_schedule[ym]:
+                balance += lump
+
         info = month_info.get(ym)
         if info:
             contribution, rate, entry_idx = info
@@ -138,34 +179,19 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             # Gap between jobs: no contribution, balance still earns interest
             contribution = 0.0
             rate = last_rate
-            entry_idx = prev_entry_idx if prev_entry_idx >= 0 else 0
+            entry_idx = prev_entry_idx if prev_entry_idx >= 0 else first_active
 
-        # Track opening balance when we first enter a new entry
+        # Track opening balance when we first enter a new active entry
         if entry_idx != prev_entry_idx and entry_idx >= 0 and entry_idx < len(entry_data):
-            # Credit any uncredited FY interest before recording opening balance
-            # of the new entry (so the opening balance is accurate)
-            if prev_entry_idx >= 0:
-                ed = entry_data[prev_entry_idx]
-                ed["closing_balance"] = balance + accrued_interest_fy
-
-            # Inject lump sum for past employer entries (opening_balance field)
-            lump_sum = float(parsed[entry_idx][0].get("opening_balance", 0) or 0)
-            if lump_sum > 0:
-                balance += lump_sum
-                # If user provided actual_contribution, use it as cost basis;
-                # otherwise treat the full lump sum as contribution (conservative).
-                actual = float(parsed[entry_idx][0].get("actual_contribution", 0) or 0)
-                if actual > 0:
-                    entry_data[entry_idx]["total_contribution"] += actual
-                else:
-                    entry_data[entry_idx]["total_contribution"] += lump_sum
+            if prev_entry_idx >= 0 and prev_entry_idx not in past_employer_set:
+                entry_data[prev_entry_idx]["closing_balance"] = balance + accrued_interest_fy
 
             entry_data[entry_idx]["opening_balance"] = balance + accrued_interest_fy
 
         # Add contribution
         balance += contribution
 
-        if entry_idx >= 0 and entry_idx < len(entry_data):
+        if entry_idx >= 0 and entry_idx < len(entry_data) and entry_idx not in past_employer_set:
             ed = entry_data[entry_idx]
             if info:
                 ed["total_contribution"] += contribution
@@ -182,7 +208,7 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             monthly_interest = balance * (rate / 12.0 / 100.0)
             accrued_interest_fy += monthly_interest
 
-            if entry_idx >= 0 and entry_idx < len(entry_data):
+            if entry_idx >= 0 and entry_idx < len(entry_data) and entry_idx not in past_employer_set:
                 entry_data[entry_idx]["interest_earned"] += monthly_interest
 
             # Credit interest at the end of financial year (March)
@@ -196,7 +222,7 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     balance += accrued_interest_fy
 
     # Finalize the last active entry
-    if prev_entry_idx >= 0 and prev_entry_idx < len(entry_data):
+    if prev_entry_idx >= 0 and prev_entry_idx < len(entry_data) and prev_entry_idx not in past_employer_set:
         entry_data[prev_entry_idx]["closing_balance"] = balance
 
     # Build enriched result
@@ -205,6 +231,7 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for idx, (entry, start, end) in enumerate(parsed):
         copy = dict(entry)
         ed = entry_data[idx]
+        is_past = idx in past_employer_set
 
         effective_end = end if end else today
         if effective_end > today:
@@ -214,18 +241,34 @@ def calculate_pf_corpus(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         copy["auto_rate"] = original_rate <= 0
         if copy["auto_rate"] and ed["rate_months"] > 0:
             copy["effective_rate"] = round(ed["rate_sum"] / ed["rate_months"], 2)
+        elif copy["auto_rate"] and is_past:
+            copy["effective_rate"] = round(_get_epf_rate(today.year, today.month), 2)
         else:
             copy["effective_rate"] = round(original_rate, 2)
         copy["start_date_parsed"] = start.strftime("%B %d, %Y")
         copy["end_date_parsed"] = end.strftime("%B %d, %Y") if end else ""
         copy["is_current"] = end is None
-        copy["is_past_employer"] = float(entry.get("opening_balance", 0) or 0) > 0 and float(entry.get("monthly_contribution", 0) or 0) <= 0
+        copy["is_past_employer"] = is_past
         copy["actual_contribution"] = float(entry.get("actual_contribution", 0) or 0)
-        copy["months_worked"] = ed["months_worked"]
-        copy["total_contribution"] = round(ed["total_contribution"], 2)
-        copy["opening_balance"] = round(ed["opening_balance"], 2)
-        copy["closing_balance"] = round(ed["closing_balance"], 2)
-        copy["interest_earned"] = round(ed["interest_earned"], 2)
+
+        if is_past:
+            input_opening = float(entry.get("opening_balance", 0) or 0)
+            copy["opening_balance"] = round(input_opening, 2)
+            copy["closing_balance"] = round(input_opening, 2)
+            copy["months_worked"] = 0
+            copy["total_contribution"] = round(ed["total_contribution"], 2)
+            # P&L: embedded gains = accumulated balance − actual contribution
+            actual = copy["actual_contribution"]
+            if actual > 0:
+                copy["interest_earned"] = round(input_opening - actual, 2)
+            else:
+                copy["interest_earned"] = 0.0
+        else:
+            copy["months_worked"] = ed["months_worked"]
+            copy["total_contribution"] = round(ed["total_contribution"], 2)
+            copy["opening_balance"] = round(ed["opening_balance"], 2)
+            copy["closing_balance"] = round(ed["closing_balance"], 2)
+            copy["interest_earned"] = round(ed["interest_earned"], 2)
 
         total_contributions += ed["total_contribution"]
 

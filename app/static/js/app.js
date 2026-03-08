@@ -662,6 +662,8 @@ class PortfolioApp {
         const status = await this._fetchStatus();
         this._applyStatus(status);
         Log.info('App', 'Initial status applied (warm cache)');
+        // Even with warm cache, LTPs may still be updating
+        this._pollForManualLTPs(status);
         return;
       }
 
@@ -693,6 +695,10 @@ class PortfolioApp {
       const finalStatus = await this._fetchStatus();
       this._applyStatus(finalStatus);
       this._updateRefreshButton(false);
+
+      // Manual LTP fetch runs after the main data fetch completes;
+      // poll in the background and re-fetch data when LTPs are ready.
+      this._pollForManualLTPs(finalStatus);
     } catch (error) {
       Log.error('App', 'Initial load error:', error);
       this._updateRefreshButton(false);
@@ -728,6 +734,43 @@ class PortfolioApp {
     }
     Log.warn('App', 'Poll timeout — proceeding with available data');
     return this._fetchStatus();
+  }
+
+  /**
+   * Non-blocking: If manual LTP fetch is still in progress, poll in the
+   * background and re-fetch data once LTPs are ready.  Also handles the
+   * race where LTPs finished while /api/all_data was being served.
+   */
+  async _pollForManualLTPs(status) {
+    const POLL_INTERVAL = 2000;
+    const MAX_POLLS = 30; // 1 minute max
+
+    if (status?.manual_ltp_state === 'updating') {
+      Log.info('App', 'Manual LTP fetch in progress — polling for completion');
+      for (let i = 0; i < MAX_POLLS; i++) {
+        await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        const s = await this._fetchStatus();
+        if (s.manual_ltp_state !== 'updating') {
+          Log.info('App', 'Manual LTPs ready — refreshing data');
+          this._lastManualLtpUpdate = s.manual_ltp_last_updated;
+          await this.updateData();
+          this._applyStatus(s);
+          return;
+        }
+      }
+      Log.warn('App', 'Manual LTP poll timeout');
+      return;
+    }
+
+    // LTPs already finished (fast fetch) — re-fetch data once if we
+    // haven't incorporated this update yet.
+    if (status?.manual_ltp_state === 'updated' &&
+        status?.manual_ltp_last_updated &&
+        status.manual_ltp_last_updated !== this._lastManualLtpUpdate) {
+      Log.info('App', 'Manual LTPs completed (fast) — refreshing data');
+      this._lastManualLtpUpdate = status.manual_ltp_last_updated;
+      await this.updateData();
+    }
   }
 
   /**
@@ -1073,6 +1116,9 @@ class PortfolioApp {
     const finalStatus = await this._fetchStatus();
     this._applyStatus(finalStatus);
     this._updateRefreshButton(false);
+
+    // Manual LTP fetch may still be running; poll and re-fetch when done.
+    this._pollForManualLTPs(finalStatus);
   }
 
   _updateRefreshButton(isUpdating) {

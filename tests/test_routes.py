@@ -52,6 +52,8 @@ class TestUIServerRoutes(unittest.TestCase):
             mock_state.get_portfolio_state.return_value = 'updated'
             mock_state.get_portfolio_last_updated.return_value = None
             mock_state.get_user_last_error.return_value = None
+            mock_state.get_manual_ltp_state.return_value = None
+            mock_state.get_manual_ltp_last_updated.return_value = None
             mock_state.nifty50_state = 'updated'
             mock_state.nifty50_last_updated = None
             mock_state.physical_gold_state = 'updated'

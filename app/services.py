@@ -94,6 +94,8 @@ def _build_status_response(google_id: str = None) -> Dict[str, Any]:
     portfolio_state = state_manager.get_portfolio_state(google_id) if google_id else None
     portfolio_updated = state_manager.get_portfolio_last_updated(google_id) if google_id else None
     user_error = state_manager.get_user_last_error(google_id) if google_id else None
+    manual_ltp_state = state_manager.get_manual_ltp_state(google_id) if google_id else None
+    manual_ltp_updated = state_manager.get_manual_ltp_last_updated(google_id) if google_id else None
 
     response = {
         "last_error": user_error or state_manager.last_error,
@@ -105,6 +107,8 @@ def _build_status_response(google_id: str = None) -> Dict[str, Any]:
         "login_urls": login_urls,
         "portfolio_state": portfolio_state,
         "portfolio_last_updated": format_timestamp(portfolio_updated),
+        "manual_ltp_state": manual_ltp_state,
+        "manual_ltp_last_updated": format_timestamp(manual_ltp_updated),
     }
     for st in StateManager.GLOBAL_STATE_TYPES:
         response[f"{st}_state"] = getattr(state_manager, f"{st}_state")

@@ -123,11 +123,13 @@ def _bg_fetch_and_broadcast_ltps(
             logger.info("Manual LTP: no symbols for %s", google_id[:8])
             return
 
+        state_manager.set_manual_ltp_updating(google_id)
         fetch_manual_ltps(syms, force=force)
-        state_manager.set_portfolio_updated(google_id=google_id)
         logger.debug("Manual LTP fetch complete for %s", google_id[:8])
     except Exception:
         logger.exception("Error in LTP fetch for %s", google_id[:8])
+    finally:
+        state_manager.set_manual_ltp_updated(google_id)
 
 
 def _wait_for_symbols(google_id: str) -> list:
@@ -293,8 +295,11 @@ def run_background_fetch(
             (google_id or "")[:8], time.monotonic() - t0,
         )
 
-        # Non-blocking: fetch manual LTPs and broadcast via SSE when ready.
+        # Non-blocking: fetch manual LTPs and broadcast when ready.
+        # Always mark as updating before the thread starts so the
+        # frontend can detect the in-progress state and poll.
         if google_id:
+            state_manager.set_manual_ltp_updating(google_id)
             _start_ltp_fetch_thread(google_id, manual_symbols, is_manual)
 
         if on_complete:
