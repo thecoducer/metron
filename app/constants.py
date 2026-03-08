@@ -96,6 +96,7 @@ EPF_HISTORICAL_RATES = {
     2022: 8.15,
     2023: 8.25,
     2024: 8.25,
+    2025: 8.25,
 }
 EPF_DEFAULT_RATE = 8.50  # fallback for financial years not in the table
 

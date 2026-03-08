@@ -88,6 +88,8 @@ PF_HEADERS = [
     "End Date",
     "Monthly Contribution",
     "Interest Rate (%)",
+    "Opening Balance",
+    "Contribution",
 ]
 
 # Unified registry used by the CRUD API (sheet_type → config)
@@ -131,7 +133,8 @@ SHEET_CONFIGS = {
         "sheet_name": PF_SHEET_NAME,
         "headers": PF_HEADERS,
         "fields": ["company_name", "start_date", "end_date",
-                    "monthly_contribution", "interest_rate"],
+                    "monthly_contribution", "interest_rate",
+                    "opening_balance", "actual_contribution"],
     },
 }
 

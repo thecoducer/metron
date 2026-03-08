@@ -1568,14 +1568,19 @@ class TableRenderer {
    * Build a single PF row (when the company has only one entry)
    */
   _buildProvidentFundRow(entry, classes) {
+    const isPast = entry.is_past_employer;
     const monthlyContrib = entry.monthly_contribution || 0;
     const rate = entry.effective_rate || entry.interest_rate || 0;
     const months = entry.months_worked || 0;
     const totalContrib = entry.total_contribution || 0;
     const interestEarned = entry.interest_earned || 0;
     const corpusValue = entry.closing_balance || 0;
-    const endDateDisplay = entry.end_date ? Formatter.formatShortDate(entry.end_date) : 'Present';
+    const endDateDisplay = isPast ? '-' : (entry.end_date ? Formatter.formatShortDate(entry.end_date) : 'Present');
     const rateDisplay = `${rate.toFixed(2)}%`;
+    const companyLabel = isPast
+      ? `${entry.company_name || '-'}<span class="pf-past-badge">Past</span>`
+      : (entry.company_name || '-');
+    const monthlyDisplay = isPast ? '-' : Formatter.formatCurrency(monthlyContrib);
 
     const crudActions = buildCrudActions('provident_fund', entry.row_number, {
       company_name: entry.company_name || '',
@@ -1583,15 +1588,17 @@ class TableRenderer {
       end_date: entry.end_date || '',
       monthly_contribution: entry.monthly_contribution || 0,
       interest_rate: entry.interest_rate || 0,
+      opening_balance: entry.opening_balance || 0,
+      actual_contribution: entry.actual_contribution || 0,
     });
 
     return `<tr data-manual-row="${entry.row_number}" data-schema="provident_fund" class="${classes.groupId ? `group-row ${classes.groupId}` : ''}">
-      <td style="font-weight:600"><span class="expand-toggle-spacer"></span>${entry.company_name || '-'}</td>
-      <td>${Formatter.formatShortDate(entry.start_date)}</td>
+      <td style="font-weight:600"><span class="expand-toggle-spacer"></span>${companyLabel}</td>
+      <td>${isPast ? (entry.start_date ? '<span style="opacity:.6">Added </span>' + Formatter.formatShortDate(entry.start_date) : '-') : Formatter.formatShortDate(entry.start_date)}</td>
       <td>${endDateDisplay}</td>
-      <td>${Formatter.formatCurrency(monthlyContrib)}</td>
+      <td>${monthlyDisplay}</td>
       <td style="color:#3498db;font-weight:600">${rateDisplay}</td>
-      <td>${months}</td>
+      <td>${isPast ? '-' : months}</td>
       <td>${Formatter.formatCurrency(totalContrib)}</td>
       <td style="color:${Formatter.colorPL(interestEarned)};font-weight:600">${Formatter.formatCurrency(interestEarned)}</td>
       <td style="font-weight:600">${Formatter.formatCurrency(corpusValue)}${crudActions}</td>
@@ -1621,13 +1628,14 @@ class TableRenderer {
    * Build a breakdown row for an individual PF entry within a group
    */
   _buildProvidentFundBreakdownRow(entry, groupId) {
+    const isPast = entry.is_past_employer;
     const monthlyContrib = entry.monthly_contribution || 0;
     const rate = entry.effective_rate || entry.interest_rate || 0;
     const months = entry.months_worked || 0;
     const totalContrib = entry.total_contribution || 0;
     const interestEarned = entry.interest_earned || 0;
     const corpusValue = entry.closing_balance || 0;
-    const endDateDisplay = entry.end_date ? Formatter.formatShortDate(entry.end_date) : 'Present';
+    const endDateDisplay = isPast ? '-' : (entry.end_date ? Formatter.formatShortDate(entry.end_date) : 'Present');
     const rateDisplay = `${rate.toFixed(2)}%`;
 
     const crudActions = buildCrudActions('provident_fund', entry.row_number, {
@@ -1636,15 +1644,19 @@ class TableRenderer {
       end_date: entry.end_date || '',
       monthly_contribution: entry.monthly_contribution || 0,
       interest_rate: entry.interest_rate || 0,
+      opening_balance: entry.opening_balance || 0,
+      actual_contribution: entry.actual_contribution || 0,
     });
 
+    const monthlyDisplay = isPast ? '-' : Formatter.formatCurrency(monthlyContrib);
+
     return `<tr data-manual-row="${entry.row_number}" data-schema="provident_fund" class="breakdown-row ${groupId}" style="display:none;">
-      <td></td>
-      <td><span class="breakdown-branch"></span>${Formatter.formatShortDate(entry.start_date)}</td>
+      <td>${isPast ? '<span class="pf-past-badge">Past</span>' : ''}</td>
+      <td><span class="breakdown-branch"></span>${isPast ? (entry.start_date ? '<span style="opacity:.6">Added </span>' + Formatter.formatShortDate(entry.start_date) : '-') : Formatter.formatShortDate(entry.start_date)}</td>
       <td>${endDateDisplay}</td>
-      <td>${Formatter.formatCurrency(monthlyContrib)}</td>
+      <td>${monthlyDisplay}</td>
       <td style="color:#3498db;font-weight:600">${rateDisplay}</td>
-      <td>${months}</td>
+      <td>${isPast ? '-' : months}</td>
       <td>${Formatter.formatCurrency(totalContrib)}</td>
       <td style="color:${Formatter.colorPL(interestEarned)};font-weight:600">${Formatter.formatCurrency(interestEarned)}</td>
       <td style="font-weight:600">${Formatter.formatCurrency(corpusValue)}${crudActions}</td>

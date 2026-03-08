@@ -361,11 +361,11 @@ class PortfolioApp {
         title: 'Provident Fund',
         items: [
           'Track your EPF/PF across employers with compounding interest.',
-          '<strong>To add:</strong> Click <strong>+ Add</strong>, enter company name, start date, end date (leave blank if current), monthly contribution, and interest rate.',
-          '<strong>Interest Rate:</strong> Enter 0 or leave blank to auto-apply the EPFO rate for each financial year (8.25% for FY 2023\u201324). Or enter a custom rate.',
+          '<strong>Active Employment:</strong> Enter company, start date, end date (blank if current), monthly contribution, and interest rate.',
+          '<strong>Past Employer:</strong> Enter accumulated balance and your contribution (from EPFO passbook) to track carry-forward interest accurately.',
+          '<strong>Interest Rate:</strong> Enter 0 or leave blank to auto-apply the official EPFO rate for each financial year. Or enter a custom rate.',
           'Multiple stints at the same company are grouped \u2014 click to expand.',
-          '<strong>Months:</strong> Auto-computed from start and end dates.',
-          '<strong>Balance:</strong> Your closing balance for that stint (contributions + interest compounded monthly).',
+          '<strong>P&L:</strong> For past employers, the split between your contribution and interest earned is based on the contribution you enter. This ensures accurate portfolio-level profit tracking.',
         ]
       },
       sips: {
