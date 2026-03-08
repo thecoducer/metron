@@ -138,11 +138,11 @@ def upsert_user(
         if spreadsheet_id:
             data["spreadsheet_id"] = spreadsheet_id
         ref.update(data)
-        logger.info("Updated user %s (%s)", google_id[:8], email)
+        logger.info("Updated user record")
     else:
         data.update({"spreadsheet_id": spreadsheet_id or "", "created_at": now})
         ref.set(data)
-        logger.info("Created user %s (%s)", google_id[:8], email)
+        logger.info("Created user record")
 
     return ref.get().to_dict()
 
@@ -150,7 +150,7 @@ def upsert_user(
 def update_spreadsheet_id(google_id: str, spreadsheet_id: str) -> None:
     """Persist the user's portfolio spreadsheet ID."""
     _user_ref(google_id).update({"spreadsheet_id": spreadsheet_id})
-    logger.info("Stored spreadsheet_id for user %s", google_id[:8])
+    logger.info("Stored spreadsheet_id for user")
 
 
 def get_google_credentials(google_id: str) -> Optional[dict]:
@@ -200,7 +200,7 @@ def add_zerodha_account(
         "api_secret": encrypt_credential(api_secret, pin),
     })
     ref.update({"zerodha_accounts": accounts})
-    logger.info("Added Zerodha account '%s' for user %s", account_name, google_id[:8])
+    logger.info("Added Zerodha account")
 
 
 def remove_zerodha_account(google_id: str, account_name: str) -> None:
@@ -215,7 +215,7 @@ def remove_zerodha_account(google_id: str, account_name: str) -> None:
         raise ValueError(f"Account '{account_name}' not found")
 
     ref.update({"zerodha_accounts": updated})
-    logger.info("Removed Zerodha account '%s' for user %s", account_name, google_id[:8])
+    logger.info("Removed Zerodha account")
 
 
 def get_zerodha_account_names(google_id: str) -> list[str]:
@@ -234,7 +234,7 @@ def get_zerodha_accounts(google_id: str, pin: str = "") -> list[dict]:
     A valid *pin* is required; without it an empty list is returned.
     """
     if not pin:
-        logger.info("get_zerodha_accounts called without PIN for %s", google_id[:8])
+        logger.info("get_zerodha_accounts called without PIN")
         return []
 
     doc = _user_ref(google_id).get()
@@ -251,9 +251,8 @@ def get_zerodha_accounts(google_id: str, pin: str = "") -> list[dict]:
             })
         except Exception:
             logger.warning(
-                "Failed to decrypt credentials for account '%s' of user %s "
+                "Failed to decrypt credentials for a Zerodha account "
                 "— please re-add the account via Settings",
-                a["account_name"], google_id[:8],
             )
     return result
 
@@ -309,7 +308,7 @@ def store_pin_check(google_id: str, pin: str) -> None:
     """
     token = create_pin_check(pin)
     _user_ref(google_id).update({"pin_check": token})
-    logger.info("Stored pin_check for user %s", google_id[:8])
+    logger.info("Stored pin_check for user")
 
 
 def verify_user_pin(google_id: str, pin: str) -> bool:
@@ -334,4 +333,4 @@ def reset_zerodha_data(google_id: str) -> None:
         "zerodha_sessions": DELETE_FIELD,
         "pin_check": DELETE_FIELD,
     })
-    logger.info("Reset all Zerodha data for user %s", google_id[:8])
+    logger.info("Reset all Zerodha data for user")

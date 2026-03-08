@@ -52,6 +52,28 @@ class DataManager {
     return this._fetchEndpoint('/api/status');
   }
 
+  async fetchPortfolioData() {
+    const resp = await this._fetchEndpoint('/api/data/portfolio');
+    return {
+      stocks: resp.stocks || [],
+      mfHoldings: resp.mfHoldings || [],
+      sips: resp.sips || [],
+      status: resp.status || {},
+    };
+  }
+
+  async fetchSheetsData() {
+    const resp = await this._fetchEndpoint('/api/data/sheets');
+    const fixedDeposits = resp.fixedDeposits || [];
+    return {
+      physicalGold: resp.physicalGold || [],
+      fixedDeposits,
+      providentFund: resp.providentFund || [],
+      fdSummary: this._computeFDSummary(fixedDeposits),
+      status: resp.status || {},
+    };
+  }
+
   async fetchAllData() {
     const resp = await this._fetchEndpoint('/api/all_data');
     const stocks = resp.stocks || [];

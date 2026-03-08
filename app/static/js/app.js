@@ -734,28 +734,79 @@ class PortfolioApp {
     const POLL_INTERVAL = 2000;
     const MAX_POLLS = 90; // 3 minutes max
     let prev = initialStatus || {};
+    // Track which sources have been fetched across the entire poll loop
+    // so we can catch sources that completed before polling started.
+    let portfolioFetched = false;
+    let sheetsFetched = false;
+
+    // Eagerly fetch any sources already completed before polling begins.
+    // This avoids waiting an extra poll cycle (or deferring to catch-up)
+    // when a fast source finishes before the first poll fires.
+    const portfolioAlreadyDone = prev.portfolio_state && prev.portfolio_state !== 'updating';
+    const sheetsAlreadyDone = prev.sheets_state && prev.sheets_state !== 'updating';
+
+    if (portfolioAlreadyDone && sheetsAlreadyDone) {
+      Log.info('App', 'Both sources already done — loading all');
+      await this.updateData();
+      portfolioFetched = true;
+      sheetsFetched = true;
+    } else if (portfolioAlreadyDone) {
+      Log.info('App', 'Portfolio already done — loading broker data');
+      await this.updatePortfolioData();
+      portfolioFetched = true;
+    } else if (sheetsAlreadyDone) {
+      Log.info('App', 'Sheets already done — loading sheets data');
+      await this.updateSheetsData();
+      sheetsFetched = true;
+    }
+
+    // If everything is done, no need to poll at all.
+    if (portfolioFetched && sheetsFetched && !this._isStatusUpdating(prev)) {
+      this._applyStatus(prev);
+      if (prev.manual_ltp_last_updated) {
+        this._lastManualLtpUpdate = prev.manual_ltp_last_updated;
+      }
+      return prev;
+    }
 
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise(r => setTimeout(r, POLL_INTERVAL));
       const status = await this._fetchStatus();
 
-      // Detect transitions from 'updating' → terminal for each source.
-      const tracked = ['portfolio_state', 'sheets_state'];
-      const anyCompleted = tracked.some(k =>
-        prev[k] === 'updating' && status[k] !== 'updating'
-      );
+      // Detect per-source transitions from 'updating' → terminal.
+      const portfolioCompleted = prev.portfolio_state === 'updating' && status.portfolio_state !== 'updating';
+      const sheetsCompleted = prev.sheets_state === 'updating' && status.sheets_state !== 'updating';
 
-      if (anyCompleted) {
-        Log.info('App', 'Data source completed — refreshing view');
+      if (portfolioCompleted && sheetsCompleted) {
+        Log.info('App', 'Both sources completed — refreshing all');
         await this.updateData();
+        portfolioFetched = true;
+        sheetsFetched = true;
+      } else if (portfolioCompleted) {
+        Log.info('App', 'Portfolio completed — refreshing broker data');
+        await this.updatePortfolioData();
+        portfolioFetched = true;
+      } else if (sheetsCompleted) {
+        Log.info('App', 'Sheets completed — refreshing sheets data');
+        await this.updateSheetsData();
+        sheetsFetched = true;
       }
 
       this._applyStatus(status);
       prev = { ...status };
 
       if (!this._isStatusUpdating(status)) {
-        // Ensure final data is loaded
-        if (!anyCompleted) await this.updateData();
+        // Fetch any sources whose transition was missed (completed
+        // before polling started, or state was never 'updating').
+        if (!portfolioFetched && !sheetsFetched) {
+          await this.updateData();
+        } else if (!portfolioFetched) {
+          Log.info('App', 'Catching up portfolio data (transition missed)');
+          await this.updatePortfolioData();
+        } else if (!sheetsFetched) {
+          Log.info('App', 'Catching up sheets data (transition missed)');
+          await this.updateSheetsData();
+        }
         // Record LTP timestamp so _pollForManualLTPs doesn't re-fetch
         if (status.manual_ltp_last_updated) {
           this._lastManualLtpUpdate = status.manual_ltp_last_updated;
@@ -784,9 +835,9 @@ class PortfolioApp {
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
         const s = await this._fetchStatus();
         if (s.manual_ltp_state !== 'updating') {
-          Log.info('App', 'Manual LTPs ready — refreshing data');
+          Log.info('App', 'Manual LTPs ready — refreshing portfolio data');
           this._lastManualLtpUpdate = s.manual_ltp_last_updated;
-          await this.updateData();
+          await this.updatePortfolioData();
           this._applyStatus(s);
           return;
         }
@@ -800,9 +851,9 @@ class PortfolioApp {
     if (status?.manual_ltp_state === 'updated' &&
         status?.manual_ltp_last_updated &&
         status.manual_ltp_last_updated !== this._lastManualLtpUpdate) {
-      Log.info('App', 'Manual LTPs completed (fast) — refreshing data');
+      Log.info('App', 'Manual LTPs completed (fast) — refreshing portfolio data');
       this._lastManualLtpUpdate = status.manual_ltp_last_updated;
-      await this.updateData();
+      await this.updatePortfolioData();
     }
   }
 
@@ -1021,6 +1072,56 @@ class PortfolioApp {
     });
   }
 
+  /**
+   * Apply portfolio (broker) data only — stocks, MFs, SIPs.
+   */
+  _applyPortfolioData({ stocks, mfHoldings, sips, status }) {
+    const searchEl = document.getElementById('search');
+    const searchQuery = searchEl ? searchEl.value : '';
+    const forceUpdate = searchQuery !== '';
+
+    this.dataManager.updateStocks(stocks || [], forceUpdate);
+    this.dataManager.updateMFHoldings(mfHoldings || [], forceUpdate);
+    this.dataManager.updateSIPs(sips || [], forceUpdate);
+
+    this.tableRenderer.setSearchQuery(searchQuery);
+
+    if (status) {
+      this.lastPortfolioUpdatedAt = status.portfolio_last_updated || null;
+    }
+
+    this._renderAllAndUpdateSummaries(status || this.lastStatus || {}, {
+      renderSIPs: true,
+      isUpdating: this._isStatusUpdating(status || this.lastStatus || {}),
+      fdSummaryData: this.dataManager.getFDSummary()
+    });
+  }
+
+  /**
+   * Apply sheets data only — physical gold, FDs, provident fund.
+   */
+  _applySheetsData({ physicalGold, fixedDeposits, providentFund, fdSummary, status }) {
+    const searchEl = document.getElementById('search');
+    const searchQuery = searchEl ? searchEl.value : '';
+    const forceUpdate = searchQuery !== '';
+
+    this.dataManager.updatePhysicalGold(physicalGold || [], forceUpdate);
+    this.dataManager.updateFixedDeposits(fixedDeposits || [], forceUpdate);
+    this.dataManager.updateProvidentFund(providentFund || [], forceUpdate);
+    const computedSummary = (fdSummary && fdSummary.length)
+      ? fdSummary
+      : this.dataManager._computeFDSummary(fixedDeposits || []);
+    this.dataManager.updateFDSummary(computedSummary, forceUpdate);
+
+    this.tableRenderer.setSearchQuery(searchQuery);
+
+    this._renderAllAndUpdateSummaries(status || this.lastStatus || {}, {
+      renderSIPs: false,
+      isUpdating: this._isStatusUpdating(status || this.lastStatus || {}),
+      fdSummaryData: this.dataManager.getFDSummary()
+    });
+  }
+
   async updateData() {
     try {
       Log.time('Data', 'fetchAllData');
@@ -1040,6 +1141,30 @@ class PortfolioApp {
       }
     } catch (error) {
       Log.error('Data', 'Error updating data:', error);
+    }
+  }
+
+  async updatePortfolioData() {
+    try {
+      Log.time('Data', 'fetchPortfolioData');
+      const data = await this.dataManager.fetchPortfolioData();
+      Log.timeEnd('Data', 'fetchPortfolioData');
+      this._hideLoadingIndicators();
+      this._applyPortfolioData(data);
+    } catch (error) {
+      Log.error('Data', 'Error updating portfolio data:', error);
+    }
+  }
+
+  async updateSheetsData() {
+    try {
+      Log.time('Data', 'fetchSheetsData');
+      const data = await this.dataManager.fetchSheetsData();
+      Log.timeEnd('Data', 'fetchSheetsData');
+      this._hideLoadingIndicators();
+      this._applySheetsData(data);
+    } catch (error) {
+      Log.error('Data', 'Error updating sheets data:', error);
     }
   }
 

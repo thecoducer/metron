@@ -57,9 +57,6 @@ NSE_BASE_URL = "https://www.nseindia.com"
 IBJA_BASE_URL = "https://ibjarates.com/"
 BSE_API_BASE_URL = "https://api.bseindia.com"
 
-# Market index cache
-MARKET_INDEX_CACHE_TTL = 15  # seconds
-
 # External service purities (gold)
 IBJA_GOLD_PURITIES = ['999', '995', '916', '750', '585']
 

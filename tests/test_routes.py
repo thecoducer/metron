@@ -584,24 +584,53 @@ class TestDataRoutes(unittest.TestCase):
         self.assertIn("mfHoldings", data)
         self.assertIn("physicalGold", data)
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.routes._build_stocks_data", return_value=[{"tradingsymbol": "RELIANCE"}])
+    @patch("app.routes._build_mf_data", return_value=[])
+    @patch("app.routes._build_sips_data", return_value=[])
+    @patch("app.routes._build_status_response", return_value={"portfolio_state": "updated"})
+    def test_portfolio_data(self, mock_status, mock_sips, mock_mf, mock_stocks):
+        _inject_user(self.client)
+        resp = self.client.get("/api/data/portfolio", headers=_APP_HEADERS)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.data)
+        self.assertIn("stocks", data)
+        self.assertIn("mfHoldings", data)
+        self.assertIn("sips", data)
+        self.assertIn("status", data)
+        self.assertNotIn("physicalGold", data)
+        self.assertNotIn("fixedDeposits", data)
+
+    @patch("app.routes._build_gold_data", return_value=[{"date": "2024-01-01"}])
+    @patch("app.routes._build_fd_data", return_value=[])
+    @patch("app.routes._build_pf_data", return_value=[])
+    @patch("app.routes._build_status_response", return_value={"sheets_state": "updated"})
+    def test_sheets_data(self, mock_status, mock_pf, mock_fd, mock_gold):
+        _inject_user(self.client)
+        resp = self.client.get("/api/data/sheets", headers=_APP_HEADERS)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.data)
+        self.assertIn("physicalGold", data)
+        self.assertIn("fixedDeposits", data)
+        self.assertIn("providentFund", data)
+        self.assertIn("status", data)
+        self.assertNotIn("stocks", data)
+        self.assertNotIn("mfHoldings", data)
+
     @patch("app.routes.market_cache")
-    def test_market_indices_fresh(self, mock_mc, mock_client_cls):
+    def test_market_indices_fresh(self, mock_mc):
         mock_mc.market_indices = {}
-        mock_mc.market_indices_last_fetch = None
-        mock_client_cls.return_value.fetch_market_indices.return_value = {"nifty50": {"value": 100}}
         _inject_user(self.client)
         resp = self.client.get("/api/market_indices", headers=_APP_HEADERS)
         self.assertEqual(resp.status_code, 200)
+        self.assertEqual(json.loads(resp.data), {})
 
     @patch("app.routes.market_cache")
     def test_market_indices_cached(self, mock_mc):
-        from datetime import datetime
         mock_mc.market_indices = {"nifty50": {"value": 100}}
-        mock_mc.market_indices_last_fetch = datetime.now()
         _inject_user(self.client)
         resp = self.client.get("/api/market_indices", headers=_APP_HEADERS)
         self.assertEqual(resp.status_code, 200)
+        self.assertEqual(json.loads(resp.data), {"nifty50": {"value": 100}})
 
 
 # ---------------------------------------------------------------------------

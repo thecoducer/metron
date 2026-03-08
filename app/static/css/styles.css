@@ -781,9 +781,9 @@ body.dark-theme .theme-toggle:hover {
   border-radius: 5px 0 0 5px;
 }
 
-.alloc-seg:last-child {
-  border-radius: 0 5px 5px 0;
-}
+/* Right border-radius is applied dynamically via JS to the last visible
+   (non-zero-width) segment so the bar stays rounded even when trailing
+   segments are hidden. */
 
 .allocation-legend {
   display: flex;

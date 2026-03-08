@@ -21,7 +21,7 @@ def _is_google_auth_error(exc: Exception) -> bool:
     """Return True if *exc* is a Google credential refresh / auth failure."""
     name = type(exc).__name__
     return "RefreshError" in name or "InvalidGrantError" in name
-from .constants import (HTTP_ACCEPTED, HTTP_CONFLICT, MARKET_INDEX_CACHE_TTL,
+from .constants import (HTTP_ACCEPTED, HTTP_CONFLICT,
                          PORTFOLIO_TABLE_ROW_LIMIT)
 from .logging_config import logger
 from .middleware import app_only, login_required, pin_required, protected_api
@@ -144,8 +144,7 @@ def google_login():
 
     try:
         redirect_uri = request.url_root.rstrip("/") + "/api/auth/google/callback"
-        logger.info("OAuth login initiated from ip=%s redirect_uri=%s",
-                    request.remote_addr, redirect_uri)
+        logger.info("OAuth login initiated, redirect_uri=%s", redirect_uri)
         flow = build_oauth_flow(redirect_uri)
         authorization_url, state = flow.authorization_url(
             access_type="offline",
@@ -196,10 +195,7 @@ def google_callback():
         existing = get_user(google_id)
         spreadsheet_id = existing.get("spreadsheet_id", "") if existing else ""
         is_new_user = existing is None
-        logger.info(
-            "OAuth callback success: user=%s email=%s new_user=%s",
-            google_id[:8], email, is_new_user,
-        )
+        logger.info("OAuth callback success: new_user=%s", is_new_user)
 
         user_doc = upsert_user(
             google_id=google_id,
@@ -215,9 +211,9 @@ def google_callback():
                 try:
                     sid = create_portfolio_sheet(creds, title=title)
                     update_spreadsheet_id(gid, sid)
-                    logger.info("Background sheet creation done for %s", gid)
+                    logger.info("Background sheet creation done")
                 except Exception:
-                    logger.exception("Background sheet creation failed for %s", gid)
+                    logger.exception("Background sheet creation failed")
             threading.Thread(
                 target=_create_sheet_bg,
                 args=(credentials, f"Metron – {name or email}", google_id),
@@ -264,7 +260,7 @@ def auth_logout():
     user = _current_user()
     if user:
         gid = user.get("google_id", "")
-        logger.info("User logout: user=%s", gid[:8])
+        logger.info("User logout")
         session_manager.clear_pin(gid)
     session.clear()
     return jsonify({"status": "logged_out"})
@@ -306,10 +302,7 @@ def pin_verify():
     # ── Rate-limit check ──
     allowed, retry_after = pin_rate_limiter.check(google_id)
     if not allowed:
-        logger.warning(
-            "PIN verify rate-limited: user=%s retry_after=%ds",
-            google_id[:8], retry_after,
-        )
+        logger.warning("PIN verify rate-limited: retry_after=%ds", retry_after)
         resp = jsonify({
             "error": "Too many failed attempts",
             "retry_after": retry_after,
@@ -323,15 +316,13 @@ def pin_verify():
     pin = (data.get("pin") or "").strip()
 
     if not pin or len(pin) != 6 or not pin.isalnum():
-        logger.info("PIN verify: invalid format from user=%s", google_id[:8])
+        logger.info("PIN verify: invalid format")
         return jsonify({"error": "PIN must be exactly 6 alphanumeric characters"}), 400
 
     if not verify_user_pin(google_id, pin):
         attempts, lockout_secs = pin_rate_limiter.record_failure(google_id)
-        logger.warning(
-            "PIN verify failed: user=%s attempts=%d lockout=%s",
-            google_id[:8], attempts, f"{lockout_secs}s" if lockout_secs else "none",
-        )
+        logger.warning("PIN verify failed: attempts=%d lockout=%s",
+            attempts, f"{lockout_secs}s" if lockout_secs else "none")
         resp_data = {"error": "Incorrect PIN", "attempts": attempts}
         if lockout_secs:
             resp_data["retry_after"] = lockout_secs
@@ -344,7 +335,7 @@ def pin_verify():
 
     # Success — clear rate-limit state
     pin_rate_limiter.record_success(google_id)
-    logger.info("PIN verified successfully: user=%s", google_id[:8])
+    logger.info("PIN verified successfully")
 
     # Store PIN in server memory and mark session as verified
     session_manager.set_pin(google_id, pin)
@@ -373,14 +364,14 @@ def pin_setup():
         return jsonify({"error": "PIN must be exactly 6 alphanumeric characters"}), 400
 
     if has_pin(google_id):
-        logger.warning("PIN setup rejected: user=%s already has PIN", google_id[:8])
+        logger.warning("PIN setup rejected: already has PIN")
         return jsonify({"error": "PIN already set. Use reset to change it."}), 409
 
     store_pin_check(google_id, pin)
     session_manager.set_pin(google_id, pin)
     session["pin_verified"] = True
     session.modified = True
-    logger.info("PIN created for user=%s", google_id[:8])
+    logger.info("PIN created")
 
     # Trigger background data loading now that PIN is available
     ensure_user_loaded(google_id, force=True)
@@ -406,7 +397,7 @@ def pin_reset():
     session.pop("pin_verified", None)
     session.modified = True
     portfolio_cache.clear(google_id)
-    logger.info("PIN reset complete: user=%s (all Zerodha data wiped)", google_id[:8])
+    logger.info("PIN reset complete (all Zerodha data wiped)")
 
     return jsonify({"status": "reset_complete"})
 
@@ -421,16 +412,16 @@ def zerodha_callback():
 
     user = session.get("user")
     if not user or not user.get("google_id"):
-        logger.warning("Zerodha callback without active session from ip=%s", request.remote_addr)
+        logger.warning("Zerodha callback without active session")
         return render_template("callback_error.html")
 
     google_id = user["google_id"]
-    logger.info("Zerodha callback started: user=%s", google_id[:8])
+    logger.info("Zerodha callback started")
 
     # PIN must be available to decrypt account credentials
     pin = session_manager.get_pin(google_id)
     if not pin:
-        logger.warning("Zerodha callback: PIN not in memory for user=%s", google_id[:8])
+        logger.warning("Zerodha callback: PIN not in memory")
         return render_template("callback_error.html")
 
     ensure_user_loaded(google_id)
@@ -439,7 +430,7 @@ def zerodha_callback():
     authenticated_account = None
     for acc in accounts:
         if session_manager.is_valid(google_id, acc["name"]):
-            logger.debug("Zerodha callback: skipping already-valid account=%s", acc["name"])
+            logger.debug("Zerodha callback: skipping already-valid account")
             continue
         try:
             from kiteconnect import KiteConnect
@@ -452,16 +443,14 @@ def zerodha_callback():
                 authenticated_account = acc["name"]
                 break
         except Exception as e:
-            logger.warning("Zerodha callback: session generation failed for account=%s: %s",
-                          acc["name"], e)
+            logger.warning("Zerodha callback: session generation failed: %s", e)
             continue
 
     if not authenticated_account:
-        logger.warning("Zerodha callback: no account authenticated for user=%s (tried %d)",
-                      google_id[:8], len(accounts))
+        logger.warning("Zerodha callback: no account authenticated")
         return render_template("callback_error.html")
 
-    logger.info("Zerodha login succeeded: user=%s account=%s", google_id[:8], authenticated_account)
+    logger.info("Zerodha login succeeded")
 
     auth_accounts = [acc for acc in accounts if session_manager.is_valid(google_id, acc["name"])]
     if auth_accounts and not portfolio_cache.is_fetch_in_progress(google_id):
@@ -727,24 +716,54 @@ def epf_rates():
     })
 
 
-@app_ui.route("/api/all_data", methods=["GET"])
+@app_ui.route("/api/data/portfolio", methods=["GET"])
 @pin_required
-def all_data():
-    """Return all portfolio data in a single response.
-
-    Replaces the need for 6 separate endpoint calls from the frontend.
-    The backend batch-fetches all Google Sheets tabs in one API call,
-    then assembles and returns the combined payload.
-    """
+def portfolio_data():
+    """Return broker-sourced portfolio data (stocks, MFs, SIPs) + status."""
     import time as _t
     _t0 = _t.monotonic()
     user = _current_user()
     google_id = user["google_id"]
+    payload = {
+        "stocks": _build_stocks_data(user),
+        "mfHoldings": _build_mf_data(user),
+        "sips": _build_sips_data(user),
+        "status": _build_status_response(google_id),
+    }
+    logger.info("portfolio data served in %.2fs", _t.monotonic() - _t0)
+    resp = jsonify(payload)
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
 
-    # If sheets cache is already populated (from background fetch),
-    # the helpers below will use it.  Otherwise they return empty data
-    # and the frontend re-fetches once sheets_state flips to 'updated'.
 
+@app_ui.route("/api/data/sheets", methods=["GET"])
+@pin_required
+def sheets_data():
+    """Return Google Sheets data (gold, FDs, PF) + status."""
+    import time as _t
+    _t0 = _t.monotonic()
+    user = _current_user()
+    google_id = user["google_id"]
+    payload = {
+        "physicalGold": _build_gold_data(user),
+        "fixedDeposits": _build_fd_data(user),
+        "providentFund": _build_pf_data(user),
+        "status": _build_status_response(google_id),
+    }
+    logger.info("sheets data served in %.2fs", _t.monotonic() - _t0)
+    resp = jsonify(payload)
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+@app_ui.route("/api/all_data", methods=["GET"])
+@pin_required
+def all_data():
+    """Return all portfolio data in a single response (legacy/initial load)."""
+    import time as _t
+    _t0 = _t.monotonic()
+    user = _current_user()
+    google_id = user["google_id"]
     payload = {
         "stocks": _build_stocks_data(user),
         "mfHoldings": _build_mf_data(user),
@@ -754,15 +773,7 @@ def all_data():
         "providentFund": _build_pf_data(user),
         "status": _build_status_response(google_id),
     }
-    _elapsed = _t.monotonic() - _t0
-    logger.info(
-        "all_data served: user=%s in %.2fs stocks=%d mf=%d sips=%d gold=%d fd=%d pf=%d",
-        google_id[:8], _elapsed,
-        len(payload["stocks"]), len(payload["mfHoldings"]),
-        len(payload["sips"]), len(payload["physicalGold"]),
-        len(payload["fixedDeposits"]), len(payload["providentFund"]),
-    )
-
+    logger.info("all_data served in %.2fs", _t.monotonic() - _t0)
     resp = jsonify(payload)
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
@@ -777,20 +788,14 @@ def fd_summary_data():
 @app_ui.route("/api/market_indices", methods=["GET"])
 @app_only
 def market_indices():
-    from datetime import datetime, timedelta
-    from .api.market_data import MarketDataClient
+    """Serve cached market index data.
 
-    if (market_cache.market_indices and market_cache.market_indices_last_fetch and
-            datetime.now() - market_cache.market_indices_last_fetch < timedelta(seconds=MARKET_INDEX_CACHE_TTL)):
-        response = jsonify(market_cache.market_indices)
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return response
-
-    client = MarketDataClient()
-    data = client.fetch_market_indices()
-    market_cache.market_indices = data
-    market_cache.market_indices_last_fetch = datetime.now()
-
+    Market indices are fetched by ``run_background_fetch`` (on login and
+    manual refresh) and stored in ``market_cache``.  This endpoint only
+    serves the cached snapshot — it never triggers a Yahoo Finance call
+    itself.
+    """
+    data = market_cache.market_indices or {}
     response = jsonify(data)
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
@@ -806,7 +811,7 @@ def refresh_route():
     google_id = user["google_id"]
 
     if portfolio_cache.is_fetch_in_progress(google_id):
-        logger.info("Manual refresh rejected: already in progress for user=%s", google_id[:8])
+        logger.info("Manual refresh rejected: already in progress")
         return make_response(jsonify({"error": "Fetch already in progress"}), HTTP_CONFLICT)
 
     ensure_user_loaded(google_id)
@@ -818,10 +823,7 @@ def refresh_route():
     manual_ltp_cache.invalidate()
 
     authenticated = get_authenticated_accounts(google_id)
-    logger.info(
-        "Manual refresh started: user=%s accounts=%d manual_symbols=%d",
-        google_id[:8], len(authenticated), len(manual_symbols),
-    )
+    logger.info("Manual refresh started")
     run_background_fetch(
         is_manual=True, accounts=authenticated, google_id=google_id,
         manual_symbols=manual_symbols,
@@ -849,7 +851,7 @@ def portfolio_page():
     # Validate that the in-memory PIN is still present — the session
     # cookie can be stale after a server restart.
     if pin_verified and not session_manager.get_pin(google_id):
-        logger.info("portfolio_page: stale pin_verified for %s — clearing", google_id[:8])
+        logger.info("portfolio_page: stale pin_verified — clearing")
         session["pin_verified"] = False
         session.modified = True
         pin_verified = False
@@ -890,8 +892,8 @@ def portfolio_page():
     user_has_pin = _has_pin(google_id)
 
     logger.info(
-        "portfolio_page: user=%s pin_verified=%s inlined=%s has_pin=%s",
-        google_id[:8], pin_verified, initial_data is not None, user_has_pin,
+        "portfolio_page: pin_verified=%s inlined=%s has_pin=%s",
+        pin_verified, initial_data is not None, user_has_pin,
     )
 
     return render_template(

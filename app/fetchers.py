@@ -86,7 +86,7 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False):
 
     # Fast path — everything already in cache.
     if user_sheets_cache.is_fully_cached(google_id):
-        logger.debug("Sheets cache hit for user=%s", google_id[:8])
+        logger.debug("Sheets cache hit")
         if track_state and google_id:
             state_manager.set_sheets_updated(google_id)
         return
@@ -97,7 +97,7 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False):
             return
 
         _t0 = time.monotonic()
-        logger.info("Sheets batch-fetch started for user=%s", google_id[:8])
+        logger.info("Sheets batch-fetch started")
 
         try:
             from .api.google_auth import credentials_from_dict
@@ -160,13 +160,7 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False):
                 manual=manual,
             )
             _elapsed = time.monotonic() - _t0
-            manual_counts = {k: len(v) for k, v in manual.items() if v}
-            logger.info(
-                "Sheets batch-fetch done for user=%s in %.1fs: "
-                "gold=%d fds=%d pf=%d manual=%s",
-                google_id[:8], _elapsed, len(gold), len(deposits),
-                len(pf_entries), manual_counts,
-            )
+            logger.info("Sheets batch-fetch done in %.1fs", _elapsed)
 
             from .api.google_auth import persist_refreshed_credentials
             persist_refreshed_credentials(creds, google_id)
@@ -178,16 +172,13 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False):
             _exc_type = type(exc).__name__
             if "RefreshError" in _exc_type or "InvalidGrantError" in _exc_type:
                 logger.warning(
-                    "Sheets batch-fetch FAILED for user=%s after %.1fs: "
+                    "Sheets batch-fetch FAILED after %.1fs: "
                     "Google credentials expired or incomplete (%s). "
                     "User must re-authenticate.",
-                    google_id[:8], _elapsed, exc,
+                    _elapsed, _exc_type,
                 )
             else:
-                logger.exception(
-                    "Sheets batch-fetch FAILED for user=%s after %.1fs",
-                    google_id[:8], _elapsed,
-                )
+                logger.exception("Sheets batch-fetch FAILED after %.1fs", _elapsed)
             if track_state:
                 state_manager.set_sheets_updated(google_id, error=str(exc))
 
@@ -274,7 +265,7 @@ def _update_ltp_cache(requested: list, fetched: dict) -> None:
     missed = [s for s in requested if s not in fetched]
     if missed:
         manual_ltp_cache.put_negative_batch(missed)
-        logger.warning("Manual LTP: %d symbols unresolved: %s", len(missed), missed)
+        logger.warning("Manual LTP: unresolved %d symbols", len(missed))
 
     logger.info("Manual LTP fetch done: %d/%d successful",
                 len(fetched), len(requested))
@@ -298,14 +289,14 @@ def _bg_fetch_and_broadcast_ltps(
         syms = symbols or _wait_for_symbols(google_id)
 
         if not syms:
-            logger.info("Manual LTP: no symbols for %s", google_id[:8])
+            logger.info("Manual LTP: no symbols to fetch")
             return
 
         state_manager.set_manual_ltp_updating(google_id)
         fetch_manual_ltps(syms, force=force)
-        logger.debug("Manual LTP fetch complete for %s", google_id[:8])
+        logger.debug("Manual LTP fetch complete")
     except Exception:
-        logger.exception("Error in LTP fetch for %s", google_id[:8])
+        logger.exception("Error in LTP fetch")
     finally:
         state_manager.set_manual_ltp_updated(google_id)
 
@@ -341,7 +332,7 @@ def fetch_portfolio_data(google_id: str, accounts: Optional[list] = None) -> Non
     if accounts is None:
         accounts = get_authenticated_accounts(google_id)
     if not accounts:
-        logger.info("No authenticated Zerodha accounts for %s", google_id[:8])
+        logger.info("No authenticated Zerodha accounts")
         return
 
     accounts = [{**acc, "google_id": google_id} for acc in accounts]
@@ -353,14 +344,12 @@ def fetch_portfolio_data(google_id: str, accounts: Optional[list] = None) -> Non
         stocks, mfs, sips, error = zerodha_client.fetch_all_accounts_data(accounts)
         if not error:
             portfolio_cache.set(google_id, stocks=stocks, mf_holdings=mfs, sips=sips)
-            logger.info("Portfolio updated for %s: %d stocks, %d MFs, %d SIPs",
-                        google_id[:8], len(stocks), len(mfs), len(sips))
+            logger.info("Portfolio updated in fetch")
         else:
             data = portfolio_cache.get(google_id)
-            logger.info("Preserved %d stocks, %d MFs, %d SIPs for %s after partial failure",
-                        len(data.stocks), len(data.mf_holdings), len(data.sips), google_id[:8])
+            logger.info("Preserved partial portfolio data after failure")
     except Exception as e:
-        logger.exception("Error fetching portfolio for %s: %s", google_id[:8], e)
+        logger.exception("Error fetching portfolio: %s", e)
         error = str(e)
     finally:
         state_manager.set_portfolio_updated(google_id=google_id, error=error)
@@ -400,6 +389,21 @@ def fetch_gold_prices(force: bool = False) -> None:
         if attempt < max_retries:
             logger.info("Retrying gold price fetch (%d/%d)...", attempt + 1, max_retries)
     logger.error("All %d gold price fetch attempts failed", max_retries)
+
+
+def fetch_market_indices_data() -> None:
+    """Fetch market indices (Nifty50, Sensex, S&P500, Gold, Silver, USDINR).
+
+    Stores the result in ``market_cache.market_indices`` so the
+    ``/api/market_indices`` endpoint can serve it from cache.
+    """
+    try:
+        client = MarketDataClient()
+        data = client.fetch_market_indices()
+        market_cache.market_indices = data
+        market_cache.market_indices_last_fetch = datetime.now()
+    except Exception as e:
+        logger.error("Error fetching market indices: %s", e)
 
 
 def fetch_nifty50_data() -> None:
@@ -461,11 +465,7 @@ def run_background_fetch(
     and updates state independently.  The frontend polls ``/api/status``
     and renders incrementally as each source completes.
     """
-    logger.info(
-        "background_fetch start: user=%s manual=%s accounts=%d",
-        (google_id or "")[:8], is_manual,
-        len(accounts) if accounts else 0,
-    )
+    logger.info("background_fetch start: manual=%s", is_manual)
 
     force_gold = is_manual or (market_cache.gold_prices_last_fetch is None)
 
@@ -478,7 +478,7 @@ def run_background_fetch(
                 name=f"PortfolioFetch-{google_id[:8]}", daemon=True,
             ).start()
         else:
-            logger.info("background_fetch: no auth accounts for user=%s, skipping portfolio", google_id[:8])
+            logger.info("background_fetch: no auth accounts, skipping portfolio")
             state_manager.set_portfolio_updating(google_id=google_id)
             portfolio_cache.clear(google_id)
             state_manager.set_portfolio_updated(google_id=google_id)
@@ -515,5 +515,9 @@ def run_background_fetch(
     threading.Thread(
         target=fetch_gold_prices, args=(force_gold,),
         name="GoldPriceFetch", daemon=True,
+    ).start()
+    threading.Thread(
+        target=fetch_market_indices_data, name="MarketIndicesFetch",
+        daemon=True,
     ).start()
 

@@ -22,11 +22,16 @@ class IndexTicker {
     await this.fetchAndRender();
   }
 
-  async fetchAndRender() {
+  async fetchAndRender(retries = 1) {
     try {
       const res = await metronFetch('/api/market_indices');
       if (!res.ok) return;
       const data = await res.json();
+      if (!Object.keys(data).length && retries > 0) {
+        // Cache not yet populated (background fetch in flight) — retry once.
+        setTimeout(() => this.fetchAndRender(retries - 1), 3000);
+        return;
+      }
       this._ensureDOM(data);
       for (const key of this._displayOrder) {
         if (data[key]) this.renderIndex(key, data[key]);

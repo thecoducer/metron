@@ -164,11 +164,14 @@ class SummaryManager {
       plPct: combinedPLPct
     });
 
-    // Update portfolio snapshot grid
-    this._updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf);
+    // Update portfolio snapshot grid (pass allocation % for label strip)
+    this._updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf, {
+      stocks: stockAllocation, mf: mfAllocation, etf: etfAllocation,
+      gold: goldAllocation, silver: silverAllocation, fd: fdAllocation, pf: pfAllocation
+    });
   }
 
-  _updateSnapshotCell(prefix, invested, current, pl, plPct) {
+  _updateSnapshotCell(prefix, invested, current, pl, plPct, allocPct) {
     const currentEl = document.getElementById(`snap_${prefix}_current`);
     const investedEl = document.getElementById(`snap_${prefix}_invested`);
     const plEl = document.getElementById(`snap_${prefix}_pl`);
@@ -185,22 +188,22 @@ class SummaryManager {
       pctEl.innerText = Formatter.formatPercentage(plPct);
       pctEl.style.color = Formatter.colorPL(pl);
     }
-    // Mirror P&L% to label strip tag
+    // Show allocation % in label strip tag
     const tagPct = document.querySelector(`[data-snap-pct="${prefix}"]`);
     if (tagPct) {
-      tagPct.innerText = Formatter.formatPercentage(plPct);
-      tagPct.style.color = Formatter.colorPL(pl);
+      tagPct.innerText = allocPct != null ? allocPct.toFixed(1) + '%' : '';
+      tagPct.style.color = '';
     }
   }
 
-  _updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf) {
-    this._updateSnapshotCell('stocks', stock.invested, stock.current, stock.pl, stock.plPct);
-    this._updateSnapshotCell('mf', mf.invested, mf.current, mf.pl, mf.plPct);
-    this._updateSnapshotCell('etf', etf.invested, etf.current, etf.pl, etf.plPct);
-    this._updateSnapshotCell('gold', gold.invested, gold.current, gold.pl, gold.plPct);
-    this._updateSnapshotCell('silver', silver.invested, silver.current, silver.pl, silver.plPct);
-    this._updateSnapshotCell('fd', fd.invested, fd.maturity, fd.returns, fd.returnsPct);
-    this._updateSnapshotCell('pf', pf.contributed, pf.corpus, pf.interest, pf.interestPct);
+  _updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf, alloc) {
+    this._updateSnapshotCell('stocks', stock.invested, stock.current, stock.pl, stock.plPct, alloc.stocks);
+    this._updateSnapshotCell('mf', mf.invested, mf.current, mf.pl, mf.plPct, alloc.mf);
+    this._updateSnapshotCell('etf', etf.invested, etf.current, etf.pl, etf.plPct, alloc.etf);
+    this._updateSnapshotCell('gold', gold.invested, gold.current, gold.pl, gold.plPct, alloc.gold);
+    this._updateSnapshotCell('silver', silver.invested, silver.current, silver.pl, silver.plPct, alloc.silver);
+    this._updateSnapshotCell('fd', fd.invested, fd.maturity, fd.returns, fd.returnsPct, alloc.fd);
+    this._updateSnapshotCell('pf', pf.contributed, pf.corpus, pf.interest, pf.interestPct, alloc.pf);
   }
 
   _updateAllocationPercentage(elementId, percentage) {
@@ -236,7 +239,8 @@ class SummaryManager {
   }
 
   _updateAllocationBar(allocations) {
-    const segments = {
+    const segmentOrder = ['stocks', 'mf', 'etf', 'gold', 'silver', 'fd', 'pf'];
+    const segmentIds = {
       stocks: 'alloc_seg_stocks',
       etf: 'alloc_seg_etf',
       mf: 'alloc_seg_mf',
@@ -245,11 +249,20 @@ class SummaryManager {
       fd: 'alloc_seg_fd',
       pf: 'alloc_seg_pf'
     };
-    for (const [key, id] of Object.entries(segments)) {
-      const seg = document.getElementById(id);
-      if (seg) {
-        seg.style.width = `${allocations[key] || 0}%`;
-      }
+
+    let lastVisibleSeg = null;
+    for (const key of segmentOrder) {
+      const seg = document.getElementById(segmentIds[key]);
+      if (!seg) continue;
+      const pct = allocations[key] || 0;
+      seg.style.width = `${pct}%`;
+      // Reset dynamic border-radius (CSS :first-child handles left side)
+      seg.style.borderRadius = '';
+      if (pct > 0) lastVisibleSeg = seg;
+    }
+    // Apply right border-radius to the last visible segment
+    if (lastVisibleSeg) {
+      lastVisibleSeg.style.borderRadius = '0 5px 5px 0';
     }
   }
 

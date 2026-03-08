@@ -35,17 +35,17 @@ def ensure_user_loaded(google_id: str, *, force: bool = False) -> None:
         return
     with _loaded_users_lock:
         if not force and google_id in _loaded_users:
-            logger.debug("ensure_user_loaded: already loaded user=%s", google_id[:8])
+            logger.debug("ensure_user_loaded: already loaded")
             return
         _loaded_users.add(google_id)
 
-    logger.info("ensure_user_loaded: loading user=%s force=%s", google_id[:8], force)
+    logger.info("ensure_user_loaded: loading, force=%s", force)
     session_manager.load_user(google_id)
 
     # Only fetch data if PIN is in server memory — no data fetching
     # before PIN verification (global market data included).
     if not session_manager.get_pin(google_id):
-        logger.info("ensure_user_loaded: no PIN in memory for %s, skipping background fetch", google_id[:8])
+        logger.info("ensure_user_loaded: no PIN in memory, skipping background fetch")
         return
 
     from .fetchers import run_background_fetch
@@ -62,7 +62,7 @@ def get_user_accounts(google_id: str) -> List[Dict[str, str]]:
         from .firebase_store import get_zerodha_accounts
         return get_zerodha_accounts(google_id, pin)
     except Exception:
-        logger.exception("Failed to fetch Zerodha accounts for user %s", google_id[:8])
+        logger.exception("Failed to fetch Zerodha accounts")
         return []
 
 
