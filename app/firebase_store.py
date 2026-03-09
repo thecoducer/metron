@@ -2,10 +2,9 @@
 
 Credential resolution order:
 1. ``FIREBASE_CREDENTIALS`` env var — JSON string of service-account key.
-2. ``GOOGLE_APPLICATION_CREDENTIALS`` env var — path to a JSON key file
-   (set automatically on Cloud Run when a service account is attached).
+2. ``GOOGLE_APPLICATION_CREDENTIALS`` env var — path to a JSON key file.
 3. Local file at ``config/firebase-credentials.json`` (development fallback).
-4. Application Default Credentials (Cloud Run's built-in service identity).
+4. Application Default Credentials.
 """
 
 import json

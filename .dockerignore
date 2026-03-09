@@ -7,7 +7,6 @@ htmlcov/
 .git/
 .github/
 .env
-.gcloudignore
 tests/
 config/firebase-credentials.json
 config/google-oauth-credentials.json
