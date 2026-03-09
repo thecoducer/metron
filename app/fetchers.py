@@ -7,7 +7,7 @@ Manual stock/ETF LTP fetching is per-user and non-blocking.
 import threading
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from requests.exceptions import ConnectionError, Timeout
 
@@ -465,7 +465,7 @@ def fetch_nifty50_data() -> None:
 
 
 def run_background_fetch(
-    on_complete: callable | None = None,
+    on_complete: Callable | None = None,
     is_manual: bool = False,
     accounts: list | None = None,
     google_id: str | None = None,
