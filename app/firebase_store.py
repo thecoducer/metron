@@ -197,7 +197,6 @@ def add_zerodha_account(
     data = _get_user_data(google_id)
     accounts: list[dict] = data.get("zerodha_accounts", [])
 
-    # Prevent duplicate account names
     if any(a.get("account_name") == account_name for a in accounts):
         raise ValueError(f"Account '{account_name}' already exists")
 

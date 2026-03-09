@@ -41,12 +41,16 @@
         <p>You can close this tab now.</p>
     </div>
     <script>
-        // Try multiple methods to close the window
         (function() {
-            // Method 1: Try to close immediately
+            // Notify the main app tab that Zerodha login succeeded
+            try {
+                var ch = new BroadcastChannel('zerodha_auth');
+                ch.postMessage({ type: 'login_success' });
+                ch.close();
+            } catch (e) { /* BroadcastChannel not supported — tab-visible fallback */ }
+
+            // Try multiple methods to close the window
             window.close();
-            
-            // Method 2: Open a blank page and close (workaround for some browsers)
             setTimeout(function() {
                 window.open('', '_self', '');
                 window.close();

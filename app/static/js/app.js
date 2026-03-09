@@ -202,6 +202,18 @@ class PortfolioApp {
       if (document.visibilityState === 'visible') this._onTabVisible();
     });
 
+    // Listen for cross-tab notification from the Zerodha OAuth callback
+    // page so we can refresh immediately without waiting for tab switch.
+    try {
+      this._authChannel = new BroadcastChannel('zerodha_auth');
+      this._authChannel.onmessage = (event) => {
+        if (event.data?.type === 'login_success') {
+          Log.info('App', 'Zerodha login success (broadcast) — refreshing');
+          this._onBrokerLoginSuccess();
+        }
+      };
+    } catch (e) { /* BroadcastChannel not supported — visibilitychange fallback */ }
+
     this._currentTooltip = null;
     this._tooltipIcon = null;
     this._tooltipPinned = false;
@@ -1400,10 +1412,45 @@ class PortfolioApp {
     }
   }
 
+  /**
+   * Called via BroadcastChannel when the Zerodha OAuth callback page
+   * signals a successful login.  Immediately refreshes status and
+   * starts data fetching without waiting for a tab-switch.
+   */
+  async _onBrokerLoginSuccess() {
+    try {
+      const status = await this._fetchStatus();
+      this._applyStatus(status);
+
+      // Refresh the settings drawer so the green tick appears instantly
+      if (typeof window.loadDrawerAccounts === 'function') {
+        window.loadDrawerAccounts();
+      }
+
+      // Backend callback already triggers run_background_fetch, so if
+      // it's updating, poll for results.  Otherwise trigger a refresh.
+      if (this._isStatusUpdating(status)) {
+        this._setUpdatingUI();
+        const finalStatus = await this._pollIncremental(status);
+        this._updateRefreshButton(false);
+        this._pollForManualLTPs(finalStatus);
+        this.indexTicker.fetchAndRender();
+      } else {
+        await this.handleRefresh();
+      }
+    } catch (error) {
+      Log.warn('App', 'Broker login success handler failed:', error.message);
+    }
+  }
+
   disconnect() {
     if (this.relativeStatusTimer) {
       clearInterval(this.relativeStatusTimer);
       this.relativeStatusTimer = null;
+    }
+    if (this._authChannel) {
+      this._authChannel.close();
+      this._authChannel = null;
     }
   }
 }
