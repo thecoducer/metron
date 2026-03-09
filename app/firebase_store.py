@@ -230,7 +230,7 @@ def get_zerodha_account_names(google_id: str) -> list[str]:
     """Return the names of the user's connected Zerodha accounts (no secrets)."""
     data = _get_user_data(google_id)
     accounts: list[dict] = data.get("zerodha_accounts", [])
-    return [a["account_name"] for a in accounts]
+    return [a["account_name"] for a in accounts if "account_name" in a]
 
 
 def get_zerodha_accounts(google_id: str, pin: str = "") -> list[dict]:

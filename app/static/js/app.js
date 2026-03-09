@@ -196,6 +196,12 @@ class PortfolioApp {
 
     this._setupInfoToasters();
 
+    // Detect when the user returns to this tab (e.g. after broker login
+    // in another tab) and re-check session status automatically.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') this._onTabVisible();
+    });
+
     this._currentTooltip = null;
     this._tooltipIcon = null;
     this._tooltipPinned = false;
@@ -1351,12 +1357,54 @@ class PortfolioApp {
     }
   }
 
+  /**
+   * Called when the browser tab becomes visible again.
+   * If broker accounts were previously unauthenticated, re-check status
+   * and auto-start data fetching if sessions are now valid.
+   */
+  async _onTabVisible() {
+    const prevUnauthenticated = this.lastStatus?.unauthenticated_accounts || [];
+    if (prevUnauthenticated.length === 0) return;
+
+    try {
+      const status = await this._fetchStatus();
+      const nowUnauthenticated = status.unauthenticated_accounts || [];
+
+      // Some accounts were re-authenticated while the tab was hidden
+      if (nowUnauthenticated.length < prevUnauthenticated.length) {
+        Log.info('App', 'Broker session restored — refreshing');
+        this._applyStatus(status);
+
+        // Also refresh the drawer accounts (even if drawer is closed)
+        if (typeof window.loadDrawerAccounts === 'function') {
+          window.loadDrawerAccounts();
+        }
+
+        // If backend already started fetching (callback triggers this),
+        // poll for results. Otherwise trigger a fresh refresh.
+        if (this._isStatusUpdating(status)) {
+          this._setUpdatingUI();
+          const finalStatus = await this._pollIncremental(status);
+          this._updateRefreshButton(false);
+          this._pollForManualLTPs(finalStatus);
+          this.indexTicker.fetchAndRender();
+        } else {
+          await this.handleRefresh();
+        }
+      } else {
+        // Still unauthenticated — just update status UI
+        this._applyStatus(status);
+      }
+    } catch (error) {
+      Log.warn('App', 'Tab-visible status check failed:', error.message);
+    }
+  }
+
   disconnect() {
     if (this.relativeStatusTimer) {
       clearInterval(this.relativeStatusTimer);
       this.relativeStatusTimer = null;
     }
-    this.sseManager.disconnect();
   }
 }
 
