@@ -28,6 +28,8 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -41,8 +43,19 @@ jobs:
       - name: Ruff check
         run: ruff check --output-format=github .
 
-      - name: Ruff format check
-        run: ruff format --check .
+      - name: Ruff format
+        run: ruff format .
+
+      - name: Commit formatting changes
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git diff --name-only)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: auto-format with ruff"
+            git push
+          fi
 
   # ── Test ────────────────────────────────────────────────────
   test:
