@@ -198,7 +198,7 @@ def add_zerodha_account(
     accounts: list[dict] = data.get("zerodha_accounts", [])
 
     # Prevent duplicate account names
-    if any(a["account_name"] == account_name for a in accounts):
+    if any(a.get("account_name") == account_name for a in accounts):
         raise ValueError(f"Account '{account_name}' already exists")
 
     accounts.append(
@@ -218,7 +218,7 @@ def remove_zerodha_account(google_id: str, account_name: str) -> None:
     data = _get_user_data(google_id)
     accounts: list[dict] = data.get("zerodha_accounts", [])
 
-    updated = [a for a in accounts if a["account_name"] != account_name]
+    updated = [a for a in accounts if a.get("account_name") != account_name]
     if len(updated) == len(accounts):
         raise ValueError(f"Account '{account_name}' not found")
 
