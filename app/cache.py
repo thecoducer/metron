@@ -6,6 +6,15 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from cachetools import LRUCache, TTLCache
+
+# Maximum per-user entries across caches.  Tuned for a 512 MB Render
+# instance supporting up to 1 000 concurrent users.  Cache misses
+# simply re-fetch from the upstream data source.
+_MAX_PORTFOLIO_USERS = 200
+_MAX_SHEETS_USERS = 200
+_MAX_LTP_SYMBOLS = 1000
+
 
 @dataclass
 class UserPortfolioData:
@@ -24,22 +33,37 @@ class MarketCache:
 
 
 class PortfolioCacheManager:
-    """Thread-safe per-user portfolio cache with fetch-in-progress tracking."""
+    """Thread-safe per-user portfolio cache with LRU eviction.
 
-    def __init__(self) -> None:
+    At most *maxsize* entries are kept.  The least-recently used user
+    is evicted automatically when the cap is reached (via ``cachetools.LRUCache``).
+    """
+
+    def __init__(self, maxsize: int = _MAX_PORTFOLIO_USERS) -> None:
         self._lock = threading.Lock()
-        self._user_data: dict[str, UserPortfolioData] = {}
+        self._user_data: LRUCache[str, UserPortfolioData] = LRUCache(maxsize=maxsize)
         self._fetch_events: dict[str, threading.Event] = {}
 
     def get(self, google_id: str) -> UserPortfolioData:
         """Return the cached portfolio for *google_id*, creating an empty one if absent."""
         with self._lock:
-            return self._user_data.setdefault(google_id, UserPortfolioData())
+            data = self._user_data.get(google_id)
+            if data is not None:
+                return data
+            data = UserPortfolioData()
+            self._user_data[google_id] = data
+            return data
 
     def set(self, google_id: str, *, stocks: list = None, mf_holdings: list = None, sips: list = None) -> None:
         """Update one or more portfolio data fields for *google_id*."""
         with self._lock:
-            data = self._user_data.setdefault(google_id, UserPortfolioData())
+            data = self._user_data.get(google_id)
+            if data is None:
+                data = UserPortfolioData()
+                self._user_data[google_id] = data
+            else:
+                # Touch to refresh LRU position
+                self._user_data[google_id] = data
         if stocks is not None:
             data.stocks = stocks
         if mf_holdings is not None:
@@ -98,37 +122,37 @@ class _UserCacheEntry:
 
 
 class UserSheetsCache:
-    """TTL-based per-user cache for Google Sheets data. Thread-safe."""
+    """TTL-based per-user cache for Google Sheets data with LRU eviction.
 
-    def __init__(self, ttl: int = _SHEETS_CACHE_TTL):
+    Uses ``cachetools.TTLCache`` for automatic TTL expiry and LRU eviction.
+    """
+
+    def __init__(self, ttl: int = _SHEETS_CACHE_TTL, maxsize: int = _MAX_SHEETS_USERS):
         self._ttl = ttl
-        self._store: dict[str, _UserCacheEntry] = {}
+        self._store: TTLCache[str, _UserCacheEntry] = TTLCache(maxsize=maxsize, ttl=ttl)
         self._lock = threading.Lock()
 
     def get(self, google_id: str) -> _UserCacheEntry | None:
         """Return the cache entry for *google_id* if present and not expired."""
         with self._lock:
-            entry = self._store.get(google_id)
-            if entry and (time.monotonic() - entry.timestamp) < self._ttl:
-                return entry
-            return None
+            return self._store.get(google_id)
 
     def put(
         self, google_id: str, *, physical_gold: list = None, fixed_deposits: list = None, provident_fund: list = None
     ) -> None:
         """Cache one or more sheet data types for *google_id*, refreshing the TTL."""
         with self._lock:
-            now = time.monotonic()
-            entry = self._store.setdefault(google_id, _UserCacheEntry(timestamp=now))
+            entry = self._store.get(google_id)
+            if entry is None:
+                entry = _UserCacheEntry()
             if physical_gold is not None:
                 entry.physical_gold = physical_gold
-                entry.timestamp = now
             if fixed_deposits is not None:
                 entry.fixed_deposits = fixed_deposits
-                entry.timestamp = now
             if provident_fund is not None:
                 entry.provident_fund = provident_fund
-                entry.timestamp = now
+            # Re-insert to reset TTL
+            self._store[google_id] = entry
 
     # ── Sheet-entry helpers (stocks / etfs / mutual_funds / sips) ──
 
@@ -146,9 +170,8 @@ class UserSheetsCache:
             return None
         with self._lock:
             entry = self._store.get(google_id)
-            if entry and (time.monotonic() - entry.timestamp) < self._ttl:
-                if sheet_type in entry._fetched_sheets:
-                    return getattr(entry, attr)
+            if entry and sheet_type in entry._fetched_sheets:
+                return getattr(entry, attr)
             return None
 
     def put_manual(self, google_id: str, sheet_type: str, rows: list) -> None:
@@ -157,11 +180,13 @@ class UserSheetsCache:
         if not attr:
             return
         with self._lock:
-            now = time.monotonic()
-            entry = self._store.setdefault(google_id, _UserCacheEntry(timestamp=now))
+            entry = self._store.get(google_id)
+            if entry is None:
+                entry = _UserCacheEntry()
             setattr(entry, attr, rows)
             entry._fetched_sheets.add(sheet_type)
-            entry.timestamp = now
+            # Re-insert to reset TTL
+            self._store[google_id] = entry
 
     # ── Batch helpers ──
 
@@ -171,7 +196,7 @@ class UserSheetsCache:
         """Return True when gold, FDs, and all 4 manual sheet types are cached."""
         with self._lock:
             entry = self._store.get(google_id)
-            if not entry or (time.monotonic() - entry.timestamp) >= self._ttl:
+            if not entry:
                 return False
             return self._ALL_MANUAL_TYPES.issubset(entry._fetched_sheets)
 
@@ -186,8 +211,9 @@ class UserSheetsCache:
     ) -> None:
         """Cache gold, FDs, PF, and all manual sheet types in one call."""
         with self._lock:
-            now = time.monotonic()
-            entry = self._store.setdefault(google_id, _UserCacheEntry(timestamp=now))
+            entry = self._store.get(google_id)
+            if entry is None:
+                entry = _UserCacheEntry()
             if physical_gold is not None:
                 entry.physical_gold = physical_gold
             if fixed_deposits is not None:
@@ -200,7 +226,8 @@ class UserSheetsCache:
                     if attr:
                         setattr(entry, attr, rows)
                         entry._fetched_sheets.add(sheet_type)
-            entry.timestamp = now
+            # Re-insert to reset TTL
+            self._store[google_id] = entry
 
     def invalidate(self, google_id: str) -> None:
         """Remove all cached sheet data for *google_id*."""
@@ -212,10 +239,10 @@ user_sheets_cache = UserSheetsCache()
 
 
 class ManualLTPCache:
-    """Thread-safe cache for manually-added stock/ETF last traded prices.
+    """Thread-safe LRU cache for manually-added stock/ETF last traded prices.
 
     Stores NSE quote data (ltp, change, pChange) keyed by symbol.
-    No TTL — data persists until explicitly invalidated or overwritten.
+    Capped at *maxsize* entries via ``cachetools.LRUCache``.
 
     Negative lookups (unresolved symbols) use a 5-minute TTL to allow
     periodic retries for temporarily unavailable symbols.
@@ -223,8 +250,8 @@ class ManualLTPCache:
 
     _NEGATIVE_TTL = 300  # 5 minutes
 
-    def __init__(self):
-        self._data: dict[str, dict[str, Any]] = {}
+    def __init__(self, maxsize: int = _MAX_LTP_SYMBOLS):
+        self._data: LRUCache[str, dict[str, Any]] = LRUCache(maxsize=maxsize)
         self._negative: dict[str, float] = {}
         self._lock = threading.Lock()
         self._cancel = threading.Event()
@@ -242,7 +269,10 @@ class ManualLTPCache:
             ts = self._negative.get(symbol)
             if ts is None:
                 return False
-            return (time.monotonic() - ts) < self._NEGATIVE_TTL
+            if (time.monotonic() - ts) >= self._NEGATIVE_TTL:
+                del self._negative[symbol]
+                return False
+            return True
 
     # -- Write --
 

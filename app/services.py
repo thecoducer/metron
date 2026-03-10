@@ -3,6 +3,8 @@
 import threading
 from typing import Any
 
+from cachetools import LRUCache
+
 from .api import AuthenticationManager, HoldingsService, SIPService, ZerodhaAPIClient
 from .logging_config import logger
 from .utils import SessionManager, StateManager, format_timestamp, is_market_open_ist
@@ -15,9 +17,9 @@ holdings_service = HoldingsService()
 sip_service = SIPService()
 zerodha_client = ZerodhaAPIClient(auth_manager, holdings_service, sip_service)
 
-# User lifecycle tracking
+# User lifecycle tracking — bounded LRU to prevent unbounded growth.
 _loaded_users_lock = threading.Lock()
-_loaded_users: set[str] = set()
+_loaded_users: LRUCache[str, None] = LRUCache(maxsize=1000)
 
 
 def ensure_user_loaded(google_id: str, *, force: bool = False) -> None:
@@ -35,7 +37,7 @@ def ensure_user_loaded(google_id: str, *, force: bool = False) -> None:
         if not force and google_id in _loaded_users:
             logger.debug("ensure_user_loaded: already loaded")
             return
-        _loaded_users.add(google_id)
+        _loaded_users[google_id] = None
 
     logger.info("ensure_user_loaded: loading, force=%s", force)
     session_manager.load_user(google_id)

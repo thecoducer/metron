@@ -79,9 +79,10 @@ class TestEnsureUserLoaded(unittest.TestCase):
 
     def test_first_call_loads_sessions(self):
         import app.services as svc
+        from cachetools import LRUCache
 
-        original = svc._loaded_users.copy()
-        svc._loaded_users.clear()
+        original = svc._loaded_users
+        svc._loaded_users = LRUCache(maxsize=original.maxsize)
         try:
             with patch("app.services.session_manager") as mock_sm, patch("app.fetchers.run_background_fetch"):
                 mock_sm.get_pin.return_value = None
@@ -98,9 +99,11 @@ class TestEnsureUserLoaded(unittest.TestCase):
     def test_force_reloads(self):
         """force=True should reload even if user was previously loaded."""
         import app.services as svc
+        from cachetools import LRUCache
 
-        original = svc._loaded_users.copy()
-        svc._loaded_users.add("forceuser")
+        original = svc._loaded_users
+        svc._loaded_users = LRUCache(maxsize=original.maxsize)
+        svc._loaded_users["forceuser"] = None
         try:
             with patch("app.services.session_manager") as mock_sm, patch("app.fetchers.run_background_fetch"):
                 mock_sm.get_pin.return_value = None
@@ -194,9 +197,11 @@ class TestEnsureUserLoadedAlreadyLoaded(unittest.TestCase):
 
     def test_already_loaded_skips(self):
         import app.services as svc
+        from cachetools import LRUCache
 
-        original = svc._loaded_users.copy()
-        svc._loaded_users.add("existinguser")
+        original = svc._loaded_users
+        svc._loaded_users = LRUCache(maxsize=original.maxsize)
+        svc._loaded_users["existinguser"] = None
         try:
             with patch("app.services.session_manager") as mock_sm:
                 ensure_user_loaded("existinguser", force=False)

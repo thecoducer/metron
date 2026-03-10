@@ -12,6 +12,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from cachetools import LRUCache
+
 from cryptography.fernet import Fernet, InvalidToken
 
 from .constants import (
@@ -142,12 +144,17 @@ class SessionManager:
     The user's 6-character alphanumeric PIN is held **only in server memory**
     (never persisted).  It is required to encrypt/decrypt Zerodha access
     tokens at rest.
+
+    At most ``_maxsize`` users are retained; the least-recently active
+    user is evicted when the cap is reached.
     """
 
-    def __init__(self):
+    _MAX_USERS = 1000
+
+    def __init__(self, maxsize: int = _MAX_USERS):
         self._lock = threading.Lock()
-        self._user_sessions: dict[str, dict[str, dict[str, Any]]] = {}
-        self._user_pins: dict[str, str] = {}  # google_id → PIN (memory only)
+        self._user_sessions: LRUCache[str, dict[str, dict[str, Any]]] = LRUCache(maxsize=maxsize)
+        self._user_pins: LRUCache[str, str] = LRUCache(maxsize=maxsize)
 
     # ── PIN management (in-memory only) ───────────────────────────
 
@@ -185,7 +192,11 @@ class SessionManager:
     def _sessions_for(self, google_id: str) -> dict[str, dict[str, Any]]:
         """Return the mutable session dict for *google_id*, creating it if absent."""
         with self._lock:
-            return self._user_sessions.setdefault(google_id, {})
+            sess = self._user_sessions.get(google_id)
+            if sess is None:
+                sess = {}
+                self._user_sessions[google_id] = sess
+            return sess
 
     def load_user(self, google_id: str) -> None:
         """Load session tokens from Firestore.  Requires PIN in memory."""
@@ -308,33 +319,39 @@ class StateManager:
 
     Per-user: ``portfolio``
     Global:   ``nifty50``, ``physical_gold``, ``fixed_deposits``
+
+    At most ``_MAX_USERS`` per-user entries are retained (LRU eviction
+    via ``cachetools.LRUCache``).
     """
 
     GLOBAL_STATE_TYPES = ("nifty50", "physical_gold", "fixed_deposits")
+    _MAX_USERS = 1000
 
-    def __init__(self):
+    def __init__(self, maxsize: int = _MAX_USERS):
         self._lock = threading.Lock()
         for st in self.GLOBAL_STATE_TYPES:
             setattr(self, f"{st}_state", None)
             setattr(self, f"{st}_last_updated", None)
-        self._user_state: dict[str, dict[str, Any]] = {}
+        self._user_state: LRUCache[str, dict[str, Any]] = LRUCache(maxsize=maxsize)
         self.last_error: str = None
 
     def _get_user_state(self, google_id: str) -> dict[str, Any]:
         """Return the mutable per-user state dict, creating it if absent."""
         with self._lock:
-            return self._user_state.setdefault(
-                google_id,
-                {
-                    "portfolio_state": None,
-                    "portfolio_last_updated": time.time(),
-                    "last_error": None,
-                    "manual_ltp_state": None,
-                    "manual_ltp_last_updated": None,
-                    "sheets_state": None,
-                    "sheets_last_updated": None,
-                },
-            )
+            state = self._user_state.get(google_id)
+            if state is not None:
+                return state
+            state = {
+                "portfolio_state": None,
+                "portfolio_last_updated": time.time(),
+                "last_error": None,
+                "manual_ltp_state": None,
+                "manual_ltp_last_updated": None,
+                "sheets_state": None,
+                "sheets_last_updated": None,
+            }
+            self._user_state[google_id] = state
+            return state
 
     # Per-user portfolio state
 
@@ -499,6 +516,9 @@ class PinRateLimiter:
     Lockout state is in-memory only — a server restart clears it.
     This is acceptable because the PIN is never stored; an attacker
     who restarts the server loses session cookies anyway.
+
+    At most ``_MAX_ENTRIES`` users are tracked (LRU eviction via
+    ``cachetools.LRUCache``).
     """
 
     # (cumulative_attempts, lockout_seconds)
@@ -507,17 +527,20 @@ class PinRateLimiter:
         (6, 60 * 60),  # 1 hour
         (9, 4 * 60 * 60),  # 4 hours
     ]
+    _MAX_ENTRIES = 1000
 
     def __init__(self):
         self._lock = threading.Lock()
         # {google_id: {"attempts": int, "locked_until": float|None}}
-        self._state: dict[str, dict] = {}
+        self._state: LRUCache[str, dict] = LRUCache(maxsize=self._MAX_ENTRIES)
 
     def _get(self, google_id: str) -> dict:
         """Return the mutable rate-limit state for *google_id*, creating it if absent."""
-        if google_id not in self._state:
-            self._state[google_id] = {"attempts": 0, "locked_until": None}
-        return self._state[google_id]
+        state = self._state.get(google_id)
+        if state is None:
+            state = {"attempts": 0, "locked_until": None}
+            self._state[google_id] = state
+        return state
 
     def check(self, google_id: str) -> tuple:
         """Check if user is locked out.

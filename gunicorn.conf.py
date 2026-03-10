@@ -1,4 +1,9 @@
-"""Gunicorn configuration for production deployment."""
+"""Gunicorn configuration for production deployment.
+
+Tuned for a 512 MB Render.com instance.  A single sync worker avoids
+duplicating all in-memory caches and state managers.  The worker is
+recycled after ``max_requests`` to reclaim any leaked memory.
+"""
 
 import os
 
@@ -6,7 +11,8 @@ import os
 bind = "0.0.0.0:" + os.environ.get("PORT", "8080")
 
 # --- Worker processes ---
-workers = int(os.environ.get("WEB_CONCURRENCY", 1))
+# Single worker: keeps one copy of all caches/state in 512 MB RAM.
+workers = 1
 
 # Default sync worker.
 # worker_class defaults to "sync"
@@ -19,6 +25,11 @@ timeout = 120
 
 # Graceful shutdown window (seconds)
 graceful_timeout = 30
+
+# --- Memory management ---
+# Recycle worker after N requests to reclaim any leaked memory.
+max_requests = 1000
+max_requests_jitter = 100
 
 # --- Logging ---
 accesslog = "-"  # stdout
