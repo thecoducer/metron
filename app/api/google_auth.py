@@ -161,7 +161,7 @@ def get_user_info(credentials: Credentials) -> dict:
     """
     from googleapiclient.discovery import build as google_build
 
-    service = google_build("oauth2", "v2", credentials=credentials)
+    service = google_build("oauth2", "v2", credentials=credentials, static_discovery=True)
     user_info = service.userinfo().get().execute()
     return {
         "id": user_info.get("id"),

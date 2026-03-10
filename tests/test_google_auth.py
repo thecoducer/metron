@@ -144,7 +144,7 @@ class TestGetUserInfo(unittest.TestCase):
         creds = Mock()
         result = get_user_info(creds)
 
-        mock_build.assert_called_once_with("oauth2", "v2", credentials=creds)
+        mock_build.assert_called_once_with("oauth2", "v2", credentials=creds, static_discovery=True)
         self.assertEqual(result["id"], "123")
         self.assertEqual(result["email"], "test@test.com")
 
