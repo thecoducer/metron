@@ -83,6 +83,7 @@ def main() -> None:
         # Eagerly initialise Firestore so the first request isn't slow.
         try:
             from .firebase_store import _db
+
             _db()
             logger.info("Firestore client warmed up")
         except Exception as exc:

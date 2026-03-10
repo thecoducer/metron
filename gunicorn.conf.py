@@ -62,6 +62,7 @@ def post_fork(server, worker):
     # channel, and performing the TLS handshake (~1-2 s on cold start).
     try:
         from app.firebase_store import _db
+
         _db()
         server.log.info("Firestore client warmed up in worker %s", worker.pid)
     except Exception as exc:
