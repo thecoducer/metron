@@ -10,6 +10,10 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
+# Reduce thread stack size from default 8 MB to 512 KB.
+# Background threads only run HTTP calls and light parsing.
+threading.stack_size(524288)
+
 from requests.exceptions import ConnectionError, Timeout
 
 from .api import MarketDataClient

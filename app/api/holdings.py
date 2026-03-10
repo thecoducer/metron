@@ -55,17 +55,20 @@ class HoldingsService(BaseDataService):
         """
         try:
             if not self.mf_instruments_cache:
-                self.mf_instruments_cache = kite.mf_instruments()
+                # Only keep the two fields we need to avoid storing ~15K full dicts
+                raw = kite.mf_instruments()
+                self.mf_instruments_cache = {
+                    inst["tradingsymbol"]: inst.get("last_price_date")
+                    for inst in raw
+                    if "tradingsymbol" in inst
+                }
                 self.mf_instruments_cache_time = datetime.now()
-
-            instruments_map = {inst["tradingsymbol"]: inst for inst in self.mf_instruments_cache}
 
             for holding in mf_holdings:
                 symbol = holding.get("tradingsymbol")
-                if symbol and symbol in instruments_map:
-                    instrument = instruments_map[symbol]
-                    # Set NAV date from instrument data if available
-                    holding["last_price_date"] = instrument.get("last_price_date", holding.get("last_price_date"))
+                if symbol and symbol in self.mf_instruments_cache:
+                    nav_date = self.mf_instruments_cache[symbol]
+                    holding["last_price_date"] = nav_date if nav_date is not None else holding.get("last_price_date")
                 else:
                     # Set to None if symbol not found in instruments
                     holding.setdefault("last_price_date", None)

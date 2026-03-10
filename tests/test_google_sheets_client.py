@@ -548,8 +548,8 @@ class TestGoogleSheetsClientEdges(unittest.TestCase):
             client,
             "batch_fetch_sheet_data",
             return_value={
-                "ShortSheet!A1:Z1000": [["Header"]],
-                "EmptySheet!A1:Z1000": [],
+                "ShortSheet!A1:Z200": [["Header"]],
+                "EmptySheet!A1:Z200": [],
             },
         ):
             result = client.batch_fetch_sheet_data_until_blank("sid", ["ShortSheet", "EmptySheet"])

@@ -36,7 +36,7 @@ GOOGLE_SHEETS_TIMEOUT = 20
 IBJA_GOLD_PRICE_TIMEOUT = 20
 
 # Yahoo Finance batch quote settings
-YF_BATCH_MAX_WORKERS = 4  # max concurrent Yahoo Finance requests (tuned for 512 MB)
+YF_BATCH_MAX_WORKERS = 2  # max concurrent Yahoo Finance requests (tuned for 512 MB)
 YF_MAX_RETRIES = 3  # retry attempts per symbol on transient failures
 YF_RETRY_BASE_DELAY = 1.0  # exponential backoff base (1s, 2s, 4s)
 

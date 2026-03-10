@@ -78,8 +78,9 @@ class TestEnsureUserLoaded(unittest.TestCase):
     """Test ensure_user_loaded idempotency."""
 
     def test_first_call_loads_sessions(self):
-        import app.services as svc
         from cachetools import LRUCache
+
+        import app.services as svc
 
         original = svc._loaded_users
         svc._loaded_users = LRUCache(maxsize=original.maxsize)
@@ -98,8 +99,9 @@ class TestEnsureUserLoaded(unittest.TestCase):
 
     def test_force_reloads(self):
         """force=True should reload even if user was previously loaded."""
-        import app.services as svc
         from cachetools import LRUCache
+
+        import app.services as svc
 
         original = svc._loaded_users
         svc._loaded_users = LRUCache(maxsize=original.maxsize)
@@ -196,8 +198,9 @@ class TestEnsureUserLoadedAlreadyLoaded(unittest.TestCase):
     """Test ensure_user_loaded skips when user already loaded and force=False."""
 
     def test_already_loaded_skips(self):
-        import app.services as svc
         from cachetools import LRUCache
+
+        import app.services as svc
 
         original = svc._loaded_users
         svc._loaded_users = LRUCache(maxsize=original.maxsize)

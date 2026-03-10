@@ -13,7 +13,6 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from cachetools import LRUCache
-
 from cryptography.fernet import Fernet, InvalidToken
 
 from .constants import (

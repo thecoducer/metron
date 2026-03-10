@@ -182,7 +182,7 @@ class GoogleSheetsClient:
         self,
         spreadsheet_id: str,
         sheet_names: list[str],
-        max_rows: int = 1000,
+        max_rows: int = 200,
         max_retries: int = 2,
     ) -> dict[str, list[list[Any]]]:
         """Fetch multiple sheets in one batchGet, trimming each at the first blank row.

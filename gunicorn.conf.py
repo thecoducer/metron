@@ -14,6 +14,12 @@ bind = "0.0.0.0:" + os.environ.get("PORT", "8080")
 # Single worker: keeps one copy of all caches/state in 512 MB RAM.
 workers = 1
 
+# Load the app before forking.  With a single worker this avoids
+# importing heavy dependencies (grpc, protobuf, firebase_admin) a
+# second time in the child process; the master's import cost is
+# shared via copy-on-write pages.
+preload_app = True
+
 # Default sync worker.
 # worker_class defaults to "sync"
 
