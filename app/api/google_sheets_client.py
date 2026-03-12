@@ -598,37 +598,3 @@ class FixedDepositsService(GoogleSheetsService):
         if deposit["interest_rate"] <= 0:
             raise DataError(f"Invalid interest rate for deposit at {deposit['bank_name']}")
         return deposit
-
-
-class ProvidentFundService(GoogleSheetsService):
-    entity_name = "provident fund entries"
-
-    def fetch_entries(self, spreadsheet_id: str, range_name: str = "ProvidentFund!A:G") -> list[dict[str, Any]]:
-        """Fetch provident fund entries from Google Sheets."""
-        sheet_name = range_name.split("!")[0] if "!" in range_name else range_name
-        return self._fetch_and_parse_until_blank(spreadsheet_id, sheet_name)
-
-    def _parse_row(self, row: list[Any], idx: int) -> dict[str, Any]:
-        """Parse a single PF row: company, dates, contribution, rate, balances."""
-        g = self._safe_get
-        p = GoogleSheetsClient.parse_number
-        entry = {
-            "company_name": g(row, 0),
-            "start_date": g(row, 1),
-            "end_date": g(row, 2),
-            "monthly_contribution": g(row, 3, 0, p),
-            "interest_rate": g(row, 4, 0, p),
-            "opening_balance": g(row, 5, 0, p),
-            "actual_contribution": g(row, 6, 0, p),
-            "row_number": idx,
-        }
-        if not entry["company_name"]:
-            raise DataError("Missing company name in provident fund row")
-        # Past employer entries: opening_balance > 0, monthly_contribution = 0
-        if entry["opening_balance"] > 0 and entry["monthly_contribution"] <= 0:
-            pass  # valid past employer entry
-        elif entry["monthly_contribution"] <= 0:
-            raise DataError(f"Invalid monthly contribution for {entry['company_name']}")
-        if entry["interest_rate"] < 0:
-            raise DataError(f"Invalid interest rate for {entry['company_name']}")
-        return entry

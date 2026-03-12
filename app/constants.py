@@ -5,8 +5,6 @@ This module is the single source of truth for all default values,
 timeouts, paths, and tunables used across the application.
 """
 
-import os
-
 # Status states
 STATE_UPDATING = "updating"
 STATE_UPDATED = "updated"
@@ -55,29 +53,6 @@ IBJA_BASE_URL = "https://ibjarates.com/"
 
 # External service purities (gold)
 IBJA_GOLD_PURITIES = ["999", "995", "916", "750", "585"]
-
-# EPF (Employee Provident Fund) historical interest rates.
-# Keyed by financial-year start year (e.g. 2024 = FY 2024-25, Apr 2024 – Mar 2025).
-# Source: EPFO official annual gazette notifications.
-EPF_HISTORICAL_RATES = {
-    2010: 9.50,
-    2011: 8.25,
-    2012: 8.50,
-    2013: 8.75,
-    2014: 8.75,
-    2015: 8.80,
-    2016: 8.65,
-    2017: 8.55,
-    2018: 8.65,
-    2019: 8.50,
-    2020: 8.50,
-    2021: 8.10,
-    2022: 8.15,
-    2023: 8.25,
-    2024: 8.25,
-    2025: 8.25,
-}
-EPF_DEFAULT_RATE = float(os.environ.get("METRON_EPF_DEFAULT_RATE", "8.50"))  # fallback for financial years not in the table
 
 # Nifty 50 configuration
 NIFTY50_FALLBACK_SYMBOLS = [

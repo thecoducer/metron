@@ -122,9 +122,7 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
                 FixedDepositsService,
                 GoogleSheetsClient,
                 PhysicalGoldService,
-                ProvidentFundService,
             )
-            from .api.provident_fund import calculate_pf_corpus
             from .api.user_sheets import SHEET_CONFIGS
 
             creds = credentials_from_dict(creds_dict)
@@ -133,14 +131,13 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
             if ensure_tabs:
                 tabs = [
                     (SHEET_CONFIGS[st]["sheet_name"], SHEET_CONFIGS[st]["headers"])
-                    for st in ("stocks", "etfs", "mutual_funds", "sips", "provident_fund")
+                    for st in ("stocks", "etfs", "mutual_funds", "sips")
                 ]
                 client.ensure_sheet_tabs(spreadsheet_id, tabs)
 
             sheet_names = [
                 "Gold",
                 "FixedDeposits",
-                "ProvidentFund",
                 *(SHEET_CONFIGS[st]["sheet_name"] for st in ("stocks", "etfs", "mutual_funds", "sips")),
             ]
 
@@ -148,10 +145,8 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
 
             gold_svc = PhysicalGoldService(client)
             fd_svc = FixedDepositsService(client)
-            pf_svc = ProvidentFundService(client)
             gold = gold_svc._parse_batch_data(batch.get("Gold", []))
             deposits = calculate_current_value(fd_svc._parse_batch_data(batch.get("FixedDeposits", [])))
-            pf_entries = calculate_pf_corpus(pf_svc._parse_batch_data(batch.get("ProvidentFund", [])))
 
             manual: dict = {}
             for sheet_type in ("stocks", "etfs", "mutual_funds", "sips"):
@@ -175,7 +170,6 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
                 google_id,
                 physical_gold=gold,
                 fixed_deposits=deposits,
-                provident_fund=pf_entries,
                 manual=manual,
             )
             _elapsed = time.monotonic() - _t0

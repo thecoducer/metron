@@ -204,7 +204,6 @@
     <div class="alloc-seg" id="alloc_seg_gold" data-asset="gold" style="--seg-color:#f59e0b" title="Gold"></div>
     <div class="alloc-seg" id="alloc_seg_silver" data-asset="silver" style="--seg-color:#94a3b8" title="Silver"></div>
     <div class="alloc-seg" id="alloc_seg_fd" data-asset="fd" style="--seg-color:#10b981" title="Fixed Deposits"></div>
-    <div class="alloc-seg" id="alloc_seg_pf" data-asset="pf" style="--seg-color:#8b4049" title="Provident Fund"></div>
   </div>
 
   <!-- Label strip — always visible, one-line flowing summary -->
@@ -217,7 +216,6 @@
     {% if fixed_deposits_enabled %}
     <span class="alloc-tag" data-asset="fd" data-section="fixed-deposits-section" style="--seg-color:#10b981"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">FDs</span><span class="alloc-tag-val" id="snap_fd_current">--</span><span class="alloc-tag-pct" data-snap-pct="fd"></span></span>
     {% endif %}
-    <span class="alloc-tag" data-asset="pf" data-section="provident-fund-section" style="--seg-color:#8b4049"><span class="alloc-tag-dot"></span><span class="alloc-tag-name">PF</span><span class="alloc-tag-val" id="snap_pf_current">--</span><span class="alloc-tag-pct" data-snap-pct="pf"></span></span>
   </div>
 
   <!-- Focus shelf — slides in when a bar segment is clicked -->
@@ -272,14 +270,6 @@
       <span class="alloc-focus-pct" id="snap_fd_pct">--</span>
     </div>
     {% endif %}
-    <div class="alloc-focus-row" data-asset="pf" style="--seg-color:#8b4049">
-      <span class="alloc-focus-dot"></span>
-      <span class="alloc-focus-name">Provident Fund</span>
-      <span class="alloc-focus-val" id="snap_pf_invested">--</span>
-      <span class="alloc-focus-sep"></span>
-      <span class="alloc-focus-pl" id="snap_pf_pl">--</span>
-      <span class="alloc-focus-pct" id="snap_pf_pct">--</span>
-    </div>
   </div>
 </div>
 
@@ -596,50 +586,6 @@ By Bank
 
 </div>
 {% endif %}
-
-<!-- Provident Fund Section -->
-<div class="section-wrapper" id="provident-fund-section">
-<div class="section-header">
-<h2>Provident Fund <button class="section-info-btn" data-info="provident_fund" title="About this table" aria-label="About provident fund table"></button></h2>
-<div class="controls-container">
-<button class="crud-add-btn" onclick="window.crudAdd('provident_fund')" title="Add PF entry">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-<span>Add</span>
-</button>
-</div>
-</div>
-<div class="section-summary" id="pf_summary" style="--section-accent:#8b4049">
-  <div class="section-summary-metrics">
-    <span class="section-summary-badge" id="pf_allocation_pct"></span>
-    <div class="section-summary-value" id="pf_corpus_value">0.00</div>
-    <div class="section-summary-invested"><span id="pf_total_contributed">0.00</span></div>
-    <div class="section-summary-pl">
-      <span id="pf_total_interest">0.00</span>
-      <span class="section-summary-pct" id="pf_total_interest_pct">0.00%</span>
-    </div>
-  </div>
-  <div class="section-summary-accent"></div>
-</div>
-<div class="table-scroll-wrapper">
-<table id="providentFundTable" aria-label="Provident Fund table">
-<thead>
-<tr>
-<th data-sort-asc="company_asc" data-sort-desc="company_desc" data-sort-default="asc">Company</th>
-<th data-sort-asc="start_asc" data-sort-desc="start_desc">Start Date</th>
-<th data-sort-asc="end_asc" data-sort-desc="end_desc">End Date</th>
-<th data-sort-asc="contribution_asc" data-sort-desc="contribution_desc">Monthly Contribution</th>
-<th data-sort-asc="rate_asc" data-sort-desc="rate_desc">ROI</th>
-<th data-sort-asc="months_asc" data-sort-desc="months_desc">Months</th>
-<th data-sort-asc="total_contrib_asc" data-sort-desc="total_contrib_desc">Total Contributed</th>
-<th data-sort-asc="interest_asc" data-sort-desc="interest_desc">Interest Earned</th>
-<th data-sort-asc="corpus_asc" data-sort-desc="corpus_desc">Balance</th>
-</tr>
-</thead>
-<tbody id="provident_fund_table_body">
-</tbody>
-</table>
-</div>
-</div>
 
 <div class="section-wrapper" id="sips-section">
 <div class="section-header">

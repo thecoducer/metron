@@ -112,7 +112,6 @@ _SHEETS_CACHE_TTL = 300  # seconds
 class _UserCacheEntry:
     physical_gold: list[dict[str, Any]] = field(default_factory=list)
     fixed_deposits: list[dict[str, Any]] = field(default_factory=list)
-    provident_fund: list[dict[str, Any]] = field(default_factory=list)
     stocks: list[dict[str, Any]] = field(default_factory=list)
     etfs: list[dict[str, Any]] = field(default_factory=list)
     mutual_funds: list[dict[str, Any]] = field(default_factory=list)
@@ -139,7 +138,7 @@ class UserSheetsCache:
             return self._store.get(google_id)
 
     def put(
-        self, google_id: str, *, physical_gold: list = None, fixed_deposits: list = None, provident_fund: list = None
+        self, google_id: str, *, physical_gold: list = None, fixed_deposits: list = None
     ) -> None:
         """Cache one or more sheet data types for *google_id*, refreshing the TTL."""
         with self._lock:
@@ -150,8 +149,6 @@ class UserSheetsCache:
                 entry.physical_gold = physical_gold
             if fixed_deposits is not None:
                 entry.fixed_deposits = fixed_deposits
-            if provident_fund is not None:
-                entry.provident_fund = provident_fund
             # Re-insert to reset TTL
             self._store[google_id] = entry
 
@@ -207,10 +204,9 @@ class UserSheetsCache:
         *,
         physical_gold: list = None,
         fixed_deposits: list = None,
-        provident_fund: list = None,
         manual: dict[str, list] = None,
     ) -> None:
-        """Cache gold, FDs, PF, and all manual sheet types in one call."""
+        """Cache gold, FDs, and all manual sheet types in one call."""
         with self._lock:
             entry = self._store.get(google_id)
             if entry is None:
@@ -219,8 +215,6 @@ class UserSheetsCache:
                 entry.physical_gold = physical_gold
             if fixed_deposits is not None:
                 entry.fixed_deposits = fixed_deposits
-            if provident_fund is not None:
-                entry.provident_fund = provident_fund
             if manual:
                 for sheet_type, rows in manual.items():
                     attr = self._SHEET_ATTR.get(sheet_type)

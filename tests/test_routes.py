@@ -555,20 +555,6 @@ class TestDataRoutes(unittest.TestCase):
         data = json.loads(resp.data)
         self.assertEqual(data, [])
 
-    def test_epf_rates(self):
-        _inject_user(self.client)
-        resp = self.client.get("/api/epf_rates", headers=_APP_HEADERS)
-        self.assertEqual(resp.status_code, 200)
-        data = json.loads(resp.data)
-        self.assertIn("rates", data)
-        self.assertIn("currentRate", data)
-        self.assertIn("currentFY", data)
-        self.assertIn("defaultRate", data)
-        self.assertIsInstance(data["rates"], dict)
-        self.assertGreater(len(data["rates"]), 10)
-        self.assertGreater(data["currentRate"], 0)
-        self.assertGreater(data["defaultRate"], 0)
-
     @patch("app.routes._build_stocks_data", return_value=[])
     @patch("app.routes._build_mf_data", return_value=[])
     @patch("app.routes._build_sips_data", return_value=[])
@@ -602,16 +588,14 @@ class TestDataRoutes(unittest.TestCase):
 
     @patch("app.routes._build_gold_data", return_value=[{"date": "2024-01-01"}])
     @patch("app.routes._build_fd_data", return_value=[])
-    @patch("app.routes._build_pf_data", return_value=[])
     @patch("app.routes._build_status_response", return_value={"sheets_state": "updated"})
-    def test_sheets_data(self, mock_status, mock_pf, mock_fd, mock_gold):
+    def test_sheets_data(self, mock_status, mock_fd, mock_gold):
         _inject_user(self.client)
         resp = self.client.get("/api/data/sheets", headers=_APP_HEADERS)
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.data)
         self.assertIn("physicalGold", data)
         self.assertIn("fixedDeposits", data)
-        self.assertIn("providentFund", data)
         self.assertIn("status", data)
         self.assertNotIn("stocks", data)
         self.assertNotIn("mfHoldings", data)
@@ -1351,10 +1335,10 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
     def test_fetch_user_sheets_data_cached(self, mock_usc):
         from app.routes import _fetch_user_sheets_data
 
-        cached_entry = Mock(physical_gold=[{"g": 1}], fixed_deposits=[{"fd": 1}], provident_fund=[{"pf": 1}])
+        cached_entry = Mock(physical_gold=[{"g": 1}], fixed_deposits=[{"fd": 1}])
         mock_usc.get.return_value = cached_entry
         user = {"google_id": "g1", "spreadsheet_id": "sid", "google_credentials": {"token": "t"}}
-        gold, fds, pf = _fetch_user_sheets_data(user)
+        gold, fds = _fetch_user_sheets_data(user)
         self.assertEqual(gold, [{"g": 1}])
 
     @patch("app.routes.user_sheets_cache")
@@ -1362,7 +1346,7 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         from app.routes import _fetch_user_sheets_data
 
         mock_usc.get.return_value = None
-        gold, fds, pf = _fetch_user_sheets_data({"google_id": "g1"})
+        gold, fds = _fetch_user_sheets_data({"google_id": "g1"})
         self.assertIsNone(gold)
         self.assertIsNone(fds)
 
@@ -2169,7 +2153,7 @@ class TestPortfolioPageEdgeCases(unittest.TestCase):
 
 
 class TestFetchUserSheetsDataCacheMiss(unittest.TestCase):
-    """Cache miss returns None, None, None."""
+    """Cache miss returns None, None."""
 
     @patch("app.routes.user_sheets_cache")
     def test_cache_miss_returns_none(self, mock_usc):
@@ -2177,10 +2161,9 @@ class TestFetchUserSheetsDataCacheMiss(unittest.TestCase):
 
         mock_usc.get.return_value = None  # cache miss
         user = {"google_id": "g1", "spreadsheet_id": "sid", "google_credentials": {"token": "t"}}
-        gold, fds, pf = _fetch_user_sheets_data(user)
+        gold, fds = _fetch_user_sheets_data(user)
         self.assertIsNone(gold)
         self.assertIsNone(fds)
-        self.assertIsNone(pf)
 
 
 class TestPrefetchDoubleCheckAfterLock(unittest.TestCase):

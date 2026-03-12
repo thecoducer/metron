@@ -58,12 +58,6 @@ const ELEMENT_IDS = {
     PL: 'fd_total_pl',
     PL_PCT: 'fd_total_pl_pct'
   },
-  PF: {
-    CONTRIBUTED: 'pf_total_contributed',
-    CORPUS: 'pf_corpus_value',
-    INTEREST: 'pf_total_interest',
-    INTEREST_PCT: 'pf_total_interest_pct'
-  },
   COMBINED: {
     INVESTED: 'combined_total_invested',
     CURRENT: 'combined_current_value',
@@ -96,7 +90,7 @@ class SummaryManager {
    * @param {Object|null} sgbTotals - (optional) SGB portion of gold
    * @param {Object|null} physicalGoldTotals - (optional) physical gold portion
    */
-  updateAllSummaries(stockTotals, etfTotals, goldTotals, silverTotals, mfTotals, fdTotals, isUpdating = false, goldETFTotals = null, sgbTotals = null, physicalGoldTotals = null, pfTotals = null) {
+  updateAllSummaries(stockTotals, etfTotals, goldTotals, silverTotals, mfTotals, fdTotals, isUpdating = false, goldETFTotals = null, sgbTotals = null, physicalGoldTotals = null) {
     // Provide default values if undefined
     const stock = stockTotals || { invested: 0, current: 0, pl: 0, plPct: 0 };
     const etf = etfTotals || { invested: 0, current: 0, pl: 0, plPct: 0 };
@@ -104,11 +98,10 @@ class SummaryManager {
     const silver = silverTotals || { invested: 0, current: 0, pl: 0, plPct: 0 };
     const mf = mfTotals || { invested: 0, current: 0, pl: 0, plPct: 0 };
     const fd = fdTotals || { invested: 0, maturity: 0, returns: 0, returnsPct: 0 };
-    const pf = pfTotals || { contributed: 0, corpus: 0, interest: 0, interestPct: 0 };
 
-    // Calculate combined totals (FD maturity counts as "current", PF corpus counts as "current")
-    const combinedInvested = stock.invested + etf.invested + gold.invested + silver.invested + mf.invested + fd.invested + pf.contributed;
-    const combinedCurrent = stock.current + etf.current + gold.current + silver.current + mf.current + fd.maturity + pf.corpus;
+    // Calculate combined totals (FD maturity counts as "current")
+    const combinedInvested = stock.invested + etf.invested + gold.invested + silver.invested + mf.invested + fd.invested;
+    const combinedCurrent = stock.current + etf.current + gold.current + silver.current + mf.current + fd.maturity;
     const combinedPL = combinedCurrent - combinedInvested;
     const combinedPLPct = combinedInvested ? (combinedPL / combinedInvested * 100) : 0;
 
@@ -119,7 +112,6 @@ class SummaryManager {
     const silverAllocation = combinedInvested ? (silver.invested / combinedInvested * 100) : 0;
     const mfAllocation = combinedInvested ? (mf.invested / combinedInvested * 100) : 0;
     const fdAllocation = combinedInvested ? (fd.invested / combinedInvested * 100) : 0;
-    const pfAllocation = combinedInvested ? (pf.contributed / combinedInvested * 100) : 0;
 
     // Update allocation percentages
     this._updateAllocationPercentage('stocks_allocation_pct', stockAllocation);
@@ -128,7 +120,6 @@ class SummaryManager {
     this._updateAllocationPercentage('silver_allocation_pct', silverAllocation);
     this._updateAllocationPercentage('mf_allocation_pct', mfAllocation);
     this._updateAllocationPercentage('fd_allocation_pct', fdAllocation);
-    this._updateAllocationPercentage('pf_allocation_pct', pfAllocation);
 
     // Update allocation bar segments
     this._updateAllocationBar({
@@ -137,8 +128,7 @@ class SummaryManager {
       mf: mfAllocation,
       gold: goldAllocation,
       silver: silverAllocation,
-      fd: fdAllocation,
-      pf: pfAllocation
+      fd: fdAllocation
     });
 
     // remember totals so drawer can re-render later
@@ -156,7 +146,6 @@ class SummaryManager {
     this._updateSilverCard(silver);
     this._updateMFCard(mf);
     this._updateFDCard(fd);
-    this._updatePFCard(pf);
     this._updateCombinedCard({
       invested: combinedInvested,
       current: combinedCurrent,
@@ -165,9 +154,9 @@ class SummaryManager {
     });
 
     // Update portfolio snapshot grid (pass allocation % for label strip)
-    this._updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf, {
+    this._updateSnapshotGrid(stock, mf, etf, gold, silver, fd, {
       stocks: stockAllocation, mf: mfAllocation, etf: etfAllocation,
-      gold: goldAllocation, silver: silverAllocation, fd: fdAllocation, pf: pfAllocation
+      gold: goldAllocation, silver: silverAllocation, fd: fdAllocation
     });
   }
 
@@ -196,14 +185,13 @@ class SummaryManager {
     }
   }
 
-  _updateSnapshotGrid(stock, mf, etf, gold, silver, fd, pf, alloc) {
+  _updateSnapshotGrid(stock, mf, etf, gold, silver, fd, alloc) {
     this._updateSnapshotCell('stocks', stock.invested, stock.current, stock.pl, stock.plPct, alloc.stocks);
     this._updateSnapshotCell('mf', mf.invested, mf.current, mf.pl, mf.plPct, alloc.mf);
     this._updateSnapshotCell('etf', etf.invested, etf.current, etf.pl, etf.plPct, alloc.etf);
     this._updateSnapshotCell('gold', gold.invested, gold.current, gold.pl, gold.plPct, alloc.gold);
     this._updateSnapshotCell('silver', silver.invested, silver.current, silver.pl, silver.plPct, alloc.silver);
     this._updateSnapshotCell('fd', fd.invested, fd.maturity, fd.returns, fd.returnsPct, alloc.fd);
-    this._updateSnapshotCell('pf', pf.contributed, pf.corpus, pf.interest, pf.interestPct, alloc.pf);
   }
 
   _updateAllocationPercentage(elementId, percentage) {
@@ -230,8 +218,6 @@ class SummaryManager {
           color = '#c0c0c0'; // silver
         } else if (elementId === 'fd_allocation_pct') {
           color = '#5f9e8a'; // turtle green
-        } else if (elementId === 'pf_allocation_pct') {
-          color = '#8b4049'; // subtle maroon
         }
         strip.style.setProperty('--allocation-color', color);
       }
@@ -239,15 +225,14 @@ class SummaryManager {
   }
 
   _updateAllocationBar(allocations) {
-    const segmentOrder = ['stocks', 'mf', 'etf', 'gold', 'silver', 'fd', 'pf'];
+    const segmentOrder = ['stocks', 'mf', 'etf', 'gold', 'silver', 'fd'];
     const segmentIds = {
       stocks: 'alloc_seg_stocks',
       etf: 'alloc_seg_etf',
       mf: 'alloc_seg_mf',
       gold: 'alloc_seg_gold',
       silver: 'alloc_seg_silver',
-      fd: 'alloc_seg_fd',
-      pf: 'alloc_seg_pf'
+      fd: 'alloc_seg_fd'
     };
 
     let lastVisibleSeg = null;
@@ -404,27 +389,6 @@ class SummaryManager {
     
     plPctEl.innerText = Formatter.formatPercentage(returnsPct);
     plPctEl.style.color = Formatter.colorPL(returns);
-  }
-
-  _updatePFCard(totals) {
-    const contributedEl = document.getElementById(ELEMENT_IDS.PF.CONTRIBUTED);
-    const corpusEl = document.getElementById(ELEMENT_IDS.PF.CORPUS);
-    const interestEl = document.getElementById(ELEMENT_IDS.PF.INTEREST);
-    const interestPctEl = document.getElementById(ELEMENT_IDS.PF.INTEREST_PCT);
-
-    if (!contributedEl || !corpusEl || !interestEl || !interestPctEl) return;
-
-    const contributed = isNaN(totals.contributed) ? 0 : totals.contributed;
-    const corpus = isNaN(totals.corpus) ? 0 : totals.corpus;
-    const interest = isNaN(totals.interest) ? 0 : totals.interest;
-    const interestPct = isNaN(totals.interestPct) ? 0 : totals.interestPct;
-
-    contributedEl.innerText = Formatter.formatCurrencyForSummary(contributed);
-    corpusEl.innerText = Formatter.formatCurrencyForSummary(corpus);
-    interestEl.innerText = Formatter.formatCurrencyForSummary(interest);
-    interestEl.style.color = Formatter.colorPL(interest);
-    interestPctEl.innerText = Formatter.formatPercentage(interestPct);
-    interestPctEl.style.color = Formatter.colorPL(interest);
   }
 
   _updateCombinedCard(totals) {

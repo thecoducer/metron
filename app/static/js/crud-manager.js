@@ -110,29 +110,6 @@ const SCHEMAS = {
       { key: 'account',                label: 'Account',          type: 'text',   required: true, placeholder: 'e.g. Joint' },
     ],
   },
-  provident_fund: {
-    label: 'Provident Fund',
-    sheetType: 'provident_fund',
-    fields: [
-      { key: 'entry_type',          label: 'Entry Type',         type: 'select', required: true, options: ['Active Employment', 'Past Employer'], skipInPayload: true,
-        defaultFn: (values) => (values && Number(values.opening_balance || 0) > 0 && Number(values.monthly_contribution || 0) <= 0) ? 'Past Employer' : 'Active Employment' },
-      { key: 'company_name',        label: 'Company',            type: 'text',   required: true, placeholder: 'e.g. Infosys', datalistFrom: 'company_name' },
-      { key: 'start_date',          label: 'Start Date',         type: 'date',   required: true,
-        dynamicLabel: { 'Past Employer': 'Date Added' },
-        dynamicRequired: { 'Past Employer': false },
-        dynamicPlaceholder: { 'Past Employer': 'Defaults to today' } },
-      { key: 'end_date',            label: 'End Date',           type: 'date',   required: false,
-        showWhen: 'entry_type=Active Employment' },
-      { key: 'monthly_contribution', label: 'Monthly Contribution', type: 'number', required: true, step: '1', min: '1',
-        showWhen: 'entry_type=Active Employment' },
-      { key: 'opening_balance',     label: 'Accumulated Balance', type: 'number', required: true, step: '1', min: '1', placeholder: 'Total PF balance from past employer',
-        showWhen: 'entry_type=Past Employer' },
-      { key: 'actual_contribution',  label: 'Contribution', type: 'number', required: true, step: '1', min: '1', placeholder: 'Your total contribution from EPFO passbook',
-        showWhen: 'entry_type=Past Employer' },
-      { key: 'interest_rate',       label: 'Interest Rate (%)',  type: 'number', required: false, step: '0.01', min: '0', placeholder: '0 = Auto (EPFO rate)',
-        dynamicLabel: { 'Past Employer': 'Current Interest Rate (%)' } },
-    ],
-  },
 };
 
 // ── Map schema keys → target <tbody> element IDs ─────────────────
@@ -143,7 +120,6 @@ const TBODY_MAP = {
   sips: 'sips_tbody',
   physical_gold: 'physical_gold_table_body',
   fixed_deposits: 'fixed_deposits_table_body',
-  provident_fund: 'provident_fund_table_body',
 };
 
 
@@ -328,7 +304,7 @@ class CrudManager {
             const cell = row.children[colIdx];
             if (cell) {
               const clone = cell.cloneNode(true);
-              clone.querySelectorAll('.pf-past-badge, .badge').forEach(b => b.remove());
+              clone.querySelectorAll('.badge').forEach(b => b.remove());
               const v = clone.textContent.trim();
               if (v && v !== '-') existing.add(v);
             }
@@ -449,11 +425,6 @@ class CrudManager {
       payload[f.key] = val;
     }
 
-    if (schema.sheetType === 'provident_fund' && !payload.start_date && payload.opening_balance) {
-      const d = new Date();
-      payload.start_date = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
-    }
-
     for (const f of schema.fields) {
       if (f.skipInPayload) continue;
       const fieldWrap = form.querySelector(`[data-field-key="${f.key}"]`);
@@ -558,7 +529,7 @@ class CrudManager {
           if (cell) {
             // Clone and strip badge/tag elements to get clean text
             const clone = cell.cloneNode(true);
-            clone.querySelectorAll('.pf-past-badge, .badge').forEach(b => b.remove());
+            clone.querySelectorAll('.badge').forEach(b => b.remove());
             const v = clone.textContent.trim();
             if (v && v !== '-') existing.add(v);
           }
@@ -847,12 +818,6 @@ class CrudManager {
       if (f.type === 'date' && val) val = toSheetDate(val);
       if (f.uppercase) val = val.toUpperCase();
       payload[f.key] = val;
-    }
-
-    // Auto-fill start_date with today for past employer entries if left blank
-    if (schema.sheetType === 'provident_fund' && !payload.start_date && payload.opening_balance) {
-      const d = new Date();
-      payload.start_date = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
     }
 
     // Validate required fields (only visible ones, respecting dynamic required state)

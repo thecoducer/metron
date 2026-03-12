@@ -131,16 +131,16 @@ def _get_google_creds_dict(user: dict[str, Any] | None = None) -> dict | None:
 
 
 def _fetch_user_sheets_data(user):
-    """Return (physical_gold, fixed_deposits, provident_fund) from cache.
+    """Return (physical_gold, fixed_deposits) from cache.
 
-    Returns whatever is available now (may be ``(None, None, None)`` when
+    Returns whatever is available now (may be ``(None, None)`` when
     the background sheets fetch hasn't completed yet).
     """
     google_id = user.get("google_id", "")
     cached = user_sheets_cache.get(google_id)
     if cached:
-        return cached.physical_gold, cached.fixed_deposits, cached.provident_fund
-    return None, None, None
+        return cached.physical_gold, cached.fixed_deposits
+    return None, None
 
 
 def _fetch_manual_entries(user, sheet_type):
@@ -664,7 +664,7 @@ def _build_sips_data(user):
 
 def _build_gold_data(user):
     """Build enriched physical gold holdings list."""
-    gold, _, _ = _fetch_user_sheets_data(user)
+    gold, _ = _fetch_user_sheets_data(user)
     if gold is not None:
         enriched = enrich_holdings_with_prices(gold, market_cache.gold_prices)
         return sorted(enriched, key=lambda x: x.get("date", ""))
@@ -673,17 +673,9 @@ def _build_gold_data(user):
 
 def _build_fd_data(user):
     """Build fixed deposits list."""
-    _, deposits, _ = _fetch_user_sheets_data(user)
+    _, deposits = _fetch_user_sheets_data(user)
     if deposits is not None:
         return sorted(deposits, key=lambda x: x.get("deposited_on", ""))
-    return []
-
-
-def _build_pf_data(user):
-    """Build provident fund entries list."""
-    _, _, pf_entries = _fetch_user_sheets_data(user)
-    if pf_entries is not None:
-        return sorted(pf_entries, key=lambda x: x.get("start_date", ""))
     return []
 
 
@@ -734,32 +726,6 @@ def fixed_deposits_data():
     return _json_response(_build_fd_data(user))
 
 
-@app_ui.route("/api/provident_fund_data", methods=["GET"])
-@pin_required
-def provident_fund_data():
-    """Return provident fund entries with corpus calculations."""
-    user = _current_user()
-    return _json_response(_build_pf_data(user))
-
-
-@app_ui.route("/api/epf_rates", methods=["GET"])
-@pin_required
-def epf_rates():
-    """Return official EPF historical interest rates."""
-    from .constants import EPF_DEFAULT_RATE, EPF_HISTORICAL_RATES
-
-    # Current rate = latest entry in the table
-    current_fy = max(EPF_HISTORICAL_RATES)
-    return _json_response(
-        {
-            "rates": {str(k): v for k, v in sorted(EPF_HISTORICAL_RATES.items())},
-            "currentRate": EPF_HISTORICAL_RATES[current_fy],
-            "currentFY": f"{current_fy}-{str(current_fy + 1)[-2:]}",
-            "defaultRate": EPF_DEFAULT_RATE,
-        }
-    )
-
-
 @app_ui.route("/api/data/portfolio", methods=["GET"])
 @pin_required
 def portfolio_data():
@@ -782,14 +748,13 @@ def portfolio_data():
 @app_ui.route("/api/data/sheets", methods=["GET"])
 @pin_required
 def sheets_data():
-    """Return Google Sheets data (gold, FDs, PF) + status."""
+    """Return Google Sheets data (gold, FDs) + status."""
     _t0 = time.monotonic()
     user = _current_user()
     google_id = user["google_id"]
     payload = {
         "physicalGold": _build_gold_data(user),
         "fixedDeposits": _build_fd_data(user),
-        "providentFund": _build_pf_data(user),
         "status": _build_status_response(google_id),
     }
     logger.info("sheets data served in %.2fs", time.monotonic() - _t0)
@@ -811,7 +776,6 @@ def all_data():
         "sips": _build_sips_data(user),
         "physicalGold": _build_gold_data(user),
         "fixedDeposits": _build_fd_data(user),
-        "providentFund": _build_pf_data(user),
         "status": _build_status_response(google_id),
     }
     logger.info("all_data served in %.2fs", time.monotonic() - _t0)
@@ -924,7 +888,6 @@ def portfolio_page():
                 "sips": _build_sips_data(user),
                 "physicalGold": _build_gold_data(user),
                 "fixedDeposits": _build_fd_data(user),
-                "providentFund": _build_pf_data(user),
                 "fdSummary": [],
                 "status": _build_status_response(google_id),
             }
@@ -966,7 +929,6 @@ _VALID_TABLE_KEYS = frozenset(
         "mutual-funds",
         "physical-gold",
         "fixed-deposits",
-        "provident-fund",
         "sips",
     }
 )
@@ -977,7 +939,6 @@ _TABLE_DISPLAY_NAMES = {
     "mutual-funds": "Mutual Funds",
     "physical-gold": "Physical Gold",
     "fixed-deposits": "Fixed Deposits",
-    "provident-fund": "Provident Fund",
     "sips": "SIPs",
 }
 
@@ -1135,7 +1096,6 @@ _SHEET_TYPE_DATA_KEY = {
     "sips": "sips",
     "physical_gold": "physicalGold",
     "fixed_deposits": "fixedDeposits",
-    "provident_fund": "providentFund",
 }
 
 
@@ -1173,14 +1133,6 @@ def _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type):
         parsed = calculate_current_value(svc._parse_batch_data(raw))
         user_sheets_cache.put(google_id, fixed_deposits=parsed)
 
-    elif sheet_type == "provident_fund":
-        from .api.google_sheets_client import ProvidentFundService
-        from .api.provident_fund import calculate_pf_corpus
-
-        svc = ProvidentFundService(client)
-        parsed = calculate_pf_corpus(svc._parse_batch_data(raw))
-        user_sheets_cache.put(google_id, provident_fund=parsed)
-
     else:
         # Manual types: stocks, etfs, mutual_funds, sips
         rows = []
@@ -1212,7 +1164,6 @@ def _build_data_for_type(user, sheet_type):
         "sips": _build_sips_data,
         "physicalGold": _build_gold_data,
         "fixedDeposits": _build_fd_data,
-        "providentFund": _build_pf_data,
     }
     builder = builders.get(data_key)
     if not builder:  # pragma: no cover – all valid data_keys have builders
@@ -1287,17 +1238,6 @@ def sheets_add(sheet_type):
 
     values = [data.get(f, "") for f in cfg["fields"]]
 
-    # Resolve EPFO rate when interest rate is not provided for PF entries.
-    if sheet_type == "provident_fund":
-        rate_val = float(data.get("interest_rate", 0) or 0)
-        if rate_val <= 0:
-            from .api.provident_fund import resolve_epf_rate
-
-            resolved = resolve_epf_rate(data.get("start_date", ""), data.get("end_date", ""))
-            if resolved:
-                rate_idx = cfg["fields"].index("interest_rate")
-                values[rate_idx] = resolved
-
     try:
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
         row_num = client.append_row(spreadsheet_id, cfg["sheet_name"], values)
@@ -1347,17 +1287,6 @@ def sheets_update(sheet_type, row_number):
         manual_ltp_cache.put(symbol, quote)
 
     values = [data.get(f, "") for f in cfg["fields"]]
-
-    # Resolve EPFO rate when interest rate is not provided for PF entries.
-    if sheet_type == "provident_fund":
-        rate_val = float(data.get("interest_rate", 0) or 0)
-        if rate_val <= 0:
-            from .api.provident_fund import resolve_epf_rate
-
-            resolved = resolve_epf_rate(data.get("start_date", ""), data.get("end_date", ""))
-            if resolved:
-                rate_idx = cfg["fields"].index("interest_rate")
-                values[rate_idx] = resolved
 
     try:
         client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)

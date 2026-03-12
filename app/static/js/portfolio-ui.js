@@ -277,10 +277,10 @@ function removeDrawerAccount(name) {
       position: 'bottom',
     },
     {
-      target: '#fixed-deposits-section, #provident-fund-section',
+      target: '#fixed-deposits-section',
       iconClass: 'tour-icon-safe',
-      title: 'FDs & Provident Fund',
-      desc: 'Track your fixed deposits with auto-renewal support and provident fund across employers. Switch between <strong>By Maturity</strong> and <strong>By Bank</strong> views for FDs. A <span style="color:#f59e0b;font-weight:700">!</span> icon warns when deposits exceed the ₹5L DICGC insurance limit.',
+      title: 'Fixed Deposits',
+      desc: 'Track your fixed deposits with auto-renewal support. Switch between <strong>By Maturity</strong> and <strong>By Bank</strong> views for FDs. A <span style="color:#f59e0b;font-weight:700">!</span> icon warns when deposits exceed the \u20b95L DICGC insurance limit.',
       position: 'bottom',
     },
     {

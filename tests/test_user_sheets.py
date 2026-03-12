@@ -53,7 +53,7 @@ class TestSheetConstants(unittest.TestCase):
 
 class TestSheetConfigs(unittest.TestCase):
     def test_all_types_present(self):
-        expected_types = {"stocks", "etfs", "mutual_funds", "sips", "physical_gold", "fixed_deposits", "provident_fund"}
+        expected_types = {"stocks", "etfs", "mutual_funds", "sips", "physical_gold", "fixed_deposits"}
         self.assertEqual(set(SHEET_CONFIGS.keys()), expected_types)
 
     def test_each_config_has_required_keys(self):

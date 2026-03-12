@@ -5,8 +5,6 @@ Unit tests for constants
 import unittest
 
 from app.constants import (
-    EPF_DEFAULT_RATE,
-    EPF_HISTORICAL_RATES,
     GOOGLE_SHEETS_TIMEOUT,
     HTTP_ACCEPTED,
     HTTP_CONFLICT,
@@ -51,21 +49,6 @@ class TestConstants(unittest.TestCase):
         self.assertGreater(GOOGLE_SHEETS_TIMEOUT, 0)
         self.assertIsInstance(IBJA_GOLD_PRICE_TIMEOUT, (int, float))
         self.assertGreater(IBJA_GOLD_PRICE_TIMEOUT, 0)
-
-    def test_epf_historical_rates(self):
-        """Test EPF rate table is well-formed"""
-        self.assertIsInstance(EPF_HISTORICAL_RATES, dict)
-        self.assertGreater(len(EPF_HISTORICAL_RATES), 10)
-        for fy_year, rate in EPF_HISTORICAL_RATES.items():
-            self.assertIsInstance(fy_year, int)
-            self.assertGreater(rate, 0)
-            self.assertLess(rate, 20)  # sanity check
-
-    def test_epf_default_rate(self):
-        """Test EPF default rate is reasonable"""
-        self.assertIsInstance(EPF_DEFAULT_RATE, (int, float))
-        self.assertGreater(EPF_DEFAULT_RATE, 0)
-        self.assertLess(EPF_DEFAULT_RATE, 20)
 
 
 if __name__ == "__main__":

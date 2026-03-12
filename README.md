@@ -9,7 +9,7 @@
 ### *Measure what matters.*
 
 **An open-source investment dashboard for Indian investors.**<br>
-Track stocks, mutual funds, SIPs, physical gold, fixed deposits, and provident fund — all in one place.
+Track stocks, mutual funds, SIPs, physical gold, and fixed deposits — all in one place.
 
 [![CI/CD](https://github.com/thecoducer/metron/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/thecoducer/metron/actions/workflows/ci-cd.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
@@ -31,7 +31,6 @@ Track stocks, mutual funds, SIPs, physical gold, fixed deposits, and provident f
 | **SIPs** | Active SIP list with monthly/annual outflow summary and frequency breakdown (weekly, monthly, quarterly). |
 | **Physical Gold** | Track gold holdings via Google Sheets with live P/L calculated from [IBJA](https://ibjarates.com/) spot prices. |
 | **Fixed Deposits** | FDs with compound interest calculations, maturity tracking, and ₹5L DICGC insurance limit warnings. |
-| **Provident Fund** | Month-by-month EPF corpus calculations using historical EPFO interest rates. |
 | **Nifty 50** | Live constituent prices with NSE data on a dedicated page. |
 | **Market Indices** | NIFTY 50, SENSEX, and other key indices with mini sparkline charts on the dashboard. |
 | **Manual Entries** | Add, edit, and delete stocks, ETFs, mutual funds, SIPs, gold, and FDs directly from the UI — stored in your Google Sheet. |
@@ -294,7 +293,6 @@ metron/
 │   │   ├── ibja_gold_price.py       # IBJA gold price scraper
 │   │   ├── physical_gold.py         # Physical gold P/L calculations
 │   │   ├── fixed_deposits.py        # FD compound interest calculations
-│   │   ├── provident_fund.py        # EPF corpus calculations
 │   │   ├── user_sheets.py           # Sheet tab configs (headers, fields)
 │   │   └── base_service.py          # Base class for data services
 │   │

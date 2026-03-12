@@ -11,7 +11,6 @@ class SortManager {
     this.mfSortOrder = 'default';
     this.physicalGoldSortOrder = 'default';
     this.fixedDepositsSortOrder = 'default';
-    this.providentFundSortOrder = 'default';
     this.fdSummarySortOrder = 'default';
   }
 
@@ -320,46 +319,6 @@ class SortManager {
 
   getFixedDepositsSortOrder() {
     return this.fixedDepositsSortOrder;
-  }
-
-  sortProvidentFund(entries, sortBy = 'default') {
-    if (sortBy === 'default' || !entries || entries.length === 0) {
-      return entries;
-    }
-
-    const sorted = [...entries];
-
-    const comparators = {
-      'company_asc': this._stringComparator(e => e.company_name, false),
-      'company_desc': this._stringComparator(e => e.company_name, true),
-      'start_asc': this._dateComparator(e => e.start_date, false),
-      'start_desc': this._dateComparator(e => e.start_date, true),
-      'end_asc': this._dateComparator(e => e.end_date || '9999-12-31', false),
-      'end_desc': this._dateComparator(e => e.end_date || '9999-12-31', true),
-      'contribution_asc': this._numericComparator(e => e.monthly_contribution || 0, false),
-      'contribution_desc': this._numericComparator(e => e.monthly_contribution || 0, true),
-      'rate_asc': this._numericComparator(e => e.interest_rate || 0, false),
-      'rate_desc': this._numericComparator(e => e.interest_rate || 0, true),
-      'months_asc': this._numericComparator(e => e.months_worked || 0, false),
-      'months_desc': this._numericComparator(e => e.months_worked || 0, true),
-      'total_contrib_asc': this._numericComparator(e => e.total_contribution || 0, false),
-      'total_contrib_desc': this._numericComparator(e => e.total_contribution || 0, true),
-      'interest_asc': this._numericComparator(e => e.interest_earned || 0, false),
-      'interest_desc': this._numericComparator(e => e.interest_earned || 0, true),
-      'corpus_asc': this._numericComparator(e => e.closing_balance || 0, false),
-      'corpus_desc': this._numericComparator(e => e.closing_balance || 0, true),
-    };
-
-    const comparator = comparators[sortBy];
-    return comparator ? sorted.sort(comparator) : entries;
-  }
-
-  setProvidentFundSortOrder(sortBy) {
-    this.providentFundSortOrder = sortBy;
-  }
-
-  getProvidentFundSortOrder() {
-    return this.providentFundSortOrder;
   }
 
   /**

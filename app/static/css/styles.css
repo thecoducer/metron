@@ -4094,9 +4094,7 @@ body.privacy-mode #gold_physical_total_pl_pct,
 body.privacy-mode #silver_total_pl,
 body.privacy-mode #silver_total_pl_pct,
 body.privacy-mode #fd_total_pl,
-body.privacy-mode #fd_total_pl_pct,
-body.privacy-mode #pf_total_interest,
-body.privacy-mode #pf_total_interest_pct {
+body.privacy-mode #fd_total_pl_pct {
   color: inherit !important;
 }
 
@@ -4156,50 +4154,6 @@ body.privacy-mode #fixed-deposits-section tbody tr td:nth-child(9) {
 body.privacy-mode #fd-summary-section tbody tr td:nth-child(1) {
   filter: blur(6px);
   user-select: none;
-}
-
-/* Privacy mode for Provident Fund table */
-body.privacy-mode #provident-fund-section tbody tr {
-  background-color: transparent !important;
-}
-
-body.privacy-mode #provident-fund-section tbody tr td {
-  color: inherit !important;
-}
-
-body.privacy-mode #provident-fund-section tbody tr td span {
-  color: inherit !important;
-}
-
-/* Blur all columns in Provident Fund table */
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(1),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(2),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(3),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(4),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(5),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(6),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(7),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(8),
-body.privacy-mode #provident-fund-section tbody tr td:nth-child(9) {
-  filter: blur(6px);
-  user-select: none;
-}
-
-/* Past employer badge */
-.pf-past-badge {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 600;
-  color: #8b4049;
-  background: rgba(139, 64, 73, 0.12);
-  border: 1px solid rgba(139, 64, 73, 0.25);
-  border-radius: 4px;
-  padding: 1px 5px;
-  margin-left: 6px;
-  vertical-align: middle;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  line-height: 1.4;
 }
 
 /* Loading placeholders styles */

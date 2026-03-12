@@ -9,14 +9,12 @@ class DataManager {
     this.latestPhysicalGold = [];
     this.latestFixedDeposits = [];
     this.latestFDSummary = [];
-    this.latestProvidentFund = [];
     this.lastRenderedJSON = "";
     this.lastRenderedMFJSON = "";
     this.lastRenderedSIPsJSON = "";
     this.lastRenderedPhysicalGoldJSON = "";
     this.lastRenderedFixedDepositsJSON = "";
     this.lastRenderedFDSummaryJSON = "";
-    this.lastRenderedProvidentFundJSON = "";
   }
 
   async _fetchEndpoint(endpoint) {
@@ -44,10 +42,6 @@ class DataManager {
     return this._fetchEndpoint('/api/fixed_deposits_data');
   }
 
-  async fetchProvidentFund() {
-    return this._fetchEndpoint('/api/provident_fund_data');
-  }
-
   async fetchStatus() {
     return this._fetchEndpoint('/api/status');
   }
@@ -68,7 +62,6 @@ class DataManager {
     return {
       physicalGold: resp.physicalGold || [],
       fixedDeposits,
-      providentFund: resp.providentFund || [],
       fdSummary: this._computeFDSummary(fixedDeposits),
       status: resp.status || {},
     };
@@ -81,10 +74,9 @@ class DataManager {
     const sips = resp.sips || [];
     const physicalGold = resp.physicalGold || [];
     const fixedDeposits = resp.fixedDeposits || [];
-    const providentFund = resp.providentFund || [];
     const status = resp.status || {};
     const fdSummary = this._computeFDSummary(fixedDeposits);
-    return { stocks, mfHoldings, sips, physicalGold, fixedDeposits, providentFund, fdSummary, status };
+    return { stocks, mfHoldings, sips, physicalGold, fixedDeposits, fdSummary, status };
   }
 
   _computeFDSummary(deposits) {
@@ -175,19 +167,6 @@ class DataManager {
 
   getFixedDeposits() {
     return this.latestFixedDeposits;
-  }
-
-  updateProvidentFund(providentFund, forceUpdate = false) {
-    const result = this._updateData(providentFund, this.latestProvidentFund, this.lastRenderedProvidentFundJSON, forceUpdate);
-    if (result.updated) {
-      this.latestProvidentFund = result.newData;
-      this.lastRenderedProvidentFundJSON = result.newJSON;
-    }
-    return result.updated;
-  }
-
-  getProvidentFund() {
-    return this.latestProvidentFund;
   }
 
   updateFDSummary(fdSummary, forceUpdate = false) {

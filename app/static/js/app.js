@@ -110,7 +110,6 @@ class PortfolioApp {
     this.tableRenderer.renderSIPsTable([], { portfolio_state: 'idle' });
     this.tableRenderer.renderPhysicalGoldTable([]);
     this.tableRenderer.renderFixedDepositsTable([]);
-    this.tableRenderer.renderProvidentFundTable([]);
     this.tableRenderer.renderFDSummaryTable([]);
   }
 
@@ -187,7 +186,6 @@ class PortfolioApp {
     window.sortMFTable = (sortBy) => this._handleSort('MF', sortBy);
     window.sortPhysicalGoldTable = (sortBy) => this._handleSort('PhysicalGold', sortBy);
     window.sortFixedDepositsTable = (sortBy) => this.handleFixedDepositsSort(sortBy);
-    window.sortProvidentFundTable = (sortBy) => this.handleProvidentFundSort(sortBy);
     window.sortFDSummaryTable = (sortBy) => this.handleFDSummarySort(sortBy);
 
     this._setupHeaderSortListeners();
@@ -370,17 +368,6 @@ class PortfolioApp {
           'Switch to <strong>By Bank</strong> tab to see aggregated totals per bank.',
         ]
       },
-      provident_fund: {
-        title: 'Provident Fund',
-        items: [
-          'Track your EPF/PF across employers with compounding interest.',
-          '<strong>Active Employment:</strong> Enter company, start date, end date (blank if current), monthly contribution, and interest rate.',
-          '<strong>Past Employer:</strong> Enter accumulated balance and your contribution (employer + employee contribution from EPFO passbook) to track carry-forward interest accurately.',
-          '<strong>Interest Rate:</strong> Enter 0 or leave blank to auto-apply the official EPFO rate for each financial year. Or enter a custom rate.',
-          'Multiple stints at the same company are grouped \u2014 click to expand.',
-          '<strong>P&L:</strong> For past employers, the split between your contribution and interest earned is based on the contribution you enter. This ensures accurate portfolio-level profit tracking.',
-        ]
-      },
       sips: {
         title: 'SIPs',
         items: [
@@ -515,11 +502,6 @@ class PortfolioApp {
         selector: '#fixedDepositsTable',
         getSortOrder: () => this.sortManager.getFixedDepositsSortOrder(),
         applySort: (sortBy) => this.handleFixedDepositsSort(sortBy)
-      },
-      {
-        selector: '#providentFundTable',
-        getSortOrder: () => this.sortManager.getProvidentFundSortOrder(),
-        applySort: (sortBy) => this.handleProvidentFundSort(sortBy)
       },
       {
         selector: '#fdSummaryTable',
@@ -948,12 +930,6 @@ class PortfolioApp {
     );
     const fdTotals = this.tableRenderer.renderFixedDepositsTable(sortedFixedDeposits);
 
-    const sortedProvidentFund = this.sortManager.sortProvidentFund(
-      this.dataManager.getProvidentFund(),
-      this.sortManager.getProvidentFundSortOrder()
-    );
-    const pfTotals = this.tableRenderer.renderProvidentFundTable(sortedProvidentFund);
-
     const Z = { invested: 0, current: 0, pl: 0, plPct: 0 };
 
     let stockTotals = Z, etfTotals = Z, mfTotals = Z;
@@ -986,8 +962,7 @@ class PortfolioApp {
       isUpdating,
       goldETFTotals,
       sgbTotals,
-      physicalGoldTotals,
-      pfTotals
+      physicalGoldTotals
     );
   }
 
@@ -1042,12 +1017,6 @@ class PortfolioApp {
     const physicalGoldTotals = this.tableRenderer.renderPhysicalGoldTable(sortedPhysicalGold);
     const fdTotals = this.tableRenderer.renderFixedDepositsTable(sortedFixedDeposits);
 
-    const sortedProvidentFund = this.sortManager.sortProvidentFund(
-      this.dataManager.getProvidentFund(),
-      this.sortManager.getProvidentFundSortOrder()
-    );
-    const pfTotals = this.tableRenderer.renderProvidentFundTable(sortedProvidentFund);
-
     if (fdSummaryData && fdSummaryData.length > 0) {
       this.tableRenderer.renderFDSummaryTable(fdSummaryData);
     }
@@ -1065,8 +1034,7 @@ class PortfolioApp {
       isUpdating,
       goldETFTotals,
       sgbTotals,
-      physicalGoldTotals,
-      pfTotals
+      physicalGoldTotals
     );
   }
 
@@ -1080,7 +1048,7 @@ class PortfolioApp {
   /**
    * Apply a data payload (inlined or fetched) to the data manager and render.
    */
-  _applyData({ stocks, mfHoldings, sips, physicalGold, fixedDeposits, providentFund, fdSummary, status }) {
+  _applyData({ stocks, mfHoldings, sips, physicalGold, fixedDeposits, fdSummary, status }) {
     const searchEl = document.getElementById('search');
     const searchQuery = searchEl ? searchEl.value : '';
     const forceUpdate = searchQuery !== '';
@@ -1090,7 +1058,6 @@ class PortfolioApp {
     this.dataManager.updateSIPs(sips || [], forceUpdate);
     this.dataManager.updatePhysicalGold(physicalGold || [], forceUpdate);
     this.dataManager.updateFixedDeposits(fixedDeposits || [], forceUpdate);
-    this.dataManager.updateProvidentFund(providentFund || [], forceUpdate);
     const computedSummary = (fdSummary && fdSummary.length)
       ? fdSummary
       : this.dataManager._computeFDSummary(fixedDeposits || []);
@@ -1131,16 +1098,15 @@ class PortfolioApp {
   }
 
   /**
-   * Apply sheets data only — physical gold, FDs, provident fund.
+   * Apply sheets data only — physical gold, FDs.
    */
-  _applySheetsData({ physicalGold, fixedDeposits, providentFund, fdSummary, status }) {
+  _applySheetsData({ physicalGold, fixedDeposits, fdSummary, status }) {
     const searchEl = document.getElementById('search');
     const searchQuery = searchEl ? searchEl.value : '';
     const forceUpdate = searchQuery !== '';
 
     this.dataManager.updatePhysicalGold(physicalGold || [], forceUpdate);
     this.dataManager.updateFixedDeposits(fixedDeposits || [], forceUpdate);
-    this.dataManager.updateProvidentFund(providentFund || [], forceUpdate);
     const computedSummary = (fdSummary && fdSummary.length)
       ? fdSummary
       : this.dataManager._computeFDSummary(fixedDeposits || []);
@@ -1215,7 +1181,6 @@ class PortfolioApp {
         sips: partialData.sips ?? this.dataManager.getSIPs(),
         physicalGold: partialData.physicalGold ?? this.dataManager.getPhysicalGold(),
         fixedDeposits: partialData.fixedDeposits ?? this.dataManager.getFixedDeposits(),
-        providentFund: partialData.providentFund ?? this.dataManager.getProvidentFund(),
         fdSummary: null,  // let _applyData recompute from fixedDeposits
         status: this.lastStatus || {},
       };
@@ -1244,15 +1209,6 @@ class PortfolioApp {
     );
     this.tableRenderer.renderFixedDepositsTable(sortedFixedDeposits);
     this.tableRenderer.renderFDSummaryTable(sortedFixedDeposits);
-  }
-
-  handleProvidentFundSort(sortBy) {
-    this.sortManager.setProvidentFundSortOrder(sortBy);
-    const sortedPF = this.sortManager.sortProvidentFund(
-      this.dataManager.getProvidentFund(),
-      this.sortManager.getProvidentFundSortOrder()
-    );
-    this.tableRenderer.renderProvidentFundTable(sortedPF);
   }
 
   handleFDSummarySort(sortBy) {
