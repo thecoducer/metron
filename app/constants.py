@@ -51,8 +51,8 @@ PORTFOLIO_TABLE_ROW_LIMIT = 10
 PIN_CHECK_SENTINEL = "METRON_PIN_OK"
 PIN_TTL = 30 * 60  # 30 minutes — in-memory PIN expiry
 PIN_LOCKOUT_TIERS = [
-    (3, 15 * 60),      # 3 failures → 15 minutes
-    (6, 60 * 60),      # 6 failures → 1 hour
+    (3, 15 * 60),  # 3 failures → 15 minutes
+    (6, 60 * 60),  # 6 failures → 1 hour
     (9, 4 * 60 * 60),  # 9 failures → 4 hours
 ]
 PIN_RATE_LIMITER_MAX_ENTRIES = 1000

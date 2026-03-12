@@ -135,9 +135,7 @@ class UserSheetsCache:
         with self._lock:
             return self._store.get(google_id)
 
-    def put(
-        self, google_id: str, *, physical_gold: list = None, fixed_deposits: list = None
-    ) -> None:
+    def put(self, google_id: str, *, physical_gold: list = None, fixed_deposits: list = None) -> None:
         """Cache one or more sheet data types for *google_id*, refreshing the TTL."""
         with self._lock:
             entry = self._store.get(google_id)
