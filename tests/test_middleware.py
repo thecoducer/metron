@@ -6,6 +6,7 @@ import json
 import unittest
 from unittest.mock import patch
 
+from app.constants import APP_REQUEST_HEADER, APP_REQUEST_HEADER_VALUE
 from app.middleware import (
     _is_app_request,
     _is_authenticated,
@@ -13,7 +14,6 @@ from app.middleware import (
     login_required,
     protected_api,
 )
-from app.constants import APP_REQUEST_HEADER, APP_REQUEST_HEADER_VALUE
 from app.routes import app_ui
 
 # Reusable session user dict

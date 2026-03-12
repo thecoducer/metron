@@ -31,7 +31,6 @@ from .constants import (
 from .logging_config import logger
 from .services import get_authenticated_accounts, state_manager, zerodha_client
 
-
 # ===================================================================
 # Google credentials & per-user fetch locking
 # ===================================================================
