@@ -358,7 +358,7 @@ body.dark-theme .theme-toggle svg{color:#999}
   flex-shrink:0;
 }
 .asset-chip-icon svg{width:14px;height:14px}
-.asset-chip-icon.a-violet{background:rgba(13,148,136,.08);color:#0d9488}
+.asset-chip-icon.a-violet{background:rgba(249,115,22,.08);color:#f97316}
 .asset-chip-icon.a-blue{background:rgba(59,130,246,.08);color:#3b82f6}
 .asset-chip-icon.a-emerald{background:rgba(16,185,129,.08);color:#10b981}
 .asset-chip-icon.a-amber{background:rgba(245,158,11,.08);color:#f59e0b}
@@ -1121,7 +1121,7 @@ body.dark-theme .section-divider{background:#2a2a2a}
 /* Asset chip strip dark theme */
 body.dark-theme .asset-chip{background:rgba(24,24,24,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(255,255,255,.06);color:#999}
 body.dark-theme .asset-chip:hover{border-color:rgba(255,255,255,.1);box-shadow:0 2px 10px rgba(0,0,0,.2)}
-body.dark-theme .asset-chip-icon.a-violet{background:rgba(13,148,136,.12)}
+body.dark-theme .asset-chip-icon.a-violet{background:rgba(249,115,22,.12)}
 body.dark-theme .asset-chip-icon.a-blue{background:rgba(59,130,246,.12)}
 body.dark-theme .asset-chip-icon.a-emerald{background:rgba(16,185,129,.12)}
 body.dark-theme .asset-chip-icon.a-amber{background:rgba(245,158,11,.12)}

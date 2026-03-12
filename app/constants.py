@@ -5,6 +5,8 @@ This module is the single source of truth for all default values,
 timeouts, paths, and tunables used across the application.
 """
 
+import os
+
 # Status states
 STATE_UPDATING = "updating"
 STATE_UPDATED = "updated"
@@ -75,7 +77,7 @@ EPF_HISTORICAL_RATES = {
     2024: 8.25,
     2025: 8.25,
 }
-EPF_DEFAULT_RATE = 8.50  # fallback for financial years not in the table
+EPF_DEFAULT_RATE = float(os.environ.get("METRON_EPF_DEFAULT_RATE", "8.50"))  # fallback for financial years not in the table
 
 # Nifty 50 configuration
 NIFTY50_FALLBACK_SYMBOLS = [

@@ -285,7 +285,7 @@
           </ul>
           <div class="sec-box-badge green">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="20 6 9 17 4 12"/></svg>
-            You own this &mdash; view, edit, or delete anytime
+            You own this
           </div>
         </div>
 
@@ -340,7 +340,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </span>
               <span class="sec-flow-node-name">Server Secret</span>
-              <span class="sec-flow-node-sub">Google Cloud<br>Secrets Manager</span>
             </div>
             <div class="sec-flow-plus">+</div>
             <div class="sec-flow-node sec-node-input">
@@ -384,7 +383,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </span>
               <span class="sec-flow-node-name">Flask Secret</span>
-              <span class="sec-flow-node-sub">Google Cloud<br>Secrets Manager</span>
             </div>
             <div class="sec-flow-arrow" style="margin-left:0">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
@@ -430,13 +428,7 @@
         </div>
         <h4>Your PIN is the master key</h4>
         <p>When you create a 6-character PIN, it&rsquo;s combined with a server-side secret to generate a unique encryption key <em>just for you</em>. This key encrypts your broker API credentials before they&rsquo;re saved. Without your PIN, the encrypted data is useless scrambled text.</p>
-      </div>
-      <div class="sec-feature-card">
-        <div class="sec-feature-icon zero-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
-        </div>
-        <h4>Zero-knowledge PIN</h4>
-        <p>We never store your PIN. Not hashed, not encrypted, not anywhere. Instead, we store a small &ldquo;test phrase&rdquo; encrypted with your PIN. When you log in, we try to decrypt it &mdash; if it works, the PIN is correct. If it doesn&rsquo;t, we know it&rsquo;s wrong. Simple and brilliant.</p>
+        <p>We never store your PIN &mdash; not hashed, not encrypted, not anywhere. Instead, we store a small &ldquo;test phrase&rdquo; encrypted with your PIN. When you log in, we try to decrypt it &mdash; if it works, the PIN is correct. If it doesn&rsquo;t, we know it&rsquo;s wrong.</p>
       </div>
       <div class="sec-feature-card">
         <div class="sec-feature-icon sheets-icon">
@@ -445,13 +437,6 @@
         <h4>Your Google Sheet = your database</h4>
         <p>All your portfolio data &mdash; stocks, mutual funds, gold, FDs, SIPs, provident fund &mdash; lives in a Google Sheet auto-created in <em>your</em> Google Drive. The developer cannot see it. You can view or delete it anytime. It&rsquo;s just a spreadsheet, and it&rsquo;s yours.</p>
         <p style="margin-top:.5rem;font-size:.85em;color:var(--text-muted)"><strong>Important:</strong> Do not edit or add data directly in your Google Sheet. Manual changes may break data parsing in the app.</p>
-      </div>
-      <div class="sec-feature-card">
-        <div class="sec-feature-icon cloud-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><path d="m8 16 4-4 4 4"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
-        </div>
-        <h4>Google Cloud Secret Manager</h4>
-        <p>The server-side secrets (used alongside your PIN) aren&rsquo;t hard-coded or stored in config files. They live in Google Cloud&rsquo;s <strong>Secret Manager</strong> &mdash; an enterprise-grade vault with access logging, automatic rotation, and strict IAM controls. No developer can casually peek at them.</p>
       </div>
       <div class="sec-feature-card">
         <div class="sec-feature-icon rate-icon">
