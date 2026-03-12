@@ -47,9 +47,42 @@ SERVER_STARTUP_DELAY = 0.5
 # Only a developer should change this value from the backend.
 PORTFOLIO_TABLE_ROW_LIMIT = 10
 
+# PIN / Authentication
+PIN_CHECK_SENTINEL = "METRON_PIN_OK"
+PIN_TTL = 30 * 60  # 30 minutes — in-memory PIN expiry
+PIN_LOCKOUT_TIERS = [
+    (3, 15 * 60),      # 3 failures → 15 minutes
+    (6, 60 * 60),      # 6 failures → 1 hour
+    (9, 4 * 60 * 60),  # 9 failures → 4 hours
+]
+PIN_RATE_LIMITER_MAX_ENTRIES = 1000
+
+# Per-user in-memory store sizing (LRU caps)
+SESSION_MANAGER_MAX_USERS = 1000
+STATE_MANAGER_MAX_USERS = 1000
+
+# Cache sizing and TTLs
+MAX_PORTFOLIO_CACHE_USERS = 200
+MAX_SHEETS_CACHE_USERS = 200
+MAX_LTP_CACHE_SYMBOLS = 1000
+SHEETS_CACHE_TTL = 300  # 5 minutes
+NEGATIVE_LTP_CACHE_TTL = 300  # 5 minutes
+
+# Middleware / Request origin validation
+APP_REQUEST_HEADER = "X-Requested-With"
+APP_REQUEST_HEADER_VALUE = "MetronApp"
+PROGRAMMATIC_FETCH_MODES = frozenset({"cors", "same-origin", "no-cors"})
+
+# Background data fetching
+LTP_CACHE_WARMUP_INTERVAL = 2  # seconds between warmup polls
+LTP_CACHE_WARMUP_ATTEMPTS = 6  # max polls (~12 s total)
+USER_FETCH_LOCKS_MAX = 500
+MARKET_DATA_MIN_INTERVAL = 60  # seconds — skip re-fetch if data is fresher
+
 # External service URLs
 NSE_BASE_URL = "https://www.nseindia.com"
 IBJA_BASE_URL = "https://ibjarates.com/"
+YF_BASE_URL = "https://query1.finance.yahoo.com"
 
 # External service purities (gold)
 IBJA_GOLD_PURITIES = ["999", "995", "916", "750", "585"]

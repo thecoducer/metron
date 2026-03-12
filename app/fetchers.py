@@ -20,12 +20,16 @@ from .api import MarketDataClient
 from .api.google_sheets_client import is_blank_row
 from .api.ibja_gold_price import get_gold_price_service
 from .cache import manual_ltp_cache, market_cache, nifty50_fetch_in_progress, portfolio_cache, user_sheets_cache
-from .constants import GOLD_PRICE_FETCH_HOURS, NIFTY50_FALLBACK_SYMBOLS
+from .constants import (
+    GOLD_PRICE_FETCH_HOURS,
+    LTP_CACHE_WARMUP_ATTEMPTS,
+    LTP_CACHE_WARMUP_INTERVAL,
+    MARKET_DATA_MIN_INTERVAL,
+    NIFTY50_FALLBACK_SYMBOLS,
+    USER_FETCH_LOCKS_MAX,
+)
 from .logging_config import logger
 from .services import get_authenticated_accounts, state_manager, zerodha_client
-
-_LTP_CACHE_WARMUP_INTERVAL = 2  # seconds between polls
-_LTP_CACHE_WARMUP_ATTEMPTS = 6  # max polls (~12 s total)
 
 
 # ===================================================================
@@ -53,18 +57,17 @@ def get_google_creds_dict(user: dict[str, Any]) -> dict | None:
 
 _user_fetch_locks: dict[str, threading.Lock] = {}
 _user_fetch_locks_guard = threading.Lock()
-_USER_FETCH_LOCKS_MAX = 500
 
 
 def _get_user_fetch_lock(google_id: str) -> threading.Lock:
     """Return a per-user lock for serialising portfolio fetches.
 
     Evicts the oldest half of entries when the dict exceeds
-    ``_USER_FETCH_LOCKS_MAX`` to bound memory usage.
+    ``USER_FETCH_LOCKS_MAX`` to bound memory usage.
     """
     with _user_fetch_locks_guard:
-        if len(_user_fetch_locks) >= _USER_FETCH_LOCKS_MAX:
-            keys_to_remove = list(_user_fetch_locks.keys())[: _USER_FETCH_LOCKS_MAX // 2]
+        if len(_user_fetch_locks) >= USER_FETCH_LOCKS_MAX:
+            keys_to_remove = list(_user_fetch_locks.keys())[: USER_FETCH_LOCKS_MAX // 2]
             for k in keys_to_remove:
                 _user_fetch_locks.pop(k, None)
         return _user_fetch_locks.setdefault(google_id, threading.Lock())
@@ -321,12 +324,12 @@ def _bg_fetch_and_broadcast_ltps(
 
 def _wait_for_symbols(google_id: str) -> list:
     """Poll sheets cache until manual symbols appear (or timeout)."""
-    for attempt in range(1, _LTP_CACHE_WARMUP_ATTEMPTS + 1):
+    for attempt in range(1, LTP_CACHE_WARMUP_ATTEMPTS + 1):
         syms = collect_manual_symbols(google_id)
         if syms:
             logger.debug("Manual LTP: found %d symbols after %d polls", len(syms), attempt)
             return syms
-        time.sleep(_LTP_CACHE_WARMUP_INTERVAL)
+        time.sleep(LTP_CACHE_WARMUP_INTERVAL)
     return []
 
 
@@ -411,9 +414,6 @@ def fetch_gold_prices(force: bool = False) -> None:
     logger.error("All %d gold price fetch attempts failed", max_retries)
 
 
-_MARKET_DATA_MIN_INTERVAL = 60  # seconds — skip re-fetch if data is fresher
-
-
 def fetch_market_indices_data(*, force: bool = False) -> None:
     """Fetch market indices (Nifty50, Sensex, S&P500, Gold, Silver, USDINR).
 
@@ -422,7 +422,7 @@ def fetch_market_indices_data(*, force: bool = False) -> None:
     """
     if not force and isinstance(market_cache.market_indices_last_fetch, datetime):
         age = (datetime.now() - market_cache.market_indices_last_fetch).total_seconds()
-        if age < _MARKET_DATA_MIN_INTERVAL:
+        if age < MARKET_DATA_MIN_INTERVAL:
             logger.debug("Market indices fresh (%.0fs old), skipping", age)
             return
     try:
@@ -447,7 +447,7 @@ def fetch_nifty50_data(*, force: bool = False) -> None:
 
     if not force and isinstance(market_cache.nifty50_last_fetch, datetime):
         age = (datetime.now() - market_cache.nifty50_last_fetch).total_seconds()
-        if age < _MARKET_DATA_MIN_INTERVAL:
+        if age < MARKET_DATA_MIN_INTERVAL:
             logger.debug("Nifty50 data fresh (%.0fs old), skipping", age)
             return
 

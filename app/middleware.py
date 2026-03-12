@@ -21,11 +21,8 @@ import functools
 from flask import jsonify, request, session
 
 from .config import app_config
+from .constants import APP_REQUEST_HEADER, APP_REQUEST_HEADER_VALUE, PROGRAMMATIC_FETCH_MODES
 from .logging_config import logger
-
-APP_REQUEST_HEADER = "X-Requested-With"
-APP_REQUEST_HEADER_VALUE = "MetronApp"
-_PROGRAMMATIC_FETCH_MODES = frozenset({"cors", "same-origin", "no-cors"})
 
 
 def _is_authenticated():
@@ -37,7 +34,7 @@ def _is_app_request():
     """Return ``True`` when the request originates from the app frontend."""
     if request.headers.get(APP_REQUEST_HEADER) == APP_REQUEST_HEADER_VALUE:
         return True
-    return request.headers.get("Sec-Fetch-Mode", "") in _PROGRAMMATIC_FETCH_MODES
+    return request.headers.get("Sec-Fetch-Mode", "") in PROGRAMMATIC_FETCH_MODES
 
 
 def _allow_browser_api_access():

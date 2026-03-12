@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from cachetools import LRUCache
+from cachetools import LRUCache, TTLCache
 from cryptography.fernet import Fernet, InvalidToken
 
 from .constants import (
@@ -20,7 +20,13 @@ from .constants import (
     MARKET_CLOSE_MINUTE,
     MARKET_OPEN_HOUR,
     MARKET_OPEN_MINUTE,
+    PIN_CHECK_SENTINEL,
+    PIN_LOCKOUT_TIERS,
+    PIN_RATE_LIMITER_MAX_ENTRIES,
+    PIN_TTL,
+    SESSION_MANAGER_MAX_USERS,
     STATE_ERROR,
+    STATE_MANAGER_MAX_USERS,
     STATE_UPDATED,
     STATE_UPDATING,
     WEEKEND_SATURDAY,
@@ -46,8 +52,6 @@ from .logging_config import logger
 # contains encrypt("METRON_PIN_OK", pin).  If decryption succeeds and
 # the plaintext matches, the PIN is correct.
 # ---------------------------------------------------------------------------
-
-_PIN_CHECK_SENTINEL = "METRON_PIN_OK"
 
 
 def _get_base_secret() -> bytes:
@@ -90,14 +94,14 @@ def decrypt_credential(encrypted: str, pin: str) -> str:
 
 def create_pin_check(pin: str) -> str:
     """Return an encrypted sentinel that can later verify the PIN."""
-    return encrypt_credential(_PIN_CHECK_SENTINEL, pin)
+    return encrypt_credential(PIN_CHECK_SENTINEL, pin)
 
 
 def verify_pin(pin_check_token: str, pin: str) -> bool:
     """Return True if *pin* decrypts the stored sentinel correctly."""
     try:
         plaintext = decrypt_credential(pin_check_token, pin)
-        return plaintext == _PIN_CHECK_SENTINEL
+        return plaintext == PIN_CHECK_SENTINEL
     except (InvalidToken, Exception):
         return False
 
@@ -148,17 +152,18 @@ class SessionManager:
     user is evicted when the cap is reached.
     """
 
-    _MAX_USERS = 1000
+    _MAX_USERS = SESSION_MANAGER_MAX_USERS
+    _PIN_TTL = PIN_TTL
 
-    def __init__(self, maxsize: int = _MAX_USERS):
+    def __init__(self, maxsize: int = _MAX_USERS, pin_ttl: int = _PIN_TTL):
         self._lock = threading.Lock()
         self._user_sessions: LRUCache[str, dict[str, dict[str, Any]]] = LRUCache(maxsize=maxsize)
-        self._user_pins: LRUCache[str, str] = LRUCache(maxsize=maxsize)
+        self._user_pins: TTLCache[str, str] = TTLCache(maxsize=maxsize, ttl=pin_ttl)
 
     # ── PIN management (in-memory only) ───────────────────────────
 
     def set_pin(self, google_id: str, pin: str) -> None:
-        """Store the user's PIN in memory for the current server lifetime."""
+        """Store the user's PIN in memory; expires after ``_PIN_TTL`` seconds."""
         with self._lock:
             self._user_pins[google_id] = pin
 
@@ -324,7 +329,7 @@ class StateManager:
     """
 
     GLOBAL_STATE_TYPES = ("nifty50", "physical_gold", "fixed_deposits")
-    _MAX_USERS = 1000
+    _MAX_USERS = STATE_MANAGER_MAX_USERS
 
     def __init__(self, maxsize: int = _MAX_USERS):
         self._lock = threading.Lock()
@@ -521,12 +526,8 @@ class PinRateLimiter:
     """
 
     # (cumulative_attempts, lockout_seconds)
-    LOCKOUT_TIERS = [
-        (3, 15 * 60),  # 15 minutes
-        (6, 60 * 60),  # 1 hour
-        (9, 4 * 60 * 60),  # 4 hours
-    ]
-    _MAX_ENTRIES = 1000
+    LOCKOUT_TIERS = PIN_LOCKOUT_TIERS
+    _MAX_ENTRIES = PIN_RATE_LIMITER_MAX_ENTRIES
 
     def __init__(self):
         self._lock = threading.Lock()

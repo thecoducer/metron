@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from app.cache import UserPortfolioData
-from app.middleware import APP_REQUEST_HEADER, APP_REQUEST_HEADER_VALUE
+from app.constants import APP_REQUEST_HEADER, APP_REQUEST_HEADER_VALUE
 from app.routes import _json_response, app_ui
 
 # Reusable test user dict (simulates Flask session["user"])

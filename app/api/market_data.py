@@ -15,6 +15,7 @@ from requests.exceptions import ConnectionError, RequestException, Timeout
 from ..constants import (
     NSE_BASE_URL,
     NSE_REQUEST_TIMEOUT,
+    YF_BASE_URL,
     YF_BATCH_MAX_WORKERS,
     YF_MAX_RETRIES,
     YF_RETRY_BASE_DELAY,
@@ -27,8 +28,6 @@ class MarketDataClient:
 
     NSE is used only for fetching the Nifty 50 constituent symbol list.
     """
-
-    _YF_BASE_URL = "https://query1.finance.yahoo.com"
 
     def __init__(self):
         """Initialize the market data client."""
@@ -121,7 +120,7 @@ class MarketDataClient:
         """
         yf_symbol = self._nse_to_yf_symbol(symbol)
         encoded = quote(yf_symbol, safe="")
-        url = f"{self._YF_BASE_URL}/v8/finance/chart/{encoded}?interval=5m&range=1d"
+        url = f"{YF_BASE_URL}/v8/finance/chart/{encoded}?interval=5m&range=1d"
         yf_headers = {
             "User-Agent": self.headers["User-Agent"],
             "Accept": "application/json",
@@ -440,7 +439,7 @@ class MarketDataClient:
                 "User-Agent": self.headers["User-Agent"],
                 "Accept": "application/json",
             }
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?interval=5m&range=1d"
+            url = f"{YF_BASE_URL}/v8/finance/chart/{yf_symbol}?interval=5m&range=1d"
             logger.debug("Fetching index %s from Yahoo Finance", display_name)
             resp = requests.get(url, headers=yf_headers, timeout=self.timeout)
             if resp.status_code != 200:

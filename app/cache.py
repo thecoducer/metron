@@ -8,12 +8,13 @@ from typing import Any
 
 from cachetools import LRUCache, TTLCache
 
-# Maximum per-user entries across caches.  Tuned for a 512 MB Render
-# instance supporting up to 1 000 concurrent users.  Cache misses
-# simply re-fetch from the upstream data source.
-_MAX_PORTFOLIO_USERS = 200
-_MAX_SHEETS_USERS = 200
-_MAX_LTP_SYMBOLS = 1000
+from .constants import (
+    MAX_LTP_CACHE_SYMBOLS,
+    MAX_PORTFOLIO_CACHE_USERS,
+    MAX_SHEETS_CACHE_USERS,
+    NEGATIVE_LTP_CACHE_TTL,
+    SHEETS_CACHE_TTL,
+)
 
 
 @dataclass
@@ -40,7 +41,7 @@ class PortfolioCacheManager:
     is evicted automatically when the cap is reached (via ``cachetools.LRUCache``).
     """
 
-    def __init__(self, maxsize: int = _MAX_PORTFOLIO_USERS) -> None:
+    def __init__(self, maxsize: int = MAX_PORTFOLIO_CACHE_USERS) -> None:
         self._lock = threading.Lock()
         self._user_data: LRUCache[str, UserPortfolioData] = LRUCache(maxsize=maxsize)
         self._fetch_events: dict[str, threading.Event] = {}
@@ -105,9 +106,6 @@ portfolio_cache = PortfolioCacheManager()
 nifty50_fetch_in_progress = threading.Event()
 
 
-_SHEETS_CACHE_TTL = 300  # seconds
-
-
 @dataclass
 class _UserCacheEntry:
     physical_gold: list[dict[str, Any]] = field(default_factory=list)
@@ -127,7 +125,7 @@ class UserSheetsCache:
     Uses ``cachetools.TTLCache`` for automatic TTL expiry and LRU eviction.
     """
 
-    def __init__(self, ttl: int = _SHEETS_CACHE_TTL, maxsize: int = _MAX_SHEETS_USERS):
+    def __init__(self, ttl: int = SHEETS_CACHE_TTL, maxsize: int = MAX_SHEETS_CACHE_USERS):
         self._ttl = ttl
         self._store: TTLCache[str, _UserCacheEntry] = TTLCache(maxsize=maxsize, ttl=ttl)
         self._lock = threading.Lock()
@@ -243,9 +241,9 @@ class ManualLTPCache:
     periodic retries for temporarily unavailable symbols.
     """
 
-    _NEGATIVE_TTL = 300  # 5 minutes
+    _NEGATIVE_TTL = NEGATIVE_LTP_CACHE_TTL  # 5 minutes
 
-    def __init__(self, maxsize: int = _MAX_LTP_SYMBOLS):
+    def __init__(self, maxsize: int = MAX_LTP_CACHE_SYMBOLS):
         self._data: LRUCache[str, dict[str, Any]] = LRUCache(maxsize=maxsize)
         self._negative: dict[str, float] = {}
         self._lock = threading.Lock()
