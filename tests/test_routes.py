@@ -925,7 +925,7 @@ class TestRouteHelpers(unittest.TestCase):
             self.assertIsNone(client)
             self.assertIsNotNone(err)
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=([{"a": 1}], None, None))
+    @patch("app.routes._fetch_user_sheets_data", return_value=([{"a": 1}], None))
     @patch("app.routes.enrich_holdings_with_prices", return_value=[{"a": 1}])
     @patch("app.routes.market_cache")
     def test_build_gold_data(self, mock_mc, mock_enrich, mock_fetch):
@@ -935,21 +935,21 @@ class TestRouteHelpers(unittest.TestCase):
         result = _build_gold_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=(None, None, None))
+    @patch("app.routes._fetch_user_sheets_data", return_value=(None, None))
     def test_build_gold_data_none(self, mock_fetch):
         from app.routes import _build_gold_data
 
         result = _build_gold_data({"google_id": "g1"})
         self.assertEqual(result, [])
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=(None, [{"deposited_on": "2024-01-01"}], None))
+    @patch("app.routes._fetch_user_sheets_data", return_value=(None, [{"deposited_on": "2024-01-01"}]))
     def test_build_fd_data(self, mock_fetch):
         from app.routes import _build_fd_data
 
         result = _build_fd_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=(None, None, None))
+    @patch("app.routes._fetch_user_sheets_data", return_value=(None, None))
     def test_build_fd_data_none(self, mock_fetch):
         from app.routes import _build_fd_data
 

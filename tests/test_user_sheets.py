@@ -69,11 +69,11 @@ class TestSheetConfigs(unittest.TestCase):
 
 class TestAllSheets(unittest.TestCase):
     def test_count(self):
-        self.assertEqual(len(ALL_SHEETS), 7)
+        self.assertEqual(len(ALL_SHEETS), 6)
 
     def test_unique_indices(self):
         indices = [idx for _, _, idx in ALL_SHEETS]
-        self.assertEqual(len(set(indices)), 7)
+        self.assertEqual(len(set(indices)), 6)
 
 
 class TestCreatePortfolioSheet(unittest.TestCase):
