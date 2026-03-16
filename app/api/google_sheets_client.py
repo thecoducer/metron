@@ -327,9 +327,7 @@ class GoogleSheetsClient:
             logger.exception("Error batch appending to %s", sheet_name)
             raise
 
-    def batch_update_rows(
-        self, spreadsheet_id: str, sheet_name: str, updates: list[tuple[int, list[Any]]]
-    ) -> None:
+    def batch_update_rows(self, spreadsheet_id: str, sheet_name: str, updates: list[tuple[int, list[Any]]]) -> None:
         """Update multiple rows in a single batchUpdate call.
 
         *updates* is a list of ``(row_number, values)`` tuples.

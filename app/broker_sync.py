@@ -256,8 +256,7 @@ def _do_sync(
 
     # Ensure sheet tabs have the Source column header
     tabs_to_check = [
-        (SHEET_CONFIGS[st]["sheet_name"], SHEET_CONFIGS[st]["headers"])
-        for st in ("stocks", "mutual_funds", "sips")
+        (SHEET_CONFIGS[st]["sheet_name"], SHEET_CONFIGS[st]["headers"]) for st in ("stocks", "mutual_funds", "sips")
     ]
     try:
         client.ensure_sheet_tabs(spreadsheet_id, tabs_to_check)
@@ -351,19 +350,17 @@ def delete_account_from_sheets(google_id: str, account_name: str) -> None:
         rows_to_delete: list[int] = []
         if raw and len(raw) >= 2:
             for idx, row in enumerate(raw[1:], start=2):
-                source = (row[source_idx].strip().lower() if len(row) > source_idx else "")
-                acct = (row[account_idx].strip() if len(row) > account_idx else "")
+                source = row[source_idx].strip().lower() if len(row) > source_idx else ""
+                acct = row[account_idx].strip() if len(row) > account_idx else ""
                 if source == "zerodha" and acct == account_name:
                     rows_to_delete.append(idx)
 
         if rows_to_delete:
             try:
                 client.batch_delete_rows(spreadsheet_id, sheet_name, rows_to_delete)
-                logger.info("Deleted %d rows for account %s from %s",
-                            len(rows_to_delete), account_name, sheet_name)
+                logger.info("Deleted %d rows for account %s from %s", len(rows_to_delete), account_name, sheet_name)
             except Exception:
-                logger.exception("Failed to delete rows for account %s from %s",
-                                 account_name, sheet_name)
+                logger.exception("Failed to delete rows for account %s from %s", account_name, sheet_name)
 
     try:
         persist_refreshed_credentials(creds, google_id)
