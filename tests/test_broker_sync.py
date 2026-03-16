@@ -145,10 +145,12 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_update_existing_holding(self):
         """Quantity change → existing zerodha row is updated."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-            ["HDFCBANK", "6", "1400", "NSE", "MyAcc", "zerodha"],
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["HDFCBANK", "6", "1400", "NSE", "MyAcc", "zerodha"],
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
         broker = [
             {"tradingsymbol": "HDFCBANK", "quantity": 2, "average_price": 1500, "exchange": "NSE", "account": "MyAcc"},
@@ -169,15 +171,16 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_sold_holding_deleted(self):
         """Stock no longer in broker → zerodha row is deleted."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-            ["RELIANCE", "10", "2500", "NSE", "MyAcc", "zerodha"],
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["RELIANCE", "10", "2500", "NSE", "MyAcc", "zerodha"],
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
         broker = []
 
-        result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row,
-                                 synced_accounts={"MyAcc"})
+        result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row, synced_accounts={"MyAcc"})
 
         self.assertEqual(result["deleted"], 1)
         self.assertEqual(result["added"], 0)
@@ -186,19 +189,20 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_expired_account_rows_preserved(self):
         """Rows for accounts NOT in synced_accounts are not deleted."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-            ["INFY", "10", "1500", "NSE", "Mine", "zerodha"],
-            ["TCS", "5", "3500", "NSE", "Mom", "zerodha"],
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["INFY", "10", "1500", "NSE", "Mine", "zerodha"],
+                ["TCS", "5", "3500", "NSE", "Mom", "zerodha"],
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
         # Only "Mine" was fetched (Mom's token expired)
         broker = [
             {"tradingsymbol": "INFY", "quantity": 10, "average_price": 1500, "exchange": "NSE", "account": "Mine"},
         ]
 
-        result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row,
-                                 synced_accounts={"Mine"})
+        result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row, synced_accounts={"Mine"})
 
         # Mom's TCS row should NOT be deleted
         self.assertEqual(result["deleted"], 0)
@@ -208,25 +212,28 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_synced_accounts_none_deletes_all(self):
         """When synced_accounts is None, all missing zerodha rows are deleted."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-            ["RELIANCE", "10", "2500", "NSE", "Acc", "zerodha"],
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["RELIANCE", "10", "2500", "NSE", "Acc", "zerodha"],
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
 
-        result = _sync_one_sheet(client, "sid", "Stocks", fields, [], _stock_to_row,
-                                 synced_accounts=None)
+        result = _sync_one_sheet(client, "sid", "Stocks", fields, [], _stock_to_row, synced_accounts=None)
 
         self.assertEqual(result["deleted"], 1)
         client.batch_delete_rows.assert_called_once()
 
     def test_manual_rows_untouched(self):
         """Manual entries are never modified by sync."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-            ["TCS", "5", "3500", "NSE", "Manual", "manual"],
-            ["INFY", "10", "1500", "NSE", "MyAcc", "zerodha"],
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["TCS", "5", "3500", "NSE", "Manual", "manual"],
+                ["INFY", "10", "1500", "NSE", "MyAcc", "zerodha"],
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
         # Broker has INFY with updated qty but not TCS
         broker = [
@@ -242,12 +249,14 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_mixed_add_update_delete(self):
         """Complex scenario: some holdings updated, some sold, some new."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-            ["HDFCBANK", "6", "1400", "NSE", "Acc", "zerodha"],  # will update
-            ["RELIANCE", "10", "2500", "NSE", "Acc", "zerodha"],  # will delete
-            ["TCS", "5", "3500", "NSE", "Manual", "manual"],  # untouched
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["HDFCBANK", "6", "1400", "NSE", "Acc", "zerodha"],  # will update
+                ["RELIANCE", "10", "2500", "NSE", "Acc", "zerodha"],  # will delete
+                ["TCS", "5", "3500", "NSE", "Manual", "manual"],  # untouched
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
         broker = [
             {"tradingsymbol": "HDFCBANK", "quantity": 2, "average_price": 1500, "exchange": "NSE", "account": "Acc"},
@@ -262,10 +271,12 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_no_changes_skips_api_calls(self):
         """Same data → no API calls."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-            ["INFY", "10", "1500", "NSE", "Acc", "zerodha"],
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["INFY", "10", "1500", "NSE", "Acc", "zerodha"],
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
         broker = [
             {"tradingsymbol": "INFY", "quantity": 10, "average_price": 1500.0, "exchange": "NSE", "account": "Acc"},
@@ -304,10 +315,12 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_old_sheet_without_source_column(self):
         """Pre-migration sheet without Source column → all rows treated as non-zerodha."""
-        client = self._make_client([
-            ["Symbol", "Qty", "Avg Price", "Exchange", "Account"],
-            ["INFY", "10", "1500", "NSE", "Acc"],  # No source column
-        ])
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account"],
+                ["INFY", "10", "1500", "NSE", "Acc"],  # No source column
+            ]
+        )
         fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
         broker = [
             {"tradingsymbol": "INFY", "quantity": 10, "average_price": 1500, "exchange": "NSE", "account": "Acc"},
@@ -347,6 +360,7 @@ class TestSyncBrokerToSheets(unittest.TestCase):
         def slow_sync(*args):
             barrier.wait()
             import time
+
             time.sleep(0.1)
 
         mock_sync.side_effect = slow_sync
@@ -367,6 +381,7 @@ class TestSyncBrokerToSheets(unittest.TestCase):
         """Verify sync thread is started as daemon."""
         start_broker_sync_thread("user1", [{"s": 1}], [], [])
         import time
+
         time.sleep(0.2)
         mock_sync.assert_called_once()
 
@@ -412,9 +427,7 @@ class TestDeleteAccountFromSheets(unittest.TestCase):
     @patch("app.api.google_auth.credentials_from_dict")
     @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
     @patch("app.firebase_store.get_user", return_value={"spreadsheet_id": "sid"})
-    def test_deletes_only_target_account_rows(
-        self, mock_user, mock_creds_dict, mock_creds, mock_gsc, mock_persist
-    ):
+    def test_deletes_only_target_account_rows(self, mock_user, mock_creds_dict, mock_creds, mock_gsc, mock_persist):
         mock_client = Mock()
         mock_gsc.return_value = mock_client
 

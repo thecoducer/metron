@@ -967,7 +967,9 @@ class TestRouteHelpers(unittest.TestCase):
         from app.cache import UserPortfolioData
         from app.routes import _build_mf_data
 
-        mock_pc.get.return_value = UserPortfolioData(mf_holdings=[{"fund": "A", "tradingsymbol": "A"}], connected_accounts={"test"})
+        mock_pc.get.return_value = UserPortfolioData(
+            mf_holdings=[{"fund": "A", "tradingsymbol": "A"}], connected_accounts={"test"}
+        )
         result = _build_mf_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
 
@@ -1029,7 +1031,17 @@ class TestRouteHelpers(unittest.TestCase):
             connected_accounts=set(),
         )
         mock_manual.side_effect = [
-            [{"symbol": "INFY", "qty": "5", "avg_price": "1000", "exchange": "NSE", "source": "zerodha", "account": "Z1", "row_number": 2}],
+            [
+                {
+                    "symbol": "INFY",
+                    "qty": "5",
+                    "avg_price": "1000",
+                    "exchange": "NSE",
+                    "source": "zerodha",
+                    "account": "Z1",
+                    "row_number": 2,
+                }
+            ],
             [],
         ]
         result = _build_stocks_data({"google_id": "g1"})
@@ -1053,7 +1065,17 @@ class TestRouteHelpers(unittest.TestCase):
             connected_accounts={"Z1"},
         )
         mock_manual.side_effect = [
-            [{"symbol": "INFY", "qty": "5", "avg_price": "1000", "exchange": "NSE", "source": "zerodha", "account": "Z1", "row_number": 2}],
+            [
+                {
+                    "symbol": "INFY",
+                    "qty": "5",
+                    "avg_price": "1000",
+                    "exchange": "NSE",
+                    "source": "zerodha",
+                    "account": "Z1",
+                    "row_number": 2,
+                }
+            ],
             [],
         ]
         result = _build_stocks_data({"google_id": "g1"})

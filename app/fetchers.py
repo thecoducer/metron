@@ -367,7 +367,9 @@ def fetch_portfolio_data(google_id: str, accounts: list | None = None) -> None:
         stocks, mfs, sips, error = zerodha_client.fetch_all_accounts_data(accounts)
         if not error:
             synced_accounts = {acc.get("name", "") for acc in accounts}
-            portfolio_cache.set(google_id, stocks=stocks, mf_holdings=mfs, sips=sips, connected_accounts=synced_accounts)
+            portfolio_cache.set(
+                google_id, stocks=stocks, mf_holdings=mfs, sips=sips, connected_accounts=synced_accounts
+            )
             logger.info("Portfolio updated in fetch")
 
             # Async sync broker data to Google Sheets (fire and forget)

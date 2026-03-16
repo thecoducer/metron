@@ -107,7 +107,18 @@ SHEET_CONFIGS = {
     "sips": {
         "sheet_name": SIPS_SHEET_NAME,
         "headers": SIPS_HEADERS,
-        "fields": ["fund", "fund_name", "amount", "frequency", "installments", "completed", "status", "next_due", "account", "source"],
+        "fields": [
+            "fund",
+            "fund_name",
+            "amount",
+            "frequency",
+            "installments",
+            "completed",
+            "status",
+            "next_due",
+            "account",
+            "source",
+        ],
     },
     "physical_gold": {
         "sheet_name": GOLD_SHEET_NAME,

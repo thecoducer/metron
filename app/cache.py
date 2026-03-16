@@ -62,7 +62,15 @@ class PortfolioCacheManager:
             self._user_data[google_id] = data
             return data
 
-    def set(self, google_id: str, *, stocks: list = None, mf_holdings: list = None, sips: list = None, connected_accounts: set = None) -> None:
+    def set(
+        self,
+        google_id: str,
+        *,
+        stocks: list = None,
+        mf_holdings: list = None,
+        sips: list = None,
+        connected_accounts: set = None,
+    ) -> None:
         """Update one or more portfolio data fields for *google_id*."""
         with self._lock:
             data = self._user_data.get(google_id)
