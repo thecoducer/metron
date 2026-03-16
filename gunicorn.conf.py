@@ -5,7 +5,17 @@ duplicating all in-memory caches and state managers.  The worker is
 recycled after ``max_requests`` to reclaim any leaked memory.
 """
 
+import logging
 import os
+
+
+class HealthCheckFilter(logging.Filter):
+    """Filter out health check and static asset requests from access logs."""
+
+    def filter(self, record):
+        message = record.getMessage()
+        # Exclude /healthz and /static requests from logs
+        return "/healthz" not in message and "/static" not in message
 
 # --- Server socket ---
 bind = "0.0.0.0:" + os.environ.get("PORT", "8080")
@@ -36,7 +46,7 @@ accesslog = "-"  # stdout
 errorlog = "-"  # stderr
 loglevel = os.environ.get("LOG_LEVEL", "info")
 
-# Don't log health-check noise
+# Filter out health-check requests from access logs
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)sμs'
 
 # --- Security ---
@@ -56,6 +66,10 @@ def on_starting(server):
 def post_fork(server, worker):
     """Called just after a worker has been forked."""
     server.log.info("Worker spawned (pid: %s)", worker.pid)
+
+    # Apply health check filter to access log
+    access_logger = logging.getLogger("gunicorn.access")
+    access_logger.addFilter(HealthCheckFilter())
 
     # Eagerly initialise the Firestore client so the first HTTP request
     # doesn't pay the cost of importing firebase_admin, opening a gRPC
