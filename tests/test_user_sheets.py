@@ -36,19 +36,19 @@ class TestSheetConstants(unittest.TestCase):
 
     def test_stocks_config(self):
         self.assertEqual(STOCKS_SHEET_NAME, "Stocks")
-        self.assertEqual(len(STOCKS_HEADERS), 5)
+        self.assertEqual(len(STOCKS_HEADERS), 6)
 
     def test_etfs_config(self):
         self.assertEqual(ETFS_SHEET_NAME, "ETFs")
-        self.assertEqual(len(ETFS_HEADERS), 5)
+        self.assertEqual(len(ETFS_HEADERS), 6)
 
     def test_mf_config(self):
         self.assertEqual(MF_SHEET_NAME, "MutualFunds")
-        self.assertEqual(len(MF_HEADERS), 4)
+        self.assertEqual(len(MF_HEADERS), 6)
 
     def test_sips_config(self):
         self.assertEqual(SIPS_SHEET_NAME, "SIPs")
-        self.assertEqual(len(SIPS_HEADERS), 8)
+        self.assertEqual(len(SIPS_HEADERS), 10)
 
 
 class TestSheetConfigs(unittest.TestCase):

@@ -162,9 +162,12 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
                 for idx, row in enumerate(raw[1:], start=2):
                     if is_blank_row(row):
                         break
-                    entry = {"row_number": idx, "source": "manual"}
+                    entry = {"row_number": idx}
                     for fi, fname in enumerate(fields):
                         entry[fname] = row[fi] if fi < len(row) else ""
+                    # Default empty/missing source to "manual"
+                    if not entry.get("source"):
+                        entry["source"] = "manual"
                     rows.append(entry)
                 manual[sheet_type] = rows
 
@@ -363,13 +366,20 @@ def fetch_portfolio_data(google_id: str, accounts: list | None = None) -> None:
     try:
         stocks, mfs, sips, error = zerodha_client.fetch_all_accounts_data(accounts)
         if not error:
-            portfolio_cache.set(google_id, stocks=stocks, mf_holdings=mfs, sips=sips)
+            synced_accounts = {acc.get("name", "") for acc in accounts}
+            portfolio_cache.set(google_id, stocks=stocks, mf_holdings=mfs, sips=sips, connected_accounts=synced_accounts)
             logger.info("Portfolio updated in fetch")
+
+            # Async sync broker data to Google Sheets (fire and forget)
+            from .broker_sync import start_broker_sync_thread
+
+            start_broker_sync_thread(google_id, stocks, mfs, sips, synced_accounts)
         else:
-            portfolio_cache.get(google_id)
-            logger.info("Preserved partial portfolio data after failure")
+            portfolio_cache.set(google_id, connected_accounts=set())
+            logger.info("Broker fetch failed, will use sheet data as fallback")
     except Exception as e:
         logger.exception("Error fetching portfolio: %s", e)
+        portfolio_cache.set(google_id, connected_accounts=set())
         error = str(e)
     finally:
         state_manager.set_portfolio_updated(google_id=google_id, error=error)

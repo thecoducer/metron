@@ -309,6 +309,85 @@ class GoogleSheetsClient:
             logger.exception("Error deleting row %d from %s", row_number, sheet_name)
             raise
 
+    def batch_append_rows(self, spreadsheet_id: str, sheet_name: str, rows: list[list[Any]]) -> None:
+        """Append multiple rows to a sheet in a single API call."""
+        if not rows:
+            return
+        self.authenticate()
+        try:
+            self.service.spreadsheets().values().append(
+                spreadsheetId=spreadsheet_id,
+                range=f"{sheet_name}!A:Z",
+                valueInputOption="RAW",
+                insertDataOption="INSERT_ROWS",
+                body={"values": rows},
+            ).execute()
+            logger.info("Batch appended %d rows to %s", len(rows), sheet_name)
+        except Exception:
+            logger.exception("Error batch appending to %s", sheet_name)
+            raise
+
+    def batch_update_rows(
+        self, spreadsheet_id: str, sheet_name: str, updates: list[tuple[int, list[Any]]]
+    ) -> None:
+        """Update multiple rows in a single batchUpdate call.
+
+        *updates* is a list of ``(row_number, values)`` tuples.
+        """
+        if not updates:
+            return
+        self.authenticate()
+        data = []
+        for row_number, values in updates:
+            col_end = chr(ord("A") + len(values) - 1)
+            data.append(
+                {
+                    "range": f"{sheet_name}!A{row_number}:{col_end}{row_number}",
+                    "values": [values],
+                }
+            )
+        try:
+            self.service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"valueInputOption": "RAW", "data": data},
+            ).execute()
+            logger.info("Batch updated %d rows in %s", len(updates), sheet_name)
+        except Exception:
+            logger.exception("Error batch updating %s", sheet_name)
+            raise
+
+    def batch_delete_rows(self, spreadsheet_id: str, sheet_name: str, row_numbers: list[int]) -> None:
+        """Delete multiple rows in a single batchUpdate call.
+
+        Rows are deleted from bottom to top so that indices remain valid.
+        """
+        if not row_numbers:
+            return
+        self.authenticate()
+        sheet_id = self._get_sheet_id(spreadsheet_id, sheet_name)
+        requests = [
+            {
+                "deleteDimension": {
+                    "range": {
+                        "sheetId": sheet_id,
+                        "dimension": "ROWS",
+                        "startIndex": row - 1,
+                        "endIndex": row,
+                    }
+                }
+            }
+            for row in sorted(row_numbers, reverse=True)
+        ]
+        try:
+            self.service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"requests": requests},
+            ).execute()
+            logger.info("Batch deleted %d rows from %s", len(row_numbers), sheet_name)
+        except Exception:
+            logger.exception("Error batch deleting from %s", sheet_name)
+            raise
+
     def _get_sheet_id(self, spreadsheet_id: str, sheet_name: str) -> int:
         """Return the internal numeric sheetId for a named tab."""
         meta = (

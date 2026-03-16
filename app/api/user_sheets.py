@@ -50,6 +50,7 @@ STOCKS_HEADERS = [
     "Avg Price",
     "Exchange",
     "Account",
+    "Source",
 ]
 
 ETFS_SHEET_NAME = "ETFs"
@@ -59,19 +60,23 @@ ETFS_HEADERS = [
     "Avg Price",
     "Exchange",
     "Account",
+    "Source",
 ]
 
 MF_SHEET_NAME = "MutualFunds"
 MF_HEADERS = [
     "Fund",
+    "Fund Name",
     "Qty",
     "Avg NAV",
     "Account",
+    "Source",
 ]
 
 SIPS_SHEET_NAME = "SIPs"
 SIPS_HEADERS = [
     "Fund",
+    "Fund Name",
     "Amount",
     "Frequency",
     "Installments",
@@ -79,6 +84,7 @@ SIPS_HEADERS = [
     "Status",
     "Next Due",
     "Account",
+    "Source",
 ]
 
 # Unified registry used by the CRUD API (sheet_type → config)
@@ -86,22 +92,22 @@ SHEET_CONFIGS = {
     "stocks": {
         "sheet_name": STOCKS_SHEET_NAME,
         "headers": STOCKS_HEADERS,
-        "fields": ["symbol", "qty", "avg_price", "exchange", "account"],
+        "fields": ["symbol", "qty", "avg_price", "exchange", "account", "source"],
     },
     "etfs": {
         "sheet_name": ETFS_SHEET_NAME,
         "headers": ETFS_HEADERS,
-        "fields": ["symbol", "qty", "avg_price", "exchange", "account"],
+        "fields": ["symbol", "qty", "avg_price", "exchange", "account", "source"],
     },
     "mutual_funds": {
         "sheet_name": MF_SHEET_NAME,
         "headers": MF_HEADERS,
-        "fields": ["fund", "qty", "avg_nav", "account"],
+        "fields": ["fund", "fund_name", "qty", "avg_nav", "account", "source"],
     },
     "sips": {
         "sheet_name": SIPS_SHEET_NAME,
         "headers": SIPS_HEADERS,
-        "fields": ["fund", "amount", "frequency", "installments", "completed", "status", "next_due", "account"],
+        "fields": ["fund", "fund_name", "amount", "frequency", "installments", "completed", "status", "next_due", "account", "source"],
     },
     "physical_gold": {
         "sheet_name": GOLD_SHEET_NAME,

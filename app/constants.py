@@ -79,6 +79,9 @@ LTP_CACHE_WARMUP_ATTEMPTS = 6  # max polls (~12 s total)
 USER_FETCH_LOCKS_MAX = 500
 MARKET_DATA_MIN_INTERVAL = 60  # seconds — skip re-fetch if data is fresher
 
+# Broker → Sheets sync
+BROKER_SYNC_LOCKS_MAX = 500
+
 # External service URLs
 NSE_BASE_URL = "https://www.nseindia.com"
 IBJA_BASE_URL = "https://ibjarates.com/"

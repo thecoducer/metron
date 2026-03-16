@@ -27,10 +27,11 @@ from app.fetchers import (
 class TestFetchPortfolioData(unittest.TestCase):
     """Test fetch_portfolio_data function (per-user)."""
 
+    @patch("app.broker_sync.start_broker_sync_thread")
     @patch("app.fetchers.portfolio_cache")
     @patch("app.fetchers.zerodha_client")
     @patch("app.fetchers.state_manager")
-    def test_success(self, mock_state, mock_client, mock_pcache):
+    def test_success(self, mock_state, mock_client, mock_pcache, mock_sync):
         mock_client.fetch_all_accounts_data.return_value = (
             [{"stock": 1}],
             [{"mf": 1}],
@@ -43,38 +44,45 @@ class TestFetchPortfolioData(unittest.TestCase):
         mock_pcache.set_fetch_in_progress.assert_called_once_with("user1")
         mock_state.set_portfolio_updating.assert_called_once_with(google_id="user1")
         mock_pcache.set.assert_called_once_with(
-            "user1", stocks=[{"stock": 1}], mf_holdings=[{"mf": 1}], sips=[{"sip": 1}]
+            "user1", stocks=[{"stock": 1}], mf_holdings=[{"mf": 1}], sips=[{"sip": 1}], connected_accounts={"test"}
         )
         mock_state.set_portfolio_updated.assert_called_once_with(google_id="user1", error=None)
         mock_pcache.clear_fetch_in_progress.assert_called_once_with("user1")
+        mock_sync.assert_called_once_with("user1", [{"stock": 1}], [{"mf": 1}], [{"sip": 1}], {"test"})
 
     @patch("app.fetchers.portfolio_cache")
     @patch("app.fetchers.zerodha_client")
     @patch("app.fetchers.state_manager")
-    def test_with_error_preserves_old_data(self, mock_state, mock_client, mock_pcache):
+    def test_with_error_marks_broker_disconnected(self, mock_state, mock_client, mock_pcache):
         mock_client.fetch_all_accounts_data.return_value = (
             [],
             [],
             [],
             "Test error",
         )
-        # Simulate existing cached data
-        mock_user_data = Mock()
-        mock_user_data.stocks = [{"old_stock": 1}]
-        mock_user_data.mf_holdings = [{"old_mf": 1}]
-        mock_user_data.sips = [{"old_sip": 1}]
-        mock_pcache.get.return_value = mock_user_data
 
         fetch_portfolio_data("user1", accounts=[{"name": "test"}])
 
         mock_state.set_portfolio_updated.assert_called_once_with(google_id="user1", error="Test error")
-        # cache.set should NOT have been called (data preserved)
-        mock_pcache.set.assert_not_called()
+        # connected_accounts should be set to empty so sheet data is used as fallback
+        mock_pcache.set.assert_called_once_with("user1", connected_accounts=set())
 
     @patch("app.fetchers.portfolio_cache")
     @patch("app.fetchers.zerodha_client")
     @patch("app.fetchers.state_manager")
-    def test_success_updates_cache(self, mock_state, mock_client, mock_pcache):
+    def test_exception_marks_broker_disconnected(self, mock_state, mock_client, mock_pcache):
+        mock_client.fetch_all_accounts_data.side_effect = RuntimeError("connection lost")
+
+        fetch_portfolio_data("user1", accounts=[{"name": "test"}])
+
+        mock_state.set_portfolio_updated.assert_called_once_with(google_id="user1", error="connection lost")
+        mock_pcache.set.assert_called_once_with("user1", connected_accounts=set())
+
+    @patch("app.broker_sync.start_broker_sync_thread")
+    @patch("app.fetchers.portfolio_cache")
+    @patch("app.fetchers.zerodha_client")
+    @patch("app.fetchers.state_manager")
+    def test_success_updates_cache(self, mock_state, mock_client, mock_pcache, mock_sync):
         mock_client.fetch_all_accounts_data.return_value = (
             [{"new_stock": 1}],
             [{"new_mf": 1}],
@@ -89,6 +97,7 @@ class TestFetchPortfolioData(unittest.TestCase):
             stocks=[{"new_stock": 1}],
             mf_holdings=[{"new_mf": 1}],
             sips=[{"new_sip": 1}],
+            connected_accounts={"test"},
         )
 
     @patch("app.fetchers.get_authenticated_accounts")
@@ -102,10 +111,11 @@ class TestFetchPortfolioData(unittest.TestCase):
 
         mock_client.fetch_all_accounts_data.assert_not_called()
 
+    @patch("app.broker_sync.start_broker_sync_thread")
     @patch("app.fetchers.portfolio_cache")
     @patch("app.fetchers.zerodha_client")
     @patch("app.fetchers.state_manager")
-    def test_injects_google_id_into_accounts(self, mock_state, mock_client, mock_pcache):
+    def test_injects_google_id_into_accounts(self, mock_state, mock_client, mock_pcache, mock_sync):
         """Each account config should have google_id injected."""
         mock_client.fetch_all_accounts_data.return_value = ([], [], [], None)
 

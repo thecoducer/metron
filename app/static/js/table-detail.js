@@ -184,7 +184,7 @@ function buildMFRow(mf, metrics) {
     const formattedDate = Formatter.formatRelativeDate(mf.last_price_date, true);
     if (formattedDate) navDateText = `<span class="nav-date-sub">${formattedDate.toLowerCase()}</span>`;
   }
-  const fundName = mf.fund || mf.tradingsymbol;
+  const fundName = mf.fund_name || mf.fund || mf.tradingsymbol;
   const isManual = mf.source === 'manual';
   const manualBadge = isManual ? '<span class="source-indicator source-manual" data-tip="Manually added"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5c0 .3-.2.5-.5.5h-9a.5.5 0 0 1-.5-.5Z"/></svg></span>' : '';
   const crudActions = isManual ? buildCrudActions('mutual_funds', mf.row_number, {
@@ -274,7 +274,7 @@ function buildFixedDepositRow(deposit) {
 }
 
 function buildSIPRow(sip) {
-  const fundName = (sip.fund || sip.tradingsymbol || '').toUpperCase();
+  const fundName = (sip.fund_name || sip.fund || sip.tradingsymbol || '').toUpperCase();
   const frequency = sip.frequency || '-';
   let installments = '-';
   if (sip.instalments && sip.instalments !== -1) {

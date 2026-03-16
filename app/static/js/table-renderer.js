@@ -414,8 +414,8 @@ class TableRenderer {
     let filteredHoldings = [];
 
     mfHoldings.forEach(mf => {
-      const fundName = mf.fund || mf.tradingsymbol;
-      const text = (fundName + mf.account).toLowerCase();
+      const fundName = mf.fund_name || mf.fund || mf.tradingsymbol;
+      const text = (fundName + (mf.fund || '') + mf.account).toLowerCase();
       if (!text.includes(this.searchQuery)) return;
 
       filteredHoldings.push(mf);
@@ -435,7 +435,7 @@ class TableRenderer {
     let rowsHTML = '';
     pageData.forEach((group, index) => {
       const groupId = `mf-group-${index}`;
-      const fundName = group.holdings[0].fund || group.holdings[0].tradingsymbol;
+      const fundName = group.holdings[0].fund_name || group.holdings[0].fund || group.holdings[0].tradingsymbol;
       const metrics = this._calculateAggregatedMFMetrics(group.holdings);
       rowsHTML += this._buildMFRow(fundName, group.holdings[0], metrics, {
         fundClass: this._getUpdateClass(isUpdating),
@@ -454,7 +454,7 @@ class TableRenderer {
       // Add breakdown rows if multiple accounts
       if (group.holdings.length > 1) {
         group.holdings.forEach(mf => {
-          const fundName = mf.fund || mf.tradingsymbol;
+          const fundName = mf.fund_name || mf.fund || mf.tradingsymbol;
           const holdingMetrics = Calculator.calculateMFMetrics(mf);
           rowsHTML += this._buildMFBreakdownRow(fundName, mf, holdingMetrics, groupId);
         });
@@ -499,8 +499,8 @@ class TableRenderer {
     const frequencyAmounts = { monthly: 0, weekly: 0, quarterly: 0 };
 
     sips.forEach(sip => {
-      const fundName = (sip.fund || sip.tradingsymbol).toUpperCase();
-      const text = (fundName + sip.account).toLowerCase();
+      const fundName = (sip.fund_name || sip.fund || sip.tradingsymbol).toUpperCase();
+      const text = (fundName + (sip.fund || '') + sip.account).toLowerCase();
       if (!text.includes(this.searchQuery)) return;
 
       allRows.push(this._buildSIPRow(fundName, sip, dataClass));
@@ -633,11 +633,11 @@ class TableRenderer {
   _groupMFByFundName(holdings) {
     const groups = {};
     holdings.forEach(mf => {
-      const fundName = mf.fund || mf.tradingsymbol;
-      if (!groups[fundName]) {
-        groups[fundName] = { holdings: [] };
+      const key = mf.fund || mf.tradingsymbol;
+      if (!groups[key]) {
+        groups[key] = { holdings: [] };
       }
-      groups[fundName].holdings.push(mf);
+      groups[key].holdings.push(mf);
     });
     return groups;
   }

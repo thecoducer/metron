@@ -179,8 +179,8 @@ class SortManager {
       'nav_asc': this._numericComparator(h => getMetrics(h).nav, false),
       'account_asc': this._stringComparator(h => h.account, false),
       'account_desc': this._stringComparator(h => h.account, true),
-      'name_asc': this._stringComparator(h => h.fund || h.tradingsymbol, false),
-      'name_desc': this._stringComparator(h => h.fund || h.tradingsymbol, true)
+      'name_asc': this._stringComparator(h => h.fund_name || h.fund || h.tradingsymbol, false),
+      'name_desc': this._stringComparator(h => h.fund_name || h.fund || h.tradingsymbol, true)
     };
 
     const comparator = comparators[sortBy];

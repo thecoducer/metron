@@ -94,6 +94,7 @@ class TestUIServerRoutes(unittest.TestCase):
                     {"tradingsymbol": "INFY", "quantity": 10},
                     {"tradingsymbol": "TCS", "quantity": 5},
                 ],
+                connected_accounts={"test"},
             )
             mock_pcache.get.return_value = mock_data
 
@@ -118,6 +119,7 @@ class TestUIServerRoutes(unittest.TestCase):
                     {"tradingsymbol": "MF2", "fund": "Fund B"},
                     {"tradingsymbol": "MF1", "fund": "Fund A"},
                 ],
+                connected_accounts={"test"},
             )
             mock_pcache.get.return_value = mock_data
 
@@ -137,6 +139,7 @@ class TestUIServerRoutes(unittest.TestCase):
                     {"tradingsymbol": "SIP2", "status": "inactive"},
                     {"tradingsymbol": "SIP1", "status": "active"},
                 ],
+                connected_accounts={"test"},
             )
             mock_pcache.get.return_value = mock_data
 
@@ -248,6 +251,7 @@ class TestUIServerRoutes(unittest.TestCase):
             patch("app.firebase_store.remove_zerodha_account") as mock_remove,
             patch("app.routes.session_manager") as mock_session,
             patch("app.routes.portfolio_cache") as mock_pcache,
+            patch("app.broker_sync.delete_account_from_sheets") as mock_delete_sheets,
         ):
             _inject_user(self.client)
             response = self.client.delete("/api/settings/zerodha/MyAccount", headers=_APP_HEADERS)
@@ -258,6 +262,7 @@ class TestUIServerRoutes(unittest.TestCase):
         mock_remove.assert_called_once_with("test123", "MyAccount")
         mock_session.invalidate.assert_called_once_with("test123", "MyAccount")
         mock_pcache.clear.assert_called_once_with("test123")
+        mock_delete_sheets.assert_called_once_with("test123", "MyAccount")
 
     def test_remove_zerodha_account_not_found(self):
         """Deleting a non-existent account returns 404."""
@@ -962,7 +967,7 @@ class TestRouteHelpers(unittest.TestCase):
         from app.cache import UserPortfolioData
         from app.routes import _build_mf_data
 
-        mock_pc.get.return_value = UserPortfolioData(mf_holdings=[{"fund": "A", "tradingsymbol": "A"}])
+        mock_pc.get.return_value = UserPortfolioData(mf_holdings=[{"fund": "A", "tradingsymbol": "A"}], connected_accounts={"test"})
         result = _build_mf_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
 
@@ -1008,6 +1013,81 @@ class TestRouteHelpers(unittest.TestCase):
         result = _build_stocks_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["tradingsymbol"], "INFY")
+
+    @patch("app.routes._enrich_manual_entries_with_ltp")
+    @patch("app.routes._fetch_manual_entries")
+    @patch("app.routes.portfolio_cache")
+    def test_build_stocks_data_broker_offline_uses_sheet_fallback(self, mock_pc, mock_manual, mock_enrich):
+        """When no accounts connected, cached broker stocks are ignored and
+        zerodha-sourced sheet entries serve as fallback."""
+        from app.cache import UserPortfolioData
+        from app.routes import _build_stocks_data
+
+        # Cache has stale broker data, but no accounts connected
+        mock_pc.get.return_value = UserPortfolioData(
+            stocks=[{"tradingsymbol": "STALE", "quantity": 99}],
+            connected_accounts=set(),
+        )
+        mock_manual.side_effect = [
+            [{"symbol": "INFY", "qty": "5", "avg_price": "1000", "exchange": "NSE", "source": "zerodha", "account": "Z1", "row_number": 2}],
+            [],
+        ]
+        result = _build_stocks_data({"google_id": "g1"})
+        # Stale cached data must NOT appear; only sheet fallback
+        symbols = [r["tradingsymbol"] for r in result]
+        self.assertNotIn("STALE", symbols)
+        self.assertIn("INFY", symbols)
+        self.assertEqual(result[0]["source"], "zerodha")
+
+    @patch("app.routes._enrich_manual_entries_with_ltp")
+    @patch("app.routes._fetch_manual_entries")
+    @patch("app.routes.portfolio_cache")
+    def test_build_stocks_data_broker_online_skips_sheet_zerodha(self, mock_pc, mock_manual, mock_enrich):
+        """When account is connected, zerodha-sourced sheet rows for that
+        account are skipped and live broker data is used instead."""
+        from app.cache import UserPortfolioData
+        from app.routes import _build_stocks_data
+
+        mock_pc.get.return_value = UserPortfolioData(
+            stocks=[{"tradingsymbol": "INFY", "quantity": 10}],
+            connected_accounts={"Z1"},
+        )
+        mock_manual.side_effect = [
+            [{"symbol": "INFY", "qty": "5", "avg_price": "1000", "exchange": "NSE", "source": "zerodha", "account": "Z1", "row_number": 2}],
+            [],
+        ]
+        result = _build_stocks_data({"google_id": "g1"})
+        # Only live broker entry, sheet zerodha row skipped
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["quantity"], 10)
+
+    @patch("app.routes._fetch_manual_entries", return_value=[])
+    @patch("app.routes.portfolio_cache")
+    def test_build_mf_data_broker_offline_uses_sheet_fallback(self, mock_pc, mock_manual):
+        """When no accounts connected, cached broker MF data is ignored."""
+        from app.cache import UserPortfolioData
+        from app.routes import _build_mf_data
+
+        mock_pc.get.return_value = UserPortfolioData(
+            mf_holdings=[{"fund": "STALE", "tradingsymbol": "STALE"}],
+            connected_accounts=set(),
+        )
+        result = _build_mf_data({"google_id": "g1"})
+        self.assertEqual(len(result), 0)
+
+    @patch("app.routes._fetch_manual_entries", return_value=[])
+    @patch("app.routes.portfolio_cache")
+    def test_build_sips_data_broker_offline_uses_sheet_fallback(self, mock_pc, mock_manual):
+        """When no accounts connected, cached broker SIP data is ignored."""
+        from app.cache import UserPortfolioData
+        from app.routes import _build_sips_data
+
+        mock_pc.get.return_value = UserPortfolioData(
+            sips=[{"tradingsymbol": "STALE", "status": "ACTIVE"}],
+            connected_accounts=set(),
+        )
+        result = _build_sips_data({"google_id": "g1"})
+        self.assertEqual(len(result), 0)
 
     @patch("app.routes.manual_ltp_cache")
     def test_enrich_manual_entries_with_ltp(self, mock_cache):
@@ -1548,13 +1628,15 @@ class TestRemoveZerodha(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
+    @patch("app.broker_sync.delete_account_from_sheets")
     @patch("app.routes.session_manager")
     @patch("app.firebase_store.remove_zerodha_account")
-    def test_remove(self, mock_remove, mock_sm):
+    def test_remove(self, mock_remove, mock_sm, mock_delete_sheets):
         mock_sm.get_pin.return_value = "123456"
         _inject_user(self.client)
         resp = self.client.delete("/api/settings/zerodha/TestAcc", headers=_APP_HEADERS)
         self.assertEqual(resp.status_code, 200)
+        mock_delete_sheets.assert_called_once_with("test123", "TestAcc")
 
     @patch("app.firebase_store.remove_zerodha_account", side_effect=ValueError("not found"))
     @patch("app.routes.session_manager")

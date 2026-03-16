@@ -22,6 +22,12 @@ class UserPortfolioData:
     stocks: list[dict[str, Any]] = field(default_factory=list)
     mf_holdings: list[dict[str, Any]] = field(default_factory=list)
     sips: list[dict[str, Any]] = field(default_factory=list)
+    connected_accounts: set[str] = field(default_factory=set)
+
+    @property
+    def broker_connected(self) -> bool:
+        """True when at least one broker account has a live session."""
+        return bool(self.connected_accounts)
 
 
 @dataclass
@@ -56,7 +62,7 @@ class PortfolioCacheManager:
             self._user_data[google_id] = data
             return data
 
-    def set(self, google_id: str, *, stocks: list = None, mf_holdings: list = None, sips: list = None) -> None:
+    def set(self, google_id: str, *, stocks: list = None, mf_holdings: list = None, sips: list = None, connected_accounts: set = None) -> None:
         """Update one or more portfolio data fields for *google_id*."""
         with self._lock:
             data = self._user_data.get(google_id)
@@ -72,6 +78,8 @@ class PortfolioCacheManager:
             data.mf_holdings = mf_holdings
         if sips is not None:
             data.sips = sips
+        if connected_accounts is not None:
+            data.connected_accounts = connected_accounts
 
     def _get_event(self, google_id: str) -> threading.Event:
         """Return the fetch-in-progress event for *google_id*, creating one if absent."""

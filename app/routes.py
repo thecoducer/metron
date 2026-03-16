@@ -517,17 +517,38 @@ def status():
 
 
 def _build_stocks_data(user):
-    """Build merged broker + manual stocks list with live LTPs."""
-    user_data = portfolio_cache.get(user["google_id"])
-    broker_stocks = list(user_data.stocks)
+    """Build merged broker + manual stocks list with live LTPs.
 
-    manual_entries = []
+    When broker is connected (live data in cache), broker entries take
+    precedence and zerodha-sourced sheet rows are skipped.  When broker
+    is offline, persisted zerodha entries from sheets serve as fallback.
+    """
+    google_id = user["google_id"]
+    user_data = portfolio_cache.get(google_id)
+    connected_accounts = user_data.connected_accounts
+
+    # Only use cached broker data when at least one broker session is live;
+    # when all offline, synced sheet data is the sole source of truth.
+    broker_stocks = list(user_data.stocks) if connected_accounts else []
+
+    # Tag live broker entries
+    for s in broker_stocks:
+        s.setdefault("source", "zerodha")
+
+    sheet_entries = []
     for sheet_type in ("stocks", "etfs"):
-        manual = _fetch_manual_entries(user, sheet_type)
-        for m in manual:
+        entries = _fetch_manual_entries(user, sheet_type)
+        for m in entries:
+            source = m.get("source", "manual")
+
+            # Skip persisted zerodha rows only for accounts with a live session;
+            # rows for disconnected accounts serve as fallback.
+            if source == "zerodha" and m.get("account", "") in connected_accounts:
+                continue
+
             qty = float(m.get("qty") or 0)
             avg = float(m.get("avg_price") or 0)
-            manual_entries.append(
+            sheet_entries.append(
                 {
                     "tradingsymbol": (m.get("symbol") or "").upper(),
                     "quantity": qty,
@@ -535,20 +556,21 @@ def _build_stocks_data(user):
                     "last_price": avg,  # fallback; enriched below
                     "invested": qty * avg,
                     "exchange": m.get("exchange", "NSE"),
-                    "account": m.get("account", "Manual"),
+                    "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
                     "day_change": 0,
                     "day_change_percentage": 0,
                     "isin": "",
-                    "source": "manual",
+                    "source": source,
                     "row_number": m.get("row_number"),
                     "manual_type": sheet_type,
                 }
             )
 
-    if manual_entries:
-        _enrich_manual_entries_with_ltp(manual_entries)
+    # Enrich sheet entries (both manual and zerodha-fallback) with LTP
+    if sheet_entries:
+        _enrich_manual_entries_with_ltp(sheet_entries)
 
-    broker_stocks.extend(manual_entries)
+    broker_stocks.extend(sheet_entries)
     return sorted(broker_stocks, key=lambda x: x.get("tradingsymbol", ""))
 
 
@@ -627,25 +649,38 @@ def _enrich_manual_entries_with_ltp(entries: list) -> None:
 
 
 def _build_mf_data(user):
-    """Build merged broker + manual mutual fund holdings list."""
-    user_data = portfolio_cache.get(user["google_id"])
-    broker_mf = list(user_data.mf_holdings)
+    """Build merged broker + manual mutual fund holdings list.
 
-    manual = _fetch_manual_entries(user, "mutual_funds")
-    for m in manual:
+    Zerodha-sourced sheet entries are used as fallback when broker is offline.
+    """
+    google_id = user["google_id"]
+    user_data = portfolio_cache.get(google_id)
+    connected_accounts = user_data.connected_accounts
+    broker_mf = list(user_data.mf_holdings) if connected_accounts else []
+
+    for mf in broker_mf:
+        mf.setdefault("source", "zerodha")
+
+    entries = _fetch_manual_entries(user, "mutual_funds")
+    for m in entries:
+        source = m.get("source", "manual")
+        if source == "zerodha" and m.get("account", "") in connected_accounts:
+            continue
+
         qty = float(m.get("qty") or 0)
         avg = float(m.get("avg_nav") or 0)
         broker_mf.append(
             {
                 "fund": (m.get("fund") or "").upper(),
+                "fund_name": m.get("fund_name") or "",
                 "tradingsymbol": (m.get("fund") or "").upper(),
                 "quantity": qty,
                 "average_price": avg,
                 "last_price": avg,
                 "invested": qty * avg,
-                "account": m.get("account", "Manual"),
+                "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
                 "last_price_date": None,
-                "source": "manual",
+                "source": source,
                 "row_number": m.get("row_number"),
             }
         )
@@ -653,15 +688,28 @@ def _build_mf_data(user):
 
 
 def _build_sips_data(user):
-    """Build merged broker + manual SIPs list."""
-    user_data = portfolio_cache.get(user["google_id"])
-    broker_sips = list(user_data.sips)
+    """Build merged broker + manual SIPs list.
 
-    manual = _fetch_manual_entries(user, "sips")
-    for m in manual:
+    Zerodha-sourced sheet entries are used as fallback when broker is offline.
+    """
+    google_id = user["google_id"]
+    user_data = portfolio_cache.get(google_id)
+    connected_accounts = user_data.connected_accounts
+    broker_sips = list(user_data.sips) if connected_accounts else []
+
+    for sip in broker_sips:
+        sip.setdefault("source", "zerodha")
+
+    entries = _fetch_manual_entries(user, "sips")
+    for m in entries:
+        source = m.get("source", "manual")
+        if source == "zerodha" and m.get("account", "") in connected_accounts:
+            continue
+
         broker_sips.append(
             {
                 "fund": (m.get("fund") or "").upper(),
+                "fund_name": m.get("fund_name") or "",
                 "tradingsymbol": (m.get("fund") or "").upper(),
                 "instalment_amount": float(m.get("amount") or 0),
                 "frequency": m.get("frequency", "MONTHLY"),
@@ -669,8 +717,8 @@ def _build_sips_data(user):
                 "completed_instalments": int(m.get("completed") or 0),
                 "status": (m.get("status") or "ACTIVE").upper(),
                 "next_instalment": m.get("next_due", ""),
-                "account": m.get("account", "Manual"),
-                "source": "manual",
+                "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
+                "source": source,
                 "row_number": m.get("row_number"),
             }
         )
@@ -1076,7 +1124,16 @@ def remove_zerodha(account_name):
     # Clean up session token and cached portfolio data for the removed account
     session_manager.invalidate(google_id, account_name)
     portfolio_cache.clear(google_id)
-    logger.info("remove_zerodha: user=%s account=%s (session+cache cleared)", google_id[:8], account_name)
+
+    # Remove this account's synced rows from Google Sheets
+    from .broker_sync import delete_account_from_sheets
+
+    try:
+        delete_account_from_sheets(google_id, account_name)
+    except Exception:
+        logger.warning("remove_zerodha: sheet cleanup failed for %s", account_name)
+
+    logger.info("remove_zerodha: user=%s account=%s (session+cache+sheet cleared)", google_id[:8], account_name)
 
     return jsonify({"status": "removed"})
 
@@ -1156,9 +1213,12 @@ def _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type):
             for idx, row in enumerate(raw[1:], start=2):
                 if is_blank_row(row):
                     break
-                entry = {"row_number": idx, "source": "manual"}
+                entry = {"row_number": idx}
                 for fi, fname in enumerate(fields):
                     entry[fname] = row[fi] if fi < len(row) else ""
+                # Default empty/missing source to "manual"
+                if not entry.get("source"):
+                    entry["source"] = "manual"
                 rows.append(entry)
         user_sheets_cache.put_manual(google_id, sheet_type, rows)
 
@@ -1252,6 +1312,17 @@ def sheets_add(sheet_type):
         manual_ltp_cache.put(symbol, quote)
 
     values = [data.get(f, "") for f in cfg["fields"]]
+    # Default source to "manual" for user-added entries
+    if "source" in cfg["fields"]:
+        si = cfg["fields"].index("source")
+        if not values[si]:
+            values[si] = "manual"
+    # Auto-copy fund to fund_name for manual entries
+    if "fund_name" in cfg["fields"] and "fund" in cfg["fields"]:
+        ni = cfg["fields"].index("fund_name")
+        fi = cfg["fields"].index("fund")
+        if not values[ni] and values[fi]:
+            values[ni] = values[fi]
 
     try:
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
@@ -1302,6 +1373,17 @@ def sheets_update(sheet_type, row_number):
         manual_ltp_cache.put(symbol, quote)
 
     values = [data.get(f, "") for f in cfg["fields"]]
+    # Default source to "manual" for user-edited entries
+    if "source" in cfg["fields"]:
+        si = cfg["fields"].index("source")
+        if not values[si]:
+            values[si] = "manual"
+    # Auto-copy fund to fund_name for manual entries
+    if "fund_name" in cfg["fields"] and "fund" in cfg["fields"]:
+        ni = cfg["fields"].index("fund_name")
+        fi = cfg["fields"].index("fund")
+        if not values[ni] and values[fi]:
+            values[ni] = values[fi]
 
     try:
         client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)
