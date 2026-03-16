@@ -2,7 +2,7 @@
 
 import threading
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 from app.broker_sync import (
     _do_sync,

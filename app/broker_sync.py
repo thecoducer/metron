@@ -235,7 +235,6 @@ def _do_sync(
 
     # Get user's Google credentials and spreadsheet ID
     from .fetchers import get_google_creds_dict
-
     from .firebase_store import get_user
 
     user = get_user(google_id)
