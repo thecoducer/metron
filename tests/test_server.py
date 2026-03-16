@@ -48,9 +48,11 @@ class TestHandleShutdown(unittest.TestCase):
 class TestMain(unittest.TestCase):
     @patch("app.server._shutdown_event")
     @patch("app.server.start_server")
+    @patch("app.server.setup_memory_tracking_middleware")
+    @patch("app.server.start_memory_monitoring")
     @patch("app.server.configure")
     @patch("app.server.signal.signal")
-    def test_main_runs(self, mock_sig, mock_configure, mock_start, mock_event):
+    def test_main_runs(self, mock_sig, mock_configure, mock_mem_mon, mock_middleware, mock_start, mock_event):
         from app.server import main
 
         mock_event.wait.return_value = None  # simulate immediate shutdown
