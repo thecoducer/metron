@@ -669,11 +669,12 @@ def _build_mf_data(user):
 
         qty = float(m.get("qty") or 0)
         avg = float(m.get("avg_nav") or 0)
+        fund_id = (m.get("fund") or "").upper()
+        fund_name = m.get("fund_name") or fund_id
         broker_mf.append(
             {
-                "fund": (m.get("fund") or "").upper(),
-                "fund_name": m.get("fund_name") or "",
-                "tradingsymbol": (m.get("fund") or "").upper(),
+                "fund": fund_name,
+                "tradingsymbol": fund_id,
                 "quantity": qty,
                 "average_price": avg,
                 "last_price": avg,
@@ -706,11 +707,12 @@ def _build_sips_data(user):
         if source == "zerodha" and m.get("account", "") in connected_accounts:
             continue
 
+        fund_id = (m.get("fund") or "").upper()
+        fund_display = m.get("fund_name") or fund_id
         broker_sips.append(
             {
-                "fund": (m.get("fund") or "").upper(),
-                "fund_name": m.get("fund_name") or "",
-                "tradingsymbol": (m.get("fund") or "").upper(),
+                "fund": fund_display,
+                "tradingsymbol": fund_id,
                 "instalment_amount": float(m.get("amount") or 0),
                 "frequency": m.get("frequency", "MONTHLY"),
                 "instalments": int(m.get("installments") or -1),
