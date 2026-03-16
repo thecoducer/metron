@@ -10,9 +10,11 @@ Usage in development:
 """
 
 import functools
-from typing import Callable, Any
-from app.memory_monitor import get_monitor
+from collections.abc import Callable
+from typing import Any
+
 from app.logging_config import logger
+from app.memory_monitor import get_monitor
 
 
 def profile_memory(func: Callable) -> Callable:

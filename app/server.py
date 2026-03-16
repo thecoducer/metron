@@ -22,9 +22,9 @@ from flask import Flask
 from .config import app_config
 from .constants import SERVER_STARTUP_DELAY
 from .logging_config import configure, logger
-from .routes import app_ui
 from .memory_monitor import start_memory_monitoring
 from .memory_tracking_middleware import setup_memory_tracking_middleware
+from .routes import app_ui
 
 # --------------------------
 # SERVER MANAGEMENT

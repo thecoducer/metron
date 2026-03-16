@@ -1,7 +1,9 @@
 """Flask middleware for per-request memory tracking."""
 
-from flask import request, g
 import time
+
+from flask import g, request
+
 from app.logging_config import logger
 from app.memory_monitor import get_monitor
 

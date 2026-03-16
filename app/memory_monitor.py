@@ -8,12 +8,12 @@ This module provides:
 """
 
 import os
-import psutil
 import threading
 import time
-from typing import Optional
-from app.logging_config import logger
 
+import psutil
+
+from app.logging_config import logger
 
 # Global memory threshold (bytes)
 MEMORY_LIMIT = 512 * 1024 * 1024  # 512 MB for Render hobby tier
@@ -27,7 +27,7 @@ class MemoryMonitor:
     def __init__(self):
         self.process = psutil.Process(os.getpid())
         self.monitoring = False
-        self.monitor_thread: Optional[threading.Thread] = None
+        self.monitor_thread: threading.Thread | None = None
         self._last_warning_time = 0
         self._warning_cooldown = 30  # seconds
 

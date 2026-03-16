@@ -14,9 +14,9 @@ import signal
 import sys
 
 from app.logging_config import configure, logger
-from app.routes import app_ui
 from app.memory_monitor import start_memory_monitoring
 from app.memory_tracking_middleware import setup_memory_tracking_middleware
+from app.routes import app_ui
 
 # Configure logging before anything else
 configure()
