@@ -23,6 +23,8 @@ from .config import app_config
 from .constants import SERVER_STARTUP_DELAY
 from .logging_config import configure, logger
 from .routes import app_ui
+from .memory_monitor import start_memory_monitoring
+from .memory_tracking_middleware import setup_memory_tracking_middleware
 
 # --------------------------
 # SERVER MANAGEMENT
@@ -75,6 +77,12 @@ def main() -> None:
         # Register signal handlers
         signal.signal(signal.SIGTERM, _handle_shutdown)
         signal.signal(signal.SIGINT, _handle_shutdown)
+
+        # Start memory monitoring
+        start_memory_monitoring(interval=60)
+
+        # Register per-request memory tracking middleware
+        setup_memory_tracking_middleware(app_ui)
 
         dashboard_url = f"http://{app_config.ui_host}:{app_config.ui_port}/"
         logger.info("Starting UI server at %s", dashboard_url)
