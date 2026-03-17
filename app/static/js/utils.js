@@ -363,9 +363,10 @@ function isSilverInstrument(symbol) {
  * @returns {boolean} - True if symbol is an ETF (e.g., NIFTYBEES, GOLDBEES, LIQUIDETF)
  */
 function isETFInstrument(symbol, isin, manualType) {
+  const normalizedIsin = (isin || '').trim().toUpperCase();
   if (manualType === 'etfs') return true;
+  if (normalizedIsin) return normalizedIsin.startsWith('INF');
   if (ETF_SUFFIXES.some(suffix => symbol.endsWith(suffix))) return true;
-  if (isin && isin.startsWith('INF')) return true;
   return false;
 }
 

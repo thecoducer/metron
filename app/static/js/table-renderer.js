@@ -770,7 +770,7 @@ class TableRenderer {
     const crudType = (isManual && holding.manual_type === 'etfs') ? 'etfs' : 'stocks';
     const actions = isManual ? buildCrudActions(crudType, holding.row_number, {
       symbol: holding.tradingsymbol, qty: holding.quantity,
-      avg_price: holding.average_price, exchange: holding.exchange, account: holding.account
+      avg_price: holding.average_price, exchange: holding.exchange, account: holding.account, isin: holding.isin || ''
     }) : '';
     const manualAttrs = isManual ? ` data-manual-row="${holding.row_number}" data-schema="${crudType}"` : '';
     
@@ -795,7 +795,7 @@ class TableRenderer {
     const crudType = (isManual && holding.manual_type === 'etfs') ? 'etfs' : 'stocks';
     const actions = isManual ? buildCrudActions(crudType, holding.row_number, {
       symbol: holding.tradingsymbol, qty: holding.quantity,
-      avg_price: holding.average_price, exchange: holding.exchange, account: holding.account
+      avg_price: holding.average_price, exchange: holding.exchange, account: holding.account, isin: holding.isin || ''
     }) : '';
     const manualAttrs = isManual ? ` data-manual-row="${holding.row_number}" data-schema="${crudType}"` : '';
     

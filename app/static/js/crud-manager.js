@@ -41,6 +41,7 @@ const SCHEMAS = {
     sheetType: 'stocks',
     fields: [
       { key: 'symbol',    label: 'Symbol',    type: 'text',   required: true, placeholder: 'e.g. RELIANCE', uppercase: true },
+      { key: 'isin',      label: 'ISIN',      type: 'text',   required: false, placeholder: 'e.g. INE002A01018', uppercase: true },
       { key: 'qty',       label: 'Quantity',   type: 'number', required: true, step: '1',   min: '1' },
       { key: 'avg_price', label: 'Avg Price',  type: 'number', required: true, step: '0.01', min: '0' },
       { key: 'exchange',  label: 'Exchange',   type: 'select', required: true, options: ['NSE', 'BSE'] },
@@ -52,6 +53,7 @@ const SCHEMAS = {
     sheetType: 'etfs',
     fields: [
       { key: 'symbol',    label: 'Symbol',    type: 'text',   required: true, placeholder: 'e.g. NIFTYBEES', uppercase: true },
+      { key: 'isin',      label: 'ISIN',      type: 'text',   required: false, placeholder: 'e.g. INF204KB15I9', uppercase: true },
       { key: 'qty',       label: 'Quantity',   type: 'number', required: true, step: '1',   min: '1' },
       { key: 'avg_price', label: 'Avg Price',  type: 'number', required: true, step: '0.01', min: '0' },
       { key: 'exchange',  label: 'Exchange',   type: 'select', required: true, options: ['NSE', 'BSE'] },

@@ -50,6 +50,7 @@ STOCKS_HEADERS = [
     "Avg Price",
     "Exchange",
     "Account",
+    "ISIN",
     "Source",
 ]
 
@@ -60,6 +61,7 @@ ETFS_HEADERS = [
     "Avg Price",
     "Exchange",
     "Account",
+    "ISIN",
     "Source",
 ]
 
@@ -92,12 +94,12 @@ SHEET_CONFIGS = {
     "stocks": {
         "sheet_name": STOCKS_SHEET_NAME,
         "headers": STOCKS_HEADERS,
-        "fields": ["symbol", "qty", "avg_price", "exchange", "account", "source"],
+        "fields": ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"],
     },
     "etfs": {
         "sheet_name": ETFS_SHEET_NAME,
         "headers": ETFS_HEADERS,
-        "fields": ["symbol", "qty", "avg_price", "exchange", "account", "source"],
+        "fields": ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"],
     },
     "mutual_funds": {
         "sheet_name": MF_SHEET_NAME,

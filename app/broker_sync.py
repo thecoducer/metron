@@ -53,6 +53,7 @@ def _stock_to_row(stock: dict) -> list[str]:
         _format_num(stock.get("average_price", 0)),
         stock.get("exchange", "NSE"),
         stock.get("account", ""),
+        str(stock.get("isin", "")).strip().upper(),
         "zerodha",
     ]
 

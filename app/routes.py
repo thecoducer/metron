@@ -559,7 +559,7 @@ def _build_stocks_data(user):
                     "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
                     "day_change": 0,
                     "day_change_percentage": 0,
-                    "isin": "",
+                    "isin": (m.get("isin") or "").strip().upper(),
                     "source": source,
                     "row_number": m.get("row_number"),
                     "manual_type": sheet_type,

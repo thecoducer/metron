@@ -41,9 +41,10 @@ class TestTransformFunctions(unittest.TestCase):
             "average_price": 1500.0,
             "exchange": "NSE",
             "account": "MyAccount",
+            "isin": "INE040A01034",
         }
         row = _stock_to_row(stock)
-        self.assertEqual(row, ["HDFCBANK", "6", "1500", "NSE", "MyAccount", "zerodha"])
+        self.assertEqual(row, ["HDFCBANK", "6", "1500", "NSE", "MyAccount", "INE040A01034", "zerodha"])
 
     def test_mf_to_row(self):
         mf = {
@@ -84,12 +85,12 @@ class TestTransformFunctions(unittest.TestCase):
 
 class TestKeyFromRow(unittest.TestCase):
     def test_basic_key(self):
-        row = ["INFY", "10", "1500", "NSE", "AcctA", "zerodha"]
+        row = ["INFY", "10", "1500", "NSE", "AcctA", "INE009A01021", "zerodha"]
         key = _key_from_row(row, 0, 4)
         self.assertEqual(key, ("INFY", "AcctA"))
 
     def test_strips_whitespace(self):
-        row = ["  infy  ", "10", "1500", "NSE", "  AcctA  ", "zerodha"]
+        row = ["  infy  ", "10", "1500", "NSE", "  AcctA  ", "INE009A01021", "zerodha"]
         key = _key_from_row(row, 0, 4)
         self.assertEqual(key, ("INFY", "AcctA"))
 
@@ -100,23 +101,23 @@ class TestKeyFromRow(unittest.TestCase):
 
 class TestValuesChanged(unittest.TestCase):
     def test_no_change(self):
-        current = ["INFY", "10", "1500", "NSE", "Acc", "zerodha"]
-        new = ["INFY", "10", "1500", "NSE", "Acc", "zerodha"]
+        current = ["INFY", "10", "1500", "NSE", "Acc", "INE009A01021", "zerodha"]
+        new = ["INFY", "10", "1500", "NSE", "Acc", "INE009A01021", "zerodha"]
         self.assertFalse(_values_changed(current, new))
 
     def test_quantity_changed(self):
-        current = ["INFY", "10", "1500", "NSE", "Acc", "zerodha"]
-        new = ["INFY", "5", "1500", "NSE", "Acc", "zerodha"]
+        current = ["INFY", "10", "1500", "NSE", "Acc", "INE009A01021", "zerodha"]
+        new = ["INFY", "5", "1500", "NSE", "Acc", "INE009A01021", "zerodha"]
         self.assertTrue(_values_changed(current, new))
 
     def test_price_changed(self):
-        current = ["INFY", "10", "1500", "NSE", "Acc", "zerodha"]
-        new = ["INFY", "10", "1600", "NSE", "Acc", "zerodha"]
+        current = ["INFY", "10", "1500", "NSE", "Acc", "INE009A01021", "zerodha"]
+        new = ["INFY", "10", "1600", "NSE", "Acc", "INE009A01021", "zerodha"]
         self.assertTrue(_values_changed(current, new))
 
     def test_shorter_current_row(self):
         current = ["INFY", "10"]
-        new = ["INFY", "10", "1500", "NSE", "Acc", "zerodha"]
+        new = ["INFY", "10", "1500", "NSE", "Acc", "INE009A01021", "zerodha"]
         self.assertTrue(_values_changed(current, new))
 
 
@@ -130,8 +131,8 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_fresh_sheet_appends_all(self):
         """Empty sheet → all broker items are appended."""
-        client = self._make_client([["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"]])
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        client = self._make_client([["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"]])
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         broker = [
             {"tradingsymbol": "INFY", "quantity": 10, "average_price": 1500, "exchange": "NSE", "account": "A"},
         ]
@@ -147,11 +148,11 @@ class TestSyncOneSheet(unittest.TestCase):
         """Quantity change → existing zerodha row is updated."""
         client = self._make_client(
             [
-                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-                ["HDFCBANK", "6", "1400", "NSE", "MyAcc", "zerodha"],
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"],
+                ["HDFCBANK", "6", "1400", "NSE", "MyAcc", "INE040A01034", "zerodha"],
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         broker = [
             {"tradingsymbol": "HDFCBANK", "quantity": 2, "average_price": 1500, "exchange": "NSE", "account": "MyAcc"},
         ]
@@ -173,11 +174,11 @@ class TestSyncOneSheet(unittest.TestCase):
         """Stock no longer in broker → zerodha row is deleted."""
         client = self._make_client(
             [
-                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-                ["RELIANCE", "10", "2500", "NSE", "MyAcc", "zerodha"],
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"],
+                ["RELIANCE", "10", "2500", "NSE", "MyAcc", "INE002A01018", "zerodha"],
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         broker = []
 
         result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row, synced_accounts={"MyAcc"})
@@ -191,15 +192,22 @@ class TestSyncOneSheet(unittest.TestCase):
         """Rows for accounts NOT in synced_accounts are not deleted."""
         client = self._make_client(
             [
-                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-                ["INFY", "10", "1500", "NSE", "Mine", "zerodha"],
-                ["TCS", "5", "3500", "NSE", "Mom", "zerodha"],
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"],
+                ["INFY", "10", "1500", "NSE", "Mine", "INE009A01021", "zerodha"],
+                ["TCS", "5", "3500", "NSE", "Mom", "INE467B01029", "zerodha"],
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         # Only "Mine" was fetched (Mom's token expired)
         broker = [
-            {"tradingsymbol": "INFY", "quantity": 10, "average_price": 1500, "exchange": "NSE", "account": "Mine"},
+            {
+                "tradingsymbol": "INFY",
+                "quantity": 10,
+                "average_price": 1500,
+                "exchange": "NSE",
+                "account": "Mine",
+                "isin": "INE009A01021",
+            },
         ]
 
         result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row, synced_accounts={"Mine"})
@@ -214,11 +222,11 @@ class TestSyncOneSheet(unittest.TestCase):
         """When synced_accounts is None, all missing zerodha rows are deleted."""
         client = self._make_client(
             [
-                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-                ["RELIANCE", "10", "2500", "NSE", "Acc", "zerodha"],
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"],
+                ["RELIANCE", "10", "2500", "NSE", "Acc", "INE002A01018", "zerodha"],
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
 
         result = _sync_one_sheet(client, "sid", "Stocks", fields, [], _stock_to_row, synced_accounts=None)
 
@@ -229,12 +237,12 @@ class TestSyncOneSheet(unittest.TestCase):
         """Manual entries are never modified by sync."""
         client = self._make_client(
             [
-                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-                ["TCS", "5", "3500", "NSE", "Manual", "manual"],
-                ["INFY", "10", "1500", "NSE", "MyAcc", "zerodha"],
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"],
+                ["TCS", "5", "3500", "NSE", "Manual", "INE467B01029", "manual"],
+                ["INFY", "10", "1500", "NSE", "MyAcc", "INE009A01021", "zerodha"],
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         # Broker has INFY with updated qty but not TCS
         broker = [
             {"tradingsymbol": "INFY", "quantity": 15, "average_price": 1500, "exchange": "NSE", "account": "MyAcc"},
@@ -251,13 +259,13 @@ class TestSyncOneSheet(unittest.TestCase):
         """Complex scenario: some holdings updated, some sold, some new."""
         client = self._make_client(
             [
-                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-                ["HDFCBANK", "6", "1400", "NSE", "Acc", "zerodha"],  # will update
-                ["RELIANCE", "10", "2500", "NSE", "Acc", "zerodha"],  # will delete
-                ["TCS", "5", "3500", "NSE", "Manual", "manual"],  # untouched
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"],
+                ["HDFCBANK", "6", "1400", "NSE", "Acc", "INE040A01034", "zerodha"],  # will update
+                ["RELIANCE", "10", "2500", "NSE", "Acc", "INE002A01018", "zerodha"],  # will delete
+                ["TCS", "5", "3500", "NSE", "Manual", "INE467B01029", "manual"],  # untouched
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         broker = [
             {"tradingsymbol": "HDFCBANK", "quantity": 2, "average_price": 1500, "exchange": "NSE", "account": "Acc"},
             {"tradingsymbol": "WIPRO", "quantity": 20, "average_price": 400, "exchange": "NSE", "account": "Acc"},
@@ -273,13 +281,20 @@ class TestSyncOneSheet(unittest.TestCase):
         """Same data → no API calls."""
         client = self._make_client(
             [
-                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
-                ["INFY", "10", "1500", "NSE", "Acc", "zerodha"],
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"],
+                ["INFY", "10", "1500", "NSE", "Acc", "INE009A01021", "zerodha"],
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         broker = [
-            {"tradingsymbol": "INFY", "quantity": 10, "average_price": 1500.0, "exchange": "NSE", "account": "Acc"},
+            {
+                "tradingsymbol": "INFY",
+                "quantity": 10,
+                "average_price": 1500.0,
+                "exchange": "NSE",
+                "account": "Acc",
+                "isin": "INE009A01021",
+            },
         ]
 
         result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row)
@@ -295,7 +310,7 @@ class TestSyncOneSheet(unittest.TestCase):
         """Sheet read failure → skip that sheet, don't crash."""
         client = Mock()
         client.fetch_sheet_data_until_blank.side_effect = Exception("API error")
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
 
         result = _sync_one_sheet(client, "sid", "Stocks", fields, [], _stock_to_row)
 
@@ -303,8 +318,8 @@ class TestSyncOneSheet(unittest.TestCase):
 
     def test_empty_symbol_skipped(self):
         """Broker entries with empty symbol are skipped."""
-        client = self._make_client([["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"]])
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        client = self._make_client([["Symbol", "Qty", "Avg Price", "Exchange", "Account", "ISIN", "Source"]])
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         broker = [
             {"tradingsymbol": "", "quantity": 10, "average_price": 1500, "exchange": "NSE", "account": "A"},
         ]
@@ -321,7 +336,7 @@ class TestSyncOneSheet(unittest.TestCase):
                 ["INFY", "10", "1500", "NSE", "Acc"],  # No source column
             ]
         )
-        fields = ["symbol", "qty", "avg_price", "exchange", "account", "source"]
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
         broker = [
             {"tradingsymbol": "INFY", "quantity": 10, "average_price": 1500, "exchange": "NSE", "account": "Acc"},
         ]
