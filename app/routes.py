@@ -8,14 +8,43 @@ import time
 from typing import Any
 
 from flask import Flask, Response, jsonify, make_response, redirect, render_template, request, session
+import psutil
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .api.google_sheets_client import is_blank_row
 from .api.physical_gold import enrich_holdings_with_prices
 from .cache import manual_ltp_cache, market_cache, portfolio_cache, user_sheets_cache
+from .constants import HTTP_ACCEPTED, HTTP_CONFLICT, PORTFOLIO_TABLE_ROW_LIMIT
 from .fetchers import get_google_creds_dict, prefetch_all_user_sheets
+from .firebase_store import reset_zerodha_data, verify_user_pin
+from .logging_config import logger
+from .middleware import app_only, login_required, pin_required, protected_api
+from .services import (
+    _build_status_response,
+    ensure_user_loaded,
+    get_authenticated_accounts,
+    get_user_accounts,
+    session_manager,
+)
+from .utils import pin_rate_limiter
 
 _REAUTH_MESSAGE = "Google session expired. Please sign in again."
+_BYTES_PER_MB = 1024 * 1024
+
+
+def _collect_process_metrics() -> dict[str, Any]:
+    """Collect process-level health metrics for the /healthz endpoint."""
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+
+    return {
+        "memory": {
+            "rss_mb": round(mem_info.rss / _BYTES_PER_MB, 1),
+        },
+        "cpu_percent": round(process.cpu_percent(interval=None), 1),
+        "uptime_seconds": round(time.time() - process.create_time()),
+        "threads": process.num_threads(),
+    }
 
 
 def _sheets_error_response(exc: Exception, action: str, sheet_type: str) -> tuple:
@@ -31,20 +60,6 @@ def _is_google_auth_error(exc: Exception) -> bool:
     """Return True if *exc* is a Google credential refresh / auth failure."""
     name = type(exc).__name__
     return "RefreshError" in name or "InvalidGrantError" in name
-
-
-from .constants import HTTP_ACCEPTED, HTTP_CONFLICT, PORTFOLIO_TABLE_ROW_LIMIT
-from .firebase_store import reset_zerodha_data, verify_user_pin
-from .logging_config import logger
-from .middleware import app_only, login_required, pin_required, protected_api
-from .services import (
-    _build_status_response,
-    ensure_user_loaded,
-    get_authenticated_accounts,
-    get_user_accounts,
-    session_manager,
-)
-from .utils import pin_rate_limiter
 
 
 def _create_flask_app(name: str, enable_static: bool = False) -> Flask:
@@ -92,8 +107,9 @@ app_ui.config.update(
 
 @app_ui.route("/healthz", methods=["GET"])
 def healthz():
-    """Lightweight health check for Render / load balancer probes."""
-    return jsonify({"status": "ok"}), 200
+    """Health check with basic performance metrics for Render / load balancer probes."""
+    metrics = _collect_process_metrics()
+    return jsonify({"status": "ok", **metrics}), 200
 
 
 # ---------------------------------------------------------------------------

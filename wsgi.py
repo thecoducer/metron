@@ -18,8 +18,6 @@ import signal
 import sys
 
 from app.logging_config import configure, logger
-from app.memory_monitor import start_memory_monitoring
-from app.memory_tracking_middleware import setup_memory_tracking_middleware
 from app.routes import app_ui
 
 # Configure logging before anything else
@@ -27,12 +25,6 @@ configure()
 
 # Expose the Flask app for Gunicorn / Vercel
 app = app_ui
-
-# Start memory monitoring (emits snapshots every 60 seconds to stderr)
-start_memory_monitoring(interval=60)
-
-# Register per-request memory tracking middleware
-setup_memory_tracking_middleware(app)
 
 
 def _graceful_shutdown(signum, frame):
