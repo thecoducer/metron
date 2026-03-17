@@ -8,6 +8,10 @@ recycled after ``max_requests`` to reclaim any leaked memory.
 import logging
 import os
 
+from app.bootstrap import load_runtime_env
+
+load_runtime_env()
+
 
 class HealthCheckFilter(logging.Filter):
     """Filter out health check and static asset requests from access logs."""

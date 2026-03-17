@@ -2,7 +2,6 @@
 
 Usage in development:
     from app.debug import profile_memory
-    
     @profile_memory
     def my_expensive_function():
         # Your code here

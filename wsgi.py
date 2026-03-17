@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 
 load_dotenv()  # must run before any app imports that read os.environ
 
+from app.bootstrap import load_runtime_env
+
+load_runtime_env()
+
 import signal
 import sys
 

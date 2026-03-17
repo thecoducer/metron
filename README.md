@@ -212,6 +212,36 @@ This script automatically:
 
 Open **http://127.0.0.1:8000/** in your browser.
 
+### Run The Exact Gunicorn Server Locally
+
+If you want to run the same WSGI entrypoint used in production, start Gunicorn from the project root:
+
+```bash
+python3 -m venv run_server
+source run_server/bin/activate
+pip install -r requirements.txt
+PORT=8000 gunicorn -c gunicorn.conf.py wsgi:app
+```
+
+This uses [wsgi.py](/Users/mayukh/Documents/portfolio_tracker/wsgi.py) and [gunicorn.conf.py](/Users/mayukh/Documents/portfolio_tracker/gunicorn.conf.py). When `FLASK_SECRET_KEY` or `ZERODHA_TOKEN_SECRET` are not already set in the environment, startup will now automatically load them from:
+
+- `config/flask-secret-key.txt`
+- `config/zerodha-token-secret.txt`
+
+Firebase and Google OAuth credentials are already resolved from their local files by the application code:
+
+- `config/firebase-credentials.json`
+- `config/google-oauth-credentials.json`
+
+If you want local URLs to match OAuth callbacks exactly, set the local port before starting Gunicorn:
+
+```bash
+export METRON_UI_HOST=127.0.0.1
+export METRON_UI_PORT=8000
+export PORT=8000
+gunicorn -c gunicorn.conf.py wsgi:app
+```
+
 ### Summary of Config Files
 
 | File | Location | Purpose |

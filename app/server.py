@@ -17,6 +17,10 @@ from dotenv import load_dotenv
 
 load_dotenv()  # read .env into os.environ before any config is accessed
 
+from .bootstrap import load_runtime_env
+
+load_runtime_env()
+
 from flask import Flask
 
 from .config import app_config
