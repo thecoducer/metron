@@ -141,6 +141,27 @@ def _sync_spreadsheet_id():
             session.modified = True
 
 
+@app_ui.after_request
+def _set_cache_headers(response):
+    """Set Cache-Control headers for Cloudflare edge + browser caching.
+
+    - Static assets (/static/*): public, 1-hour browser + edge cache.
+    - Everything else (HTML pages, API): private, no-store so Cloudflare
+      never caches auth-dependent or dynamic responses.
+    """
+    if request.path.startswith("/static/"):
+        # Only add if not already set by a specific route handler
+        if "Cache-Control" not in response.headers:
+            response.headers["Cache-Control"] = "public, max-age=3600"
+    else:
+        # Never let Cloudflare cache HTML or API responses.
+        # Skip if a route already set an explicit Cache-Control (e.g. no-cache on SW).
+        if "Cache-Control" not in response.headers:
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+            response.headers["Pragma"] = "no-cache"
+    return response
+
+
 def _json_response(data: list[dict[str, Any]], sort_key: str | None = None) -> Response:
     """JSON response with no-cache headers and optional sorting."""
     sorted_data = sorted(data, key=lambda x: x.get(sort_key, "")) if sort_key else data
