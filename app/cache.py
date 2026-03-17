@@ -1,4 +1,4 @@
-"""Per-user portfolio cache, global market cache, and Google Sheets TTL cache."""
+"""Per-user portfolio cache, global market cache, and Google Sheets LRU cache."""
 
 import threading
 import time
@@ -6,14 +6,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from cachetools import LRUCache, TTLCache
+from cachetools import LRUCache
 
 from .constants import (
     MAX_LTP_CACHE_SYMBOLS,
     MAX_PORTFOLIO_CACHE_USERS,
     MAX_SHEETS_CACHE_USERS,
     NEGATIVE_LTP_CACHE_TTL,
-    SHEETS_CACHE_TTL,
 )
 
 
@@ -136,23 +135,22 @@ class _UserCacheEntry:
 
 
 class UserSheetsCache:
-    """TTL-based per-user cache for Google Sheets data with LRU eviction.
+    """Per-user cache for Google Sheets data with LRU eviction.
 
-    Uses ``cachetools.TTLCache`` for automatic TTL expiry and LRU eviction.
+    Uses ``cachetools.LRUCache`` for size-bounded eviction only.
     """
 
-    def __init__(self, ttl: int = SHEETS_CACHE_TTL, maxsize: int = MAX_SHEETS_CACHE_USERS):
-        self._ttl = ttl
-        self._store: TTLCache[str, _UserCacheEntry] = TTLCache(maxsize=maxsize, ttl=ttl)
+    def __init__(self, maxsize: int = MAX_SHEETS_CACHE_USERS):
+        self._store: LRUCache[str, _UserCacheEntry] = LRUCache(maxsize=maxsize)
         self._lock = threading.Lock()
 
     def get(self, google_id: str) -> _UserCacheEntry | None:
-        """Return the cache entry for *google_id* if present and not expired."""
+        """Return the cache entry for *google_id* if present."""
         with self._lock:
             return self._store.get(google_id)
 
     def put(self, google_id: str, *, physical_gold: list = None, fixed_deposits: list = None) -> None:
-        """Cache one or more sheet data types for *google_id*, refreshing the TTL."""
+        """Cache one or more sheet data types for *google_id*."""
         with self._lock:
             entry = self._store.get(google_id)
             if entry is None:
@@ -161,7 +159,7 @@ class UserSheetsCache:
                 entry.physical_gold = physical_gold
             if fixed_deposits is not None:
                 entry.fixed_deposits = fixed_deposits
-            # Re-insert to reset TTL
+            # Re-insert to refresh LRU position
             self._store[google_id] = entry
 
     # ── Sheet-entry helpers (stocks / etfs / mutual_funds / sips) ──
@@ -195,7 +193,7 @@ class UserSheetsCache:
                 entry = _UserCacheEntry()
             setattr(entry, attr, rows)
             entry._fetched_sheets.add(sheet_type)
-            # Re-insert to reset TTL
+            # Re-insert to refresh LRU position
             self._store[google_id] = entry
 
     # ── Batch helpers ──
@@ -233,7 +231,7 @@ class UserSheetsCache:
                     if attr:
                         setattr(entry, attr, rows)
                         entry._fetched_sheets.add(sheet_type)
-            # Re-insert to reset TTL
+            # Re-insert to refresh LRU position
             self._store[google_id] = entry
 
     def invalidate(self, google_id: str) -> None:

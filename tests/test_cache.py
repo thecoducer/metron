@@ -142,10 +142,10 @@ class TestPortfolioCacheManager(unittest.TestCase):
 
 
 class TestUserSheetsCache(unittest.TestCase):
-    """Test UserSheetsCache TTL-based caching."""
+    """Test UserSheetsCache LRU-based caching."""
 
     def test_put_and_get(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put("user1", physical_gold=[{"g": 1}], fixed_deposits=[{"fd": 1}])
         entry = usc.get("user1")
         self.assertIsNotNone(entry)
@@ -153,27 +153,34 @@ class TestUserSheetsCache(unittest.TestCase):
         self.assertEqual(entry.fixed_deposits, [{"fd": 1}])
 
     def test_get_returns_none_for_missing_user(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         self.assertIsNone(usc.get("nonexistent"))
 
-    def test_get_returns_none_after_ttl(self):
-        usc = UserSheetsCache(ttl=0)  # immediate expiry
+    def test_get_does_not_expire_by_time(self):
+        usc = UserSheetsCache()
         usc.put("user1", physical_gold=[{"g": 1}])
         time.sleep(0.01)
-        self.assertIsNone(usc.get("user1"))
+        self.assertIsNotNone(usc.get("user1"))
 
     def test_invalidate(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put("user1", physical_gold=[{"g": 1}])
         usc.invalidate("user1")
         self.assertIsNone(usc.get("user1"))
 
     def test_user_isolation(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put("user1", physical_gold=[{"u1": True}])
         usc.put("user2", physical_gold=[{"u2": True}])
         self.assertEqual(usc.get("user1").physical_gold, [{"u1": True}])
         self.assertEqual(usc.get("user2").physical_gold, [{"u2": True}])
+
+    def test_lru_eviction_by_maxsize(self):
+        usc = UserSheetsCache(maxsize=1)
+        usc.put("user1", physical_gold=[{"u1": True}])
+        usc.put("user2", physical_gold=[{"u2": True}])
+        self.assertIsNone(usc.get("user1"))
+        self.assertIsNotNone(usc.get("user2"))
 
     def test_global_instance(self):
         self.assertIsInstance(user_sheets_cache, UserSheetsCache)
@@ -181,16 +188,16 @@ class TestUserSheetsCache(unittest.TestCase):
     # ── is_fully_cached ──
 
     def test_is_fully_cached_false_when_empty(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         self.assertFalse(usc.is_fully_cached("user1"))
 
     def test_is_fully_cached_false_with_only_gold_fd(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put("user1", physical_gold=[{"g": 1}], fixed_deposits=[{"fd": 1}])
         self.assertFalse(usc.is_fully_cached("user1"))
 
     def test_is_fully_cached_true_after_put_all(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put_all(
             "user1",
             physical_gold=[{"g": 1}],
@@ -199,21 +206,21 @@ class TestUserSheetsCache(unittest.TestCase):
         )
         self.assertTrue(usc.is_fully_cached("user1"))
 
-    def test_is_fully_cached_false_after_ttl(self):
-        usc = UserSheetsCache(ttl=0)
+    def test_is_fully_cached_false_after_eviction(self):
+        usc = UserSheetsCache(maxsize=1)
         usc.put_all(
             "user1",
             physical_gold=[],
             fixed_deposits=[],
             manual={"stocks": [], "etfs": [], "mutual_funds": [], "sips": []},
         )
-        time.sleep(0.01)
+        usc.put("user2", physical_gold=[])
         self.assertFalse(usc.is_fully_cached("user1"))
 
     # ── put_all ──
 
     def test_put_all_populates_gold_fd_and_manual(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put_all(
             "user1",
             physical_gold=[{"g": 1}],
@@ -303,40 +310,40 @@ class TestUserSheetsCacheManual(unittest.TestCase):
     """Test UserSheetsCache get_manual/put_manual methods."""
 
     def test_get_manual_unknown_type(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         self.assertIsNone(usc.get_manual("user1", "unknown_type"))
 
     def test_put_manual_unknown_type_noop(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put_manual("user1", "unknown_type", [{"a": 1}])
         self.assertIsNone(usc.get_manual("user1", "unknown_type"))
 
     def test_get_manual_not_fetched_returns_none(self):
         """get_manual returns None when the sheet type hasn't been fetched yet."""
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put("user1", physical_gold=[{"g": 1}])  # only gold
         self.assertIsNone(usc.get_manual("user1", "stocks"))
 
     def test_put_manual_and_get_manual(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put_manual("user1", "stocks", [{"symbol": "INFY"}])
         result = usc.get_manual("user1", "stocks")
         self.assertEqual(result, [{"symbol": "INFY"}])
 
-    def test_get_manual_expired_returns_none(self):
-        usc = UserSheetsCache(ttl=0)
+    def test_get_manual_evicted_returns_none(self):
+        usc = UserSheetsCache(maxsize=1)
         usc.put_manual("user1", "etfs", [{"x": 1}])
-        time.sleep(0.01)
+        usc.put_manual("user2", "etfs", [{"y": 1}])
         self.assertIsNone(usc.get_manual("user1", "etfs"))
 
     def test_put_all_with_unknown_manual_type_ignored(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put_all("user1", manual={"unknown": [{"a": 1}], "stocks": [{"s": 1}]})
         self.assertIsNone(usc.get_manual("user1", "unknown"))
         self.assertEqual(usc.get_manual("user1", "stocks"), [{"s": 1}])
 
     def test_put_all_without_optional_args(self):
-        usc = UserSheetsCache(ttl=60)
+        usc = UserSheetsCache()
         usc.put_all("user1")
         entry = usc.get("user1")
         self.assertIsNotNone(entry)

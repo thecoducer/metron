@@ -7,8 +7,8 @@ import threading
 import time
 from typing import Any
 
-from flask import Flask, Response, jsonify, make_response, redirect, render_template, request, session
 import psutil
+from flask import Flask, Response, jsonify, make_response, redirect, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .api.google_sheets_client import is_blank_row
