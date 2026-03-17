@@ -347,6 +347,34 @@ class TestSyncOneSheet(unittest.TestCase):
         self.assertEqual(result["added"], 1)
         self.assertEqual(result["deleted"], 0)
 
+    def test_old_sheet_without_isin_column_updates_instead_of_adding(self):
+        """ISIN migration: legacy rows with old Source column should be updated, not duplicated."""
+        client = self._make_client(
+            [
+                ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+                ["INFY", "10", "1500", "NSE", "Acc", "zerodha"],
+            ]
+        )
+        fields = ["symbol", "qty", "avg_price", "exchange", "account", "isin", "source"]
+        broker = [
+            {
+                "tradingsymbol": "INFY",
+                "quantity": 10,
+                "average_price": 1500,
+                "exchange": "NSE",
+                "account": "Acc",
+                "isin": "INE009A01021",
+            },
+        ]
+
+        result = _sync_one_sheet(client, "sid", "Stocks", fields, broker, _stock_to_row)
+
+        self.assertEqual(result["updated"], 1)
+        self.assertEqual(result["added"], 0)
+        self.assertEqual(result["deleted"], 0)
+        client.batch_update_rows.assert_called_once()
+        client.batch_append_rows.assert_not_called()
+
 
 class TestSyncBrokerToSheets(unittest.TestCase):
     """Test the top-level sync orchestration."""
@@ -485,6 +513,55 @@ class TestDeleteAccountFromSheets(unittest.TestCase):
     def test_no_user_skips(self, mock_user):
         # Should not raise
         delete_account_from_sheets("user1", "Mom")
+
+    @patch("app.api.google_auth.persist_refreshed_credentials")
+    @patch("app.api.google_sheets_client.GoogleSheetsClient")
+    @patch("app.api.google_auth.credentials_from_dict")
+    @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
+    @patch("app.firebase_store.get_user", return_value={"spreadsheet_id": "sid"})
+    def test_delete_account_handles_legacy_source_column(
+        self, mock_user, mock_creds_dict, mock_creds, mock_gsc, mock_persist
+    ):
+        """ISIN migration: legacy stocks rows with Source at old index are still deletable."""
+        mock_client = Mock()
+        mock_gsc.return_value = mock_client
+
+        from app.api.user_sheets import SHEET_CONFIGS
+
+        # Legacy stocks sheet: no ISIN column yet.
+        legacy_stocks = [
+            ["Symbol", "Qty", "Avg Price", "Exchange", "Account", "Source"],
+            ["INFY", "10", "1500", "NSE", "Mine", "zerodha"],
+            ["TCS", "5", "3500", "NSE", "Mom", "zerodha"],
+        ]
+
+        def make_sheet_data(sheet_type):
+            cfg = SHEET_CONFIGS[sheet_type]
+            headers = cfg["headers"]
+            fields = cfg["fields"]
+            account_idx = fields.index("account")
+            source_idx = fields.index("source")
+
+            def make_row(acct):
+                row = [""] * len(headers)
+                row[0] = "SYM"
+                row[account_idx] = acct
+                row[source_idx] = "zerodha"
+                return row
+
+            return [headers, make_row("Mine"), make_row("Mom")]
+
+        sheet_data_map = {
+            SHEET_CONFIGS["stocks"]["sheet_name"]: legacy_stocks,
+            SHEET_CONFIGS["mutual_funds"]["sheet_name"]: make_sheet_data("mutual_funds"),
+            SHEET_CONFIGS["sips"]["sheet_name"]: make_sheet_data("sips"),
+        }
+        mock_client.fetch_sheet_data_until_blank.side_effect = lambda sid, name: sheet_data_map.get(name, [])
+
+        delete_account_from_sheets("user1", "Mom")
+
+        # Stocks + MF + SIP should each delete Mom row.
+        self.assertEqual(mock_client.batch_delete_rows.call_count, 3)
 
     @patch("app.fetchers.get_google_creds_dict", return_value=None)
     @patch("app.firebase_store.get_user", return_value={"spreadsheet_id": "sid"})

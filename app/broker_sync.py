@@ -108,6 +108,19 @@ def _values_changed(current: list, new: list) -> bool:
     return False
 
 
+def _source_from_row(row: list, source_idx: int, legacy_source_idx: int | None = None) -> str:
+    """Read source value from current or legacy column position.
+
+    During ISIN migration, legacy Stocks/ETFs rows may still have
+    ``source`` in the pre-ISIN column index.
+    """
+    if len(row) > source_idx:
+        return (row[source_idx] or "").strip().lower()
+    if legacy_source_idx is not None and len(row) > legacy_source_idx:
+        return (row[legacy_source_idx] or "").strip().lower()
+    return ""
+
+
 # ── Core sync logic ──────────────────────────────────────────
 
 
@@ -129,6 +142,8 @@ def _sync_one_sheet(
     Returns a dict with counts: ``{updated, added, deleted}``.
     """
     source_idx = fields.index("source")
+    isin_idx = fields.index("isin") if "isin" in fields else None
+    legacy_source_idx = source_idx - 1 if isin_idx is not None else None
     # Determine key column indices (symbol/fund is always first, account varies)
     symbol_idx = 0
     account_idx = fields.index("account")
@@ -144,7 +159,7 @@ def _sync_one_sheet(
     existing: dict[tuple, tuple[int, list]] = {}
     if raw and len(raw) >= 2:
         for idx, row in enumerate(raw[1:], start=2):
-            source = row[source_idx].strip().lower() if len(row) > source_idx else ""
+            source = _source_from_row(row, source_idx, legacy_source_idx)
             if source == "zerodha":
                 key = _key_from_row(row, symbol_idx, account_idx)
                 existing[key] = (idx, row)
@@ -340,6 +355,8 @@ def delete_account_from_sheets(google_id: str, account_name: str) -> None:
         fields = cfg["fields"]
         sheet_name = cfg["sheet_name"]
         source_idx = fields.index("source")
+        isin_idx = fields.index("isin") if "isin" in fields else None
+        legacy_source_idx = source_idx - 1 if isin_idx is not None else None
         account_idx = fields.index("account")
 
         try:
@@ -351,7 +368,7 @@ def delete_account_from_sheets(google_id: str, account_name: str) -> None:
         rows_to_delete: list[int] = []
         if raw and len(raw) >= 2:
             for idx, row in enumerate(raw[1:], start=2):
-                source = row[source_idx].strip().lower() if len(row) > source_idx else ""
+                source = _source_from_row(row, source_idx, legacy_source_idx)
                 acct = row[account_idx].strip() if len(row) > account_idx else ""
                 if source == "zerodha" and acct == account_name:
                     rows_to_delete.append(idx)
