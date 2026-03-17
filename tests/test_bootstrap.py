@@ -18,10 +18,13 @@ class TestLoadRuntimeEnv(unittest.TestCase):
             flask_secret.write_text("flask-from-file\n", encoding="utf-8")
             zerodha_secret.write_text("zerodha-from-file\n", encoding="utf-8")
 
-            with patch("app.bootstrap._SECRET_FILE_MAP", {
-                "FLASK_SECRET_KEY": flask_secret,
-                "ZERODHA_TOKEN_SECRET": zerodha_secret,
-            }):
+            with patch(
+                "app.bootstrap._SECRET_FILE_MAP",
+                {
+                    "FLASK_SECRET_KEY": flask_secret,
+                    "ZERODHA_TOKEN_SECRET": zerodha_secret,
+                },
+            ):
                 with patch.dict(os.environ, {}, clear=True):
                     load_runtime_env()
                     self.assertEqual(os.environ["FLASK_SECRET_KEY"], "flask-from-file")
@@ -35,10 +38,13 @@ class TestLoadRuntimeEnv(unittest.TestCase):
             flask_secret.write_text("flask-from-file\n", encoding="utf-8")
             zerodha_secret.write_text("zerodha-from-file\n", encoding="utf-8")
 
-            with patch("app.bootstrap._SECRET_FILE_MAP", {
-                "FLASK_SECRET_KEY": flask_secret,
-                "ZERODHA_TOKEN_SECRET": zerodha_secret,
-            }):
+            with patch(
+                "app.bootstrap._SECRET_FILE_MAP",
+                {
+                    "FLASK_SECRET_KEY": flask_secret,
+                    "ZERODHA_TOKEN_SECRET": zerodha_secret,
+                },
+            ):
                 with patch.dict(
                     os.environ,
                     {

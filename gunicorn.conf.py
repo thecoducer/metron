@@ -21,6 +21,7 @@ class HealthCheckFilter(logging.Filter):
         # Exclude /healthz and /static requests from logs
         return "/healthz" not in message and "/static" not in message
 
+
 # --- Server socket ---
 bind = "0.0.0.0:" + os.environ.get("PORT", "8080")
 
