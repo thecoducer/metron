@@ -149,7 +149,35 @@ check_pip_available() {
     
     if ! $PYTHON_CMD -m pip --version &> /dev/null; then
         print_warning "pip not found, attempting to install..."
-        if ! $PYTHON_CMD -m ensurepip --default-pip &> /dev/null; then
+        
+        local os=$(detect_os)
+        if [[ "$os" == "linux" ]]; then
+            local distro=$(get_distro)
+            case "$distro" in
+                ubuntu|debian)
+                    echo "Installing python3-pip via apt..."
+                    sudo apt-get update
+                    sudo apt-get install -y python3-pip
+                    ;;
+                fedora|rhel|centos)
+                    echo "Installing python3-pip via yum..."
+                    sudo yum install -y python3-pip
+                    ;;
+                arch)
+                    echo "Installing python-pip via pacman..."
+                    sudo pacman -S --noconfirm python-pip
+                    ;;
+                *)
+                    echo "Trying ensurepip..."
+                    $PYTHON_CMD -m ensurepip --default-pip
+                    ;;
+            esac
+        else
+            echo "Trying ensurepip..."
+            $PYTHON_CMD -m ensurepip --default-pip
+        fi
+        
+        if ! $PYTHON_CMD -m pip --version &> /dev/null; then
             print_error "Failed to install pip"
             return 1
         fi
