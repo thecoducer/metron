@@ -117,7 +117,11 @@ install_cloudflared() {
         
         case "$DISTRO" in
             ubuntu|debian)
-                print_info "Installing via apt..."
+                print_info "Installing via apt (adding Cloudflare repository)..."
+                sudo apt-get update
+                # Add Cloudflare GPG key and repository
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-main.gpg
+                echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/linux/$(. /etc/os-release; echo $ID) $(. /etc/os-release; echo $VERSION_CODENAME) main" | sudo tee /etc/apt/sources.list.d/cloudflare-main.list
                 sudo apt-get update
                 sudo apt-get install -y cloudflared || {
                     print_error "Failed to install cloudflared"
@@ -125,7 +129,15 @@ install_cloudflared() {
                 }
                 ;;
             fedora|rhel|centos)
-                print_info "Installing via yum..."
+                print_info "Installing via yum (adding Cloudflare repository)..."
+                # Add Cloudflare repository for RHEL/Fedora
+                sudo tee /etc/yum.repos.d/cloudflare.repo > /dev/null <<EOF
+[cloudflare-main]
+name=Cloudflare Main Repository
+baseurl=https://pkg.cloudflare.com/linux/centos
+enabled=1
+gpgcheck=0
+EOF
                 sudo yum install -y cloudflared || {
                     print_error "Failed to install cloudflared"
                     return 1
@@ -133,15 +145,37 @@ install_cloudflared() {
                 ;;
             arch)
                 print_info "Installing via pacman..."
-                sudo pacman -S --noconfirm cloudflare-warp || {
-                    print_error "Failed to install cloudflared"
-                    return 1
-                }
+                # Try cloudflared first, fall back to cloudflare-warp from AUR
+                if sudo pacman -S --noconfirm cloudflared 2>/dev/null; then
+                    :
+                else
+                    print_warning "cloudflared from main repo not found, trying AUR..."
+                    if command -v yay &> /dev/null; then
+                        yay -S --noconfirm cloudflare-warp || {
+                            print_error "Failed to install cloudflared from AUR"
+                            return 1
+                        }
+                    elif command -v paru &> /dev/null; then
+                        paru -S --noconfirm cloudflare-warp || {
+                            print_error "Failed to install cloudflared from AUR"
+                            return 1
+                        }
+                    else
+                        print_error "Cannot install from AUR (yay/paru not found)"
+                        echo "Install an AUR helper: https://wiki.archlinux.org/title/AUR_helpers"
+                        return 1
+                    fi
+                fi
                 ;;
             alpine)
                 print_info "Installing via apk..."
-                sudo apk add --no-cache cloudflare-warp || {
-                    print_error "Failed to install cloudflared"
+                # Alpine has limited packages; cloudflared may need manual installation
+                # Try the edge repository first
+                sudo apk add --no-cache cloudflared --repository https://dl-cdn.alpinelinux.org/alpine/edge/community 2>/dev/null || {
+                    print_error "Failed to install cloudflared from Alpine repos"
+                    echo "Alpine's official repos may not have cloudflared."
+                    echo "Consider using the binary directly or Docker:"
+                    echo "  https://developers.cloudflare.com/cloudflare-one/connections/connect-applications/install-and-setup/installation/"
                     return 1
                 }
                 ;;
