@@ -121,7 +121,7 @@ body.dark-theme .theme-toggle svg{color:#999}
 .hero{
   max-width:680px;
   text-align:center;
-  padding:80px 0 48px;
+  padding:150px 0 130px;
   animation:fadeIn .7s ease-out both;
 }
 @keyframes fadeIn{
@@ -145,7 +145,7 @@ body.dark-theme .theme-toggle svg{color:#999}
 .hero-badge-dot{
   width:6px;height:6px;
   border-radius:50%;
-  background:#22c55e;
+  background:#0044ff;
 }
 
 .hero h1{
@@ -1201,7 +1201,7 @@ body.dark-theme .made-with-love .heart{color:#e25555}
 
 /* ---- Responsive ---- */
 @media(max-width:768px){
-  .hero{padding:60px 0 40px}
+  .hero{padding:80px 0 50px}
   .features{grid-template-columns:1fr;gap:10px}
   .asset-strip{gap:6px}
   .asset-chip{padding:6px 12px 6px 8px;font-size:12px}
@@ -1232,7 +1232,7 @@ body.dark-theme .made-with-love .heart{color:#e25555}
 
 @media(max-width:480px){
   .page{padding:0 16px}
-  .hero{padding:48px 0 32px}
+  .hero{padding:80px 0 50px}
   .nav-name{display:none}
   .asset-strip{gap:4px}
   .asset-chip{padding:5px 10px 5px 6px;font-size:11px;gap:6px}
