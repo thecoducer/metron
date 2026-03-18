@@ -70,6 +70,29 @@ cleanup() {
 trap cleanup EXIT
 
 # ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
+        echo "linux"
+    else
+        echo "unknown"
+    fi
+}
+
+get_distro() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo "$ID"
+    else
+        echo "unknown"
+    fi
+}
+
+# ============================================================================
 # VALIDATION FUNCTIONS
 # ============================================================================
 
@@ -86,26 +109,48 @@ check_required_file() {
 check_system_dependencies() {
     print_step "Checking system dependencies"
     
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS: check for Xcode Command Line Tools
-        if ! xcode-select -p &> /dev/null; then
-            print_warning "Xcode Command Line Tools not installed"
-            echo "Installing Xcode Command Line Tools..."
-            xcode-select --install
-            echo "Please complete the installation and run this script again"
-            return 1
-        fi
-        print_success "Xcode Command Line Tools installed"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Linux: check for build tools
-        if ! command -v gcc &> /dev/null; then
-            print_warning "Build tools required. Install with:"
-            echo "  Ubuntu/Debian: sudo apt-get install build-essential python3-dev"
-            echo "  Fedora/CentOS: sudo yum install gcc python3-devel"
-            return 1
-        fi
-        print_success "Build tools available"
-    fi
+    local os=$(detect_os)
+    
+    case "$os" in
+        macos)
+            # macOS: check for Xcode Command Line Tools
+            if xcode-select -p &> /dev/null; then
+                print_success "Xcode Command Line Tools available"
+            else
+                print_warning "Xcode Command Line Tools not installed (optional)"
+                echo "Some packages may need compilation. Install with:"
+                echo "  xcode-select --install"
+                echo "Proceeding without it - will fail if packages need compilation"
+            fi
+            ;;
+        linux)
+            # Linux: check for build tools (optional, many wheels are pre-built)
+            if command -v gcc &> /dev/null; then
+                print_success "Build tools available"
+            else
+                print_warning "Build tools not found (optional)"
+                local distro=$(get_distro)
+                case "$distro" in
+                    ubuntu|debian)
+                        echo "If pip fails, install with: sudo apt-get install build-essential python3-dev"
+                        ;;
+                    fedora|rhel|centos)
+                        echo "If pip fails, install with: sudo yum install gcc python3-devel"
+                        ;;
+                    arch)
+                        echo "If pip fails, install with: sudo pacman -S base-devel"
+                        ;;
+                    *)
+                        echo "If pip fails, install your distro's build tools"
+                        ;;
+                esac
+                echo "Proceeding without build tools - will fail if packages need compilation"
+            fi
+            ;;
+        *)
+            print_warning "Unknown OS detected"
+            ;;
+    esac
 }
 
 check_python_installed() {
@@ -204,19 +249,35 @@ install_dependencies() {
     if check_required_file "requirements.txt" "requirements.txt"; then
         # Upgrade pip first
         print_info "Upgrading pip, setuptools, wheel..."
-        if ! pip install --upgrade pip setuptools wheel; then
+        if ! pip install --upgrade pip setuptools wheel 2>&1; then
             print_error "Failed to upgrade pip"
             return 1
         fi
         
         # Install requirements without cache to avoid corruption issues
         print_info "Installing requirements from requirements.txt..."
-        if ! pip install --no-cache-dir -r "$SCRIPT_DIR/requirements.txt"; then
+        if ! pip install --no-cache-dir -r "$SCRIPT_DIR/requirements.txt" 2>&1; then
             print_error "Failed to install requirements"
             echo ""
+            local os=$(detect_os)
             echo "Troubleshooting tips:"
-            echo "  1. Check your Python version: $PYTHON_CMD --version"
-            echo "  2. Install build tools: xcode-select --install (macOS)"
+            echo "  1. Check Python version: $PYTHON_CMD --version"
+            if [[ "$os" == "macos" ]]; then
+                echo "  2. Install Xcode tools: xcode-select --install"
+            elif [[ "$os" == "linux" ]]; then
+                local distro=$(get_distro)
+                case "$distro" in
+                    ubuntu|debian)
+                        echo "  2. Install build tools: sudo apt-get install build-essential python3-dev"
+                        ;;
+                    fedora|rhel|centos)
+                        echo "  2. Install build tools: sudo yum install gcc python3-devel"
+                        ;;
+                    arch)
+                        echo "  2. Install build tools: sudo pacman -S base-devel"
+                        ;;
+                esac
+            fi
             echo "  3. Try manually: pip install --no-cache-dir -r requirements.txt"
             return 1
         fi
@@ -273,8 +334,16 @@ start_production_server() {
 main() {
     print_header " Metron Production Gunicorn Server Startup "
     
+    local os=$(detect_os)
+    if [[ "$os" == "unknown" ]]; then
+        print_warning "Running on unknown OS (trying to proceed anyway)"
+    else
+        print_info "Detected OS: $os"
+    fi
+    echo ""
+    
     # Run all checks
-    check_system_dependencies || exit 1
+    check_system_dependencies
     check_python_installed || exit 1
     check_pip_available || exit 1
     load_env_file

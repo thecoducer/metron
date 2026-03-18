@@ -83,26 +83,52 @@ install_cloudflared() {
             print_error "Failed to install cloudflared"
             return 1
         }
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Linux
-        if command -v apt-get &> /dev/null; then
-            print_info "Installing via apt..."
-            sudo apt-get update
-            sudo apt-get install -y cloudflared || {
-                print_error "Failed to install cloudflared"
-                return 1
-            }
-        elif command -v yum &> /dev/null; then
-            print_info "Installing via yum..."
-            sudo yum install -y cloudflared || {
-                print_error "Failed to install cloudflared"
-                return 1
-            }
+    elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
+        # Linux - detect distro and use appropriate package manager
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            DISTRO="$ID"
         else
-            print_error "Unsupported package manager. Please install cloudflared manually:"
-            echo "Visit: https://developers.cloudflare.com/cloudflare-one/connections/connect-applications/install-and-setup/installation/"
-            return 1
+            DISTRO="unknown"
         fi
+        
+        case "$DISTRO" in
+            ubuntu|debian)
+                print_info "Installing via apt..."
+                sudo apt-get update
+                sudo apt-get install -y cloudflared || {
+                    print_error "Failed to install cloudflared"
+                    return 1
+                }
+                ;;
+            fedora|rhel|centos)
+                print_info "Installing via yum..."
+                sudo yum install -y cloudflared || {
+                    print_error "Failed to install cloudflared"
+                    return 1
+                }
+                ;;
+            arch)
+                print_info "Installing via pacman..."
+                sudo pacman -S --noconfirm cloudflare-warp || {
+                    print_error "Failed to install cloudflared"
+                    return 1
+                }
+                ;;
+            alpine)
+                print_info "Installing via apk..."
+                sudo apk add --no-cache cloudflare-warp || {
+                    print_error "Failed to install cloudflared"
+                    return 1
+                }
+                ;;
+            *)
+                print_error "Unsupported distro: $DISTRO"
+                echo "Please install cloudflared manually:"
+                echo "Visit: https://developers.cloudflare.com/cloudflare-one/connections/connect-applications/install-and-setup/installation/"
+                return 1
+                ;;
+        esac
     else
         print_error "Unsupported OS. Please install cloudflared manually:"
         echo "Visit: https://developers.cloudflare.com/cloudflare-one/connections/connect-applications/install-and-setup/installation/"

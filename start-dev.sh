@@ -68,6 +68,29 @@ cleanup() {
 trap cleanup EXIT
 
 # ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
+        echo "linux"
+    else
+        echo "unknown"
+    fi
+}
+
+get_distro() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo "$ID"
+    else
+        echo "unknown"
+    fi
+}
+
+# ============================================================================
 # VALIDATION FUNCTIONS
 # ============================================================================
 
@@ -87,15 +110,33 @@ check_python_installed() {
     if ! command -v $PYTHON_CMD &> /dev/null; then
         print_error "Python 3 is not installed"
         echo ""
+        local os=$(detect_os)
         echo "Please install Python 3:"
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            echo "  macOS: brew install python3"
-        elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            echo "  Ubuntu/Debian: sudo apt-get install python3 python3-pip python3-venv"
-            echo "  Fedora/CentOS: sudo yum install python3 python3-pip"
-        else
-            echo "  Visit: https://www.python.org/downloads/"
-        fi
+        case "$os" in
+            macos)
+                echo "  macOS: brew install python3"
+                ;;
+            linux)
+                local distro=$(get_distro)
+                case "$distro" in
+                    ubuntu|debian)
+                        echo "  Ubuntu/Debian: sudo apt-get install python3 python3-pip python3-venv"
+                        ;;
+                    fedora|rhel|centos)
+                        echo "  Fedora/CentOS: sudo yum install python3 python3-pip"
+                        ;;
+                    arch)
+                        echo "  Arch: sudo pacman -S python python-pip"
+                        ;;
+                    *)
+                        echo "  Install python3, pip, and python3-venv using your package manager"
+                        ;;
+                esac
+                ;;
+            *)
+                echo "  Visit: https://www.python.org/downloads/"
+                ;;
+        esac
         return 1
     fi
     
@@ -176,14 +217,37 @@ install_dependencies() {
     
     if check_required_file "requirements.txt" "requirements.txt"; then
         # Upgrade pip first
-        pip install --upgrade pip setuptools wheel --quiet 2>/dev/null || {
+        print_info "Upgrading pip, setuptools, wheel..."
+        if ! pip install --upgrade pip setuptools wheel 2>&1; then
             print_error "Failed to upgrade pip"
             return 1
-        }
+        fi
         
-        # Install requirements with progress output
-        if ! pip install -r "$SCRIPT_DIR/requirements.txt" --quiet; then
+        # Install requirements without cache to avoid corruption issues
+        print_info "Installing requirements from requirements.txt..."
+        if ! pip install --no-cache-dir -r "$SCRIPT_DIR/requirements.txt" 2>&1; then
             print_error "Failed to install requirements"
+            echo ""
+            local os=$(detect_os)
+            echo "Troubleshooting tips:"
+            echo "  1. Check Python version: $PYTHON_CMD --version"
+            if [[ "$os" == "macos" ]]; then
+                echo "  2. Install Xcode tools: xcode-select --install"
+            elif [[ "$os" == "linux" ]]; then
+                local distro=$(get_distro)
+                case "$distro" in
+                    ubuntu|debian)
+                        echo "  2. Install build tools: sudo apt-get install build-essential python3-dev"
+                        ;;
+                    fedora|rhel|centos)
+                        echo "  2. Install build tools: sudo yum install gcc python3-devel"
+                        ;;
+                    arch)
+                        echo "  2. Install build tools: sudo pacman -S base-devel"
+                        ;;
+                esac
+            fi
+            echo "  3. Try manually: pip install --no-cache-dir -r requirements.txt"
             return 1
         fi
         print_success "Dependencies installed"
@@ -213,6 +277,14 @@ start_server() {
 
 main() {
     print_header " Metron Development Server Startup "
+    
+    local os=$(detect_os)
+    if [[ "$os" == "unknown" ]]; then
+        print_warning "Running on unknown OS (trying to proceed anyway)"
+    else
+        print_info "Detected OS: $os"
+    fi
+    echo ""
     
     # Run all checks
     check_python_installed || exit 1
