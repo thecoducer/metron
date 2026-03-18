@@ -73,7 +73,7 @@ Metron syncs your holdings, mutual funds, and SIPs directly from your broker. Cu
    - **App name:** any name (e.g. "Metron")
    - **Redirect URL:** set based on how you'll use the app:
      - **Local:** `http://127.0.0.1:8000/api/callback`
-     - **Web app:** `https://metron.onrender.com/api/callback`
+     - **Web app:** `https://metron.thecoducer.com/api/callback`
    - **Postback URL:** Leave it as blank.
 4. After creation, note your **API Key** and **API Secret** from the app details page.
 
