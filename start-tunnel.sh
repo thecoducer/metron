@@ -117,31 +117,62 @@ install_cloudflared() {
         
         case "$DISTRO" in
             ubuntu|debian)
-                print_info "Installing via apt (adding Cloudflare repository)..."
-                sudo apt-get update
-                # Add Cloudflare GPG key and repository
-                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-main.gpg
-                echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/linux/$(. /etc/os-release; echo $ID) $(. /etc/os-release; echo $VERSION_CODENAME) main" | sudo tee /etc/apt/sources.list.d/cloudflare-main.list
-                sudo apt-get update
-                sudo apt-get install -y cloudflared || {
-                    print_error "Failed to install cloudflared"
+                print_info "Installing cloudflared (downloading binary)..."
+                # Determine architecture
+                local arch=$(uname -m)
+                case "$arch" in
+                    x86_64)
+                        arch="amd64"
+                        ;;
+                    aarch64)
+                        arch="arm64"
+                        ;;
+                esac
+                
+                # Download and install the binary
+                local temp_dir=$(mktemp -d)
+                cd "$temp_dir"
+                curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o cloudflared
+                
+                if [ $? -ne 0 ]; then
+                    print_error "Failed to download cloudflared binary"
+                    rm -rf "$temp_dir"
                     return 1
-                }
+                fi
+                
+                chmod +x cloudflared
+                sudo mv cloudflared /usr/local/bin/
+                cd - > /dev/null
+                rm -rf "$temp_dir" || true
                 ;;
             fedora|rhel|centos)
-                print_info "Installing via yum (adding Cloudflare repository)..."
-                # Add Cloudflare repository for RHEL/Fedora
-                sudo tee /etc/yum.repos.d/cloudflare.repo > /dev/null <<EOF
-[cloudflare-main]
-name=Cloudflare Main Repository
-baseurl=https://pkg.cloudflare.com/linux/centos
-enabled=1
-gpgcheck=0
-EOF
-                sudo yum install -y cloudflared || {
-                    print_error "Failed to install cloudflared"
+                print_info "Installing cloudflared (downloading binary)..."
+                # Determine architecture
+                local arch=$(uname -m)
+                case "$arch" in
+                    x86_64)
+                        arch="amd64"
+                        ;;
+                    aarch64)
+                        arch="arm64"
+                        ;;
+                esac
+                
+                # Download and install the binary
+                local temp_dir=$(mktemp -d)
+                cd "$temp_dir"
+                curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o cloudflared
+                
+                if [ $? -ne 0 ]; then
+                    print_error "Failed to download cloudflared binary"
+                    rm -rf "$temp_dir"
                     return 1
-                }
+                fi
+                
+                chmod +x cloudflared
+                sudo mv cloudflared /usr/local/bin/
+                cd - > /dev/null
+                rm -rf "$temp_dir" || true
                 ;;
             arch)
                 print_info "Installing via pacman..."
