@@ -142,6 +142,16 @@ check_python_installed() {
     
     local version=$($PYTHON_CMD --version 2>&1 | awk '{print $2}')
     print_success "Python $version installed"
+    
+    # Check Python version meets minimum requirement
+    # Using printf to compare as numbers (3.8 -> 308, 3.14 -> 314)
+    local version_num=$(echo "$version" | awk -F. '{printf "%d%02d", $1, $2}')
+    local min_version_num=$(echo "$MIN_PYTHON_VERSION" | awk -F. '{printf "%d%02d", $1, $2}')
+    
+    if [ "$version_num" -lt "$min_version_num" ]; then
+        print_error "Python $version is installed, but $MIN_PYTHON_VERSION+ is required"
+        return 1
+    fi
 }
 
 check_pip_available() {
@@ -187,6 +197,44 @@ check_pip_available() {
     print_success "pip $version available"
 }
 
+check_venv_available() {
+    print_step "Checking virtual environment support"
+    
+    if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+        print_warning "venv module not available, attempting to install..."
+        
+        local os=$(detect_os)
+        if [[ "$os" == "linux" ]]; then
+            local distro=$(get_distro)
+            case "$distro" in
+                ubuntu|debian)
+                    echo "Installing python3-venv via apt..."
+                    sudo apt-get install -y python3-venv
+                    ;;
+                fedora|rhel|centos)
+                    echo "Installing python3-venv via yum..."
+                    sudo yum install -y python3-venv
+                    ;;
+                arch)
+                    echo "Installing python-venv via pacman..."
+                    sudo pacman -S --noconfirm python-venv
+                    ;;
+                *)
+                    echo "Cannot install venv - install your distro's python3-venv package"
+                    return 1
+                    ;;
+            esac
+        fi
+        
+        if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+            print_error "Failed to install venv support"
+            return 1
+        fi
+    fi
+    
+    print_success "Virtual environment support available"
+}
+
 create_or_verify_venv() {
     print_step "Setting up virtual environment"
     
@@ -224,6 +272,12 @@ activate_venv() {
     # shellcheck disable=SC1090
     source "$activate_script"
     print_success "Virtual environment activated"
+    
+    # Verify activation was successful
+    if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+        print_error "Failed to activate virtual environment"
+        return 1
+    fi
 }
 
 load_env_file() {
@@ -284,6 +338,31 @@ install_dependencies() {
     fi
 }
 
+check_port_available() {
+    print_step "Checking development port availability"
+    
+    # Development port is 8000
+    local dev_port=8000
+    local os=$(detect_os)
+    
+    # Check if port is in use
+    if [[ "$os" == "macos" ]]; then
+        if lsof -Pi :$dev_port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            print_warning "Port $dev_port is already in use"
+            echo "Finding process on port $dev_port:"
+            lsof -i :$dev_port
+            return 1
+        fi
+    elif [[ "$os" == "linux" ]]; then
+        if ss -tuln 2>/dev/null | grep -q ":$dev_port "; then
+            print_warning "Port $dev_port is already in use"
+            return 1
+        fi
+    fi
+    
+    print_success "Development port $dev_port is available"
+}
+
 start_server() {
     print_step "Starting development server"
     
@@ -291,11 +370,15 @@ start_server() {
         return 1
     fi
     
+    # Check port availability
+    check_port_available || return 1
+    
     echo ""
     print_success "All checks passed! Starting server..."
     echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
     
     cd "$SCRIPT_DIR"
+    export METRON_UI_PORT=8000
     "$PYTHON_CMD" main.py
 }
 
@@ -317,6 +400,7 @@ main() {
     # Run all checks
     check_python_installed || exit 1
     check_pip_available || exit 1
+    check_venv_available || exit 1
     load_env_file
     create_or_verify_venv || exit 1
     activate_venv || exit 1

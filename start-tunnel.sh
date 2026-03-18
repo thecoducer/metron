@@ -65,6 +65,29 @@ cleanup() {
 trap cleanup EXIT
 
 # ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
+        echo "linux"
+    else
+        echo "unknown"
+    fi
+}
+
+get_distro() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo "$ID"
+    else
+        echo "unknown"
+    fi
+}
+
+# ============================================================================
 # INSTALLATION FUNCTIONS
 # ============================================================================
 
@@ -148,6 +171,29 @@ check_cloudflared_installed() {
     
     local version=$(cloudflared --version 2>&1 | head -n 1)
     print_success "$version installed"
+}
+
+check_port_available() {
+    local port=$LOCAL_PORT
+    echo "Checking if port $port is available for tunnel..."
+    
+    local os=$(detect_os)
+    
+    if [[ "$os" == "macos" ]]; then
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            echo "✗ Port $port is already in use"
+            echo "Finding process:"
+            lsof -i :$port
+            return 1
+        fi
+    elif [[ "$os" == "linux" ]]; then
+        if ss -tuln 2>/dev/null | grep -q ":$port "; then
+            echo "✗ Port $port is already in use"
+            return 1
+        fi
+    fi
+    
+    echo "✓ Port $port is available"
 }
 
 setup_cloudflare_credentials() {

@@ -173,6 +173,16 @@ check_python_installed() {
     
     local version=$($PYTHON_CMD --version 2>&1 | awk '{print $2}')
     print_success "Python $version installed"
+    
+    # Check Python version meets minimum requirement
+    # Using printf to compare as numbers (3.8 -> 308, 3.14 -> 314)
+    local version_num=$(echo "$version" | awk -F. '{printf "%d%02d", $1, $2}')
+    local min_version_num=$(echo "$MIN_PYTHON_VERSION" | awk -F. '{printf "%d%02d", $1, $2}')
+    
+    if [ "$version_num" -lt "$min_version_num" ]; then
+        print_error "Python $version is installed, but $MIN_PYTHON_VERSION+ is required"
+        return 1
+    fi
 }
 
 check_pip_available() {
@@ -218,6 +228,44 @@ check_pip_available() {
     print_success "pip $version available"
 }
 
+check_venv_available() {
+    print_step "Checking virtual environment support"
+    
+    if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+        print_warning "venv module not available, attempting to install..."
+        
+        local os=$(detect_os)
+        if [[ "$os" == "linux" ]]; then
+            local distro=$(get_distro)
+            case "$distro" in
+                ubuntu|debian)
+                    echo "Installing python3-venv via apt..."
+                    sudo apt-get install -y python3-venv
+                    ;;
+                fedora|rhel|centos)
+                    echo "Installing python3-venv via yum..."
+                    sudo yum install -y python3-venv
+                    ;;
+                arch)
+                    echo "Installing python-venv via pacman..."
+                    sudo pacman -S --noconfirm python-venv
+                    ;;
+                *)
+                    echo "Cannot install venv - install your distro's python3-venv package"
+                    return 1
+                    ;;
+            esac
+        fi
+        
+        if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+            print_error "Failed to install venv support"
+            return 1
+        fi
+    fi
+    
+    print_success "Virtual environment support available"
+}
+
 create_or_verify_venv() {
     print_step "Setting up virtual environment"
     
@@ -255,6 +303,12 @@ activate_venv() {
     # shellcheck disable=SC1090
     source "$activate_script"
     print_success "Virtual environment activated"
+    
+    # Verify activation was successful
+    if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+        print_error "Failed to activate virtual environment"
+        return 1
+    fi
 }
 
 load_env_file() {
@@ -328,6 +382,37 @@ check_gunicorn_available() {
     print_success "Gunicorn $version available"
 }
 
+check_port_available() {
+    print_step "Checking port $PORT availability"
+    
+    local os=$(detect_os)
+    
+    # Check if port is in use
+    if [[ "$os" == "macos" ]]; then
+        if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+            print_error "Port $PORT is already in use"
+            echo "Finding process on port $PORT:"
+            lsof -i :$PORT
+            echo ""
+            echo "To kill the process: kill -9 <PID>"
+            echo "Or use a different port: PORT=8001 ./start-prod.sh"
+            return 1
+        fi
+    elif [[ "$os" == "linux" ]]; then
+        if ss -tuln 2>/dev/null | grep -q ":$PORT "; then
+            print_error "Port $PORT is already in use"
+            echo "Finding process on port $PORT:"
+            ss -tuln | grep :$PORT
+            echo ""
+            echo "To kill the process: sudo lsof -i :$PORT | awk 'NR!=1 {print $2}' | xargs kill -9"
+            echo "Or use a different port: PORT=8001 ./start-prod.sh"
+            return 1
+        fi
+    fi
+    
+    print_success "Port $PORT is available"
+}
+
 start_production_server() {
     print_step "Starting production Gunicorn server"
     
@@ -346,6 +431,9 @@ start_production_server() {
     echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
     
     cd "$SCRIPT_DIR"
+    
+    # Set METRON_UI_PORT to match the port Gunicorn will bind to
+    export METRON_UI_PORT="${PORT}"
     
     # Start Gunicorn with configuration file
     gunicorn \
@@ -374,11 +462,13 @@ main() {
     check_system_dependencies
     check_python_installed || exit 1
     check_pip_available || exit 1
+    check_venv_available || exit 1
     load_env_file
     create_or_verify_venv || exit 1
     activate_venv || exit 1
     install_dependencies || exit 1
     check_gunicorn_available || exit 1
+    check_port_available || exit 1
     
     # Start the production server
     start_production_server
