@@ -297,7 +297,7 @@ load_env_file() {
 install_dependencies() {
     print_step "Installing dependencies"
     
-    if check_required_file "requirements.txt" "requirements.txt"; then
+    if check_required_file "requirements-dev.txt" "requirements-dev.txt"; then
         # Upgrade pip first
         print_info "Upgrading pip, setuptools, wheel..."
         if ! pip install --upgrade pip setuptools wheel 2>&1; then
@@ -306,8 +306,8 @@ install_dependencies() {
         fi
         
         # Install requirements without cache to avoid corruption issues
-        print_info "Installing requirements from requirements.txt..."
-        if ! pip install --no-cache-dir -r "$SCRIPT_DIR/requirements.txt" 2>&1; then
+        print_info "Installing requirements from requirements-dev.txt..."
+        if ! pip install --no-cache-dir -r "$SCRIPT_DIR/requirements-dev.txt" 2>&1; then
             print_error "Failed to install requirements"
             echo ""
             local os=$(detect_os)
@@ -329,7 +329,7 @@ install_dependencies() {
                         ;;
                 esac
             fi
-            echo "  3. Try manually: pip install --no-cache-dir -r requirements.txt"
+            echo "  3. Try manually: pip install --no-cache-dir -r requirements-dev.txt"
             return 1
         fi
         print_success "Dependencies installed"
