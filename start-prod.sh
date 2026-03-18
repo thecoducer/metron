@@ -83,6 +83,31 @@ check_required_file() {
     fi
 }
 
+check_system_dependencies() {
+    print_step "Checking system dependencies"
+    
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS: check for Xcode Command Line Tools
+        if ! xcode-select -p &> /dev/null; then
+            print_warning "Xcode Command Line Tools not installed"
+            echo "Installing Xcode Command Line Tools..."
+            xcode-select --install
+            echo "Please complete the installation and run this script again"
+            return 1
+        fi
+        print_success "Xcode Command Line Tools installed"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux: check for build tools
+        if ! command -v gcc &> /dev/null; then
+            print_warning "Build tools required. Install with:"
+            echo "  Ubuntu/Debian: sudo apt-get install build-essential python3-dev"
+            echo "  Fedora/CentOS: sudo yum install gcc python3-devel"
+            return 1
+        fi
+        print_success "Build tools available"
+    fi
+}
+
 check_python_installed() {
     print_step "Checking Python installation"
     
@@ -178,14 +203,21 @@ install_dependencies() {
     
     if check_required_file "requirements.txt" "requirements.txt"; then
         # Upgrade pip first
-        pip install --upgrade pip setuptools wheel --quiet 2>/dev/null || {
+        print_info "Upgrading pip, setuptools, wheel..."
+        if ! pip install --upgrade pip setuptools wheel; then
             print_error "Failed to upgrade pip"
             return 1
-        }
+        fi
         
-        # Install requirements with progress output
-        if ! pip install -r "$SCRIPT_DIR/requirements.txt" --quiet; then
+        # Install requirements without cache to avoid corruption issues
+        print_info "Installing requirements from requirements.txt..."
+        if ! pip install --no-cache-dir -r "$SCRIPT_DIR/requirements.txt"; then
             print_error "Failed to install requirements"
+            echo ""
+            echo "Troubleshooting tips:"
+            echo "  1. Check your Python version: $PYTHON_CMD --version"
+            echo "  2. Install build tools: xcode-select --install (macOS)"
+            echo "  3. Try manually: pip install --no-cache-dir -r requirements.txt"
             return 1
         fi
         print_success "Dependencies installed"
@@ -242,6 +274,7 @@ main() {
     print_header " Metron Production Gunicorn Server Startup "
     
     # Run all checks
+    check_system_dependencies || exit 1
     check_python_installed || exit 1
     check_pip_available || exit 1
     load_env_file
