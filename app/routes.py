@@ -1063,10 +1063,15 @@ def standalone_table_page(table_key):
 
 
 @app_ui.route("/nifty50", methods=["GET"])
+@login_required
 def nifty50_page():
     """Serve the Nifty 50 stocks page."""
     user = _current_user()
-    return render_template("nifty50.html", user=user)
+    response = make_response(render_template("nifty50.html", user=user))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app_ui.route("/privacy", methods=["GET"])
