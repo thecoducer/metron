@@ -15,7 +15,7 @@ body.theme-transitioning *::after {
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -24,7 +24,7 @@ body {
   margin: 0;
   padding: 0;
   color: #37352f;
-  overflow-x: hidden;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -483,17 +483,13 @@ h1 {
 #status_tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 100px;
-  background: #f8f8f8;
-  color: #888;
+  gap: 5px;
+  color: #aaa;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
-  border: 1px solid #ebebeb;
   font-family: 'Inter', sans-serif;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 #status_tag .status-dot {
@@ -850,17 +846,19 @@ body.dark-theme .theme-toggle:hover {
 
 .snap-card {
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.025);
+  background: color-mix(in srgb, var(--card-color, #888) 5%, white);
+  border: 1px solid color-mix(in srgb, var(--card-color, #888) 10%, rgba(0, 0, 0, 0.06));
   padding: 10px 12px;
   cursor: pointer;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   font-family: 'Inter', sans-serif;
   min-width: 0;
 }
 
 .snap-card:hover {
-  background: rgba(0, 0, 0, 0.045);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+  background: color-mix(in srgb, var(--card-color, #888) 9%, white);
+  border-color: color-mix(in srgb, var(--card-color, #888) 18%, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, #888) 12%, transparent);
 }
 
 .snap-card-header {
@@ -932,12 +930,14 @@ body.dark-theme .theme-toggle:hover {
 }
 
 body.dark-theme .snap-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--card-color, #888) 8%, #1e1e1e);
+  border: 1px solid color-mix(in srgb, var(--card-color, #888) 14%, rgba(255, 255, 255, 0.04));
 }
 
 body.dark-theme .snap-card:hover {
-  background: rgba(255, 255, 255, 0.055);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--card-color, #888) 13%, #1e1e1e);
+  border-color: color-mix(in srgb, var(--card-color, #888) 22%, rgba(255, 255, 255, 0.06));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, #888) 15%, transparent);
 }
 
 body.dark-theme .snap-card-current {
@@ -1249,8 +1249,9 @@ body.dark-theme .snap-card-alloc {
 
 .overview-top-right {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .overview-tickers {
@@ -1358,7 +1359,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 #stocks_summary {
-  --accent-color: #61960d;
+  --accent-color: #e11d48;
 }
 
 .card--category .card-title {
@@ -1439,7 +1440,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 #stocks_summary {
-  --accent-color: #f97316;
+  --accent-color: #e11d48;
 }
 
 #etf_summary {
@@ -2915,9 +2916,7 @@ body.dark-theme .nav-date-sub {
 
   /* Status tag */
   #status_tag {
-    padding: 3px 10px;
     font-size: 10px;
-    gap: 5px;
   }
 
   #status_tag .status-dot {
@@ -2932,7 +2931,7 @@ body.dark-theme .nav-date-sub {
   }
 
   .overview-top-right {
-    gap: 8px;
+    gap: 4px;
   }
 
   .page-title-bar {
@@ -3263,9 +3262,7 @@ body.dark-theme .index-divider {
 }
 
 body.dark-theme #status_tag {
-  background: #1a1a1a;
-  color: #777;
-  border-color: #2a2a2a;
+  color: #555;
 }
 
 body.dark-theme #search {
@@ -3362,7 +3359,7 @@ body.dark-theme .category-pl {
 }
 
 body.dark-theme #stocks_summary {
-  --accent-color: #2dd4bf;
+  --accent-color: #f87171;
 }
 
 body.dark-theme #etf_summary {

@@ -207,7 +207,7 @@ class SummaryManager {
         // Set color based on element type
         let color = '#64748b'; // default slate
         if (elementId === 'stocks_allocation_pct') {
-          color = '#6366f1'; // indigo
+          color = '#e11d48'; // rose-red
         } else if (elementId === 'etf_allocation_pct') {
           color = '#7c3aed'; // violet
         } else if (elementId === 'mf_allocation_pct') {
