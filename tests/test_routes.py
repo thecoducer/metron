@@ -165,7 +165,7 @@ class TestUIServerRoutes(unittest.TestCase):
         """Root page renders landing page when not signed in."""
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Continue with Google", response.data)
+        self.assertIn(b"Login with Google", response.data)
 
     def test_portfolio_page_authenticated(self):
         """Root page renders portfolio dashboard when signed in."""
