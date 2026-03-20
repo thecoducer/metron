@@ -1,6 +1,15 @@
 /* Metron - Market Index Ticker */
 import { metronFetch } from './utils.js';
 
+const TICKER_LABELS = {
+  nifty50: 'NIFTY 50',
+  sensex:  'SENSEX',
+  sp500:   'S&P 500',
+  gold:    'GOLD',
+  silver:  'SILVER',
+  usdinr:  'USD/INR',
+};
+
 class IndexTicker {
   constructor() {
     this.previousValues = {};
@@ -19,7 +28,40 @@ class IndexTicker {
   }
 
   async init() {
+    this._renderSkeleton();
+    // Yield to the browser so the skeleton is painted before the fetch begins.
+    // Without this, a cache-hit response can resolve before the first paint,
+    // making the skeleton invisible on repeat loads.
+    await new Promise(resolve => requestAnimationFrame(resolve));
     await this.fetchAndRender();
+  }
+
+  /** Immediately render all tickers with placeholder dashes before data arrives */
+  _renderSkeleton() {
+    const container = document.getElementById('indexTickers');
+    if (!container) return;
+    // Always clear and re-render skeleton so it shows on every page load (incl. bfcache)
+    container.innerHTML = '';
+    for (const key of this._displayOrder) {
+      if (container.querySelector('.index-ticker')) {
+        const div = document.createElement('div');
+        div.className = 'index-divider';
+        container.appendChild(div);
+      }
+      const ticker = document.createElement('div');
+      ticker.className = 'index-ticker';
+      ticker.id = `${key}Ticker`;
+      ticker.innerHTML =
+        `<span class="index-name">${TICKER_LABELS[key] || key}</span>` +
+        `<div class="index-data-row">` +
+          `<div class="index-numbers">` +
+            `<span class="index-value index-value--skeleton" id="${key}Value">--</span>` +
+            `<span class="index-change neutral index-change--skeleton" id="${key}Change">--</span>` +
+          `</div>` +
+          `<canvas class="sparkline-canvas" id="${key}Sparkline" width="60" height="24"></canvas>` +
+        `</div>`;
+      container.appendChild(ticker);
+    }
   }
 
   async fetchAndRender(retries = 4) {
@@ -85,6 +127,7 @@ class IndexTicker {
     const changeEl = document.getElementById(`${key}Change`);
 
     if (valueEl) {
+      valueEl.classList.remove('index-value--skeleton');
       const formatted = this._formatNumber(data.value);
       const prev = this.previousValues[key];
       if (prev !== undefined && prev !== data.value) {
@@ -97,6 +140,7 @@ class IndexTicker {
     }
 
     if (changeEl) {
+      changeEl.classList.remove('index-change--skeleton');
       const sign  = data.change > 0 ? '+' : '';
       const arrow = data.change > 0 ? '▲' : data.change < 0 ? '▼' : '';
       const cls   = data.change > 0 ? 'positive' : data.change < 0 ? 'negative' : 'neutral';

@@ -358,13 +358,13 @@ body.dark-theme .theme-toggle svg{color:#999}
   flex-shrink:0;
 }
 .asset-chip-icon svg{width:14px;height:14px}
-.asset-chip-icon.a-violet{background:rgba(249,115,22,.08);color:#f97316}
-.asset-chip-icon.a-blue{background:rgba(59,130,246,.08);color:#3b82f6}
-.asset-chip-icon.a-emerald{background:rgba(16,185,129,.08);color:#10b981}
-.asset-chip-icon.a-amber{background:rgba(245,158,11,.08);color:#f59e0b}
-.asset-chip-icon.a-teal{background:rgba(20,184,166,.08);color:#14b8a6}
-.asset-chip-icon.a-rose{background:rgba(244,63,94,.08);color:#f43f5e}
-.asset-chip-icon.a-maroon{background:rgba(139,64,73,.08);color:#8b4049}
+.asset-chip-icon.a-violet{background:rgba(99,102,241,.08);color:#6366f1}
+.asset-chip-icon.a-blue{background:rgba(2,132,199,.08);color:#0284c7}
+.asset-chip-icon.a-emerald{background:rgba(124,58,237,.08);color:#7c3aed}
+.asset-chip-icon.a-amber{background:rgba(180,83,9,.08);color:#b45309}
+.asset-chip-icon.a-teal{background:rgba(15,118,110,.08);color:#0f766e}
+.asset-chip-icon.a-rose{background:rgba(225,29,72,.08);color:#e11d48}
+.asset-chip-icon.a-maroon{background:rgba(100,116,139,.08);color:#64748b}
 
 .features{
   display:grid;
@@ -1121,13 +1121,13 @@ body.dark-theme .section-divider{background:#2a2a2a}
 /* Asset chip strip dark theme */
 body.dark-theme .asset-chip{background:rgba(24,24,24,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(255,255,255,.06);color:#999}
 body.dark-theme .asset-chip:hover{border-color:rgba(255,255,255,.1);box-shadow:0 2px 10px rgba(0,0,0,.2)}
-body.dark-theme .asset-chip-icon.a-violet{background:rgba(249,115,22,.12)}
-body.dark-theme .asset-chip-icon.a-blue{background:rgba(59,130,246,.12)}
-body.dark-theme .asset-chip-icon.a-emerald{background:rgba(16,185,129,.12)}
-body.dark-theme .asset-chip-icon.a-amber{background:rgba(245,158,11,.12)}
-body.dark-theme .asset-chip-icon.a-teal{background:rgba(20,184,166,.12)}
-body.dark-theme .asset-chip-icon.a-rose{background:rgba(244,63,94,.12)}
-body.dark-theme .asset-chip-icon.a-maroon{background:rgba(139,64,73,.12)}
+body.dark-theme .asset-chip-icon.a-violet{background:rgba(99,102,241,.15)}
+body.dark-theme .asset-chip-icon.a-blue{background:rgba(2,132,199,.15)}
+body.dark-theme .asset-chip-icon.a-emerald{background:rgba(124,58,237,.15)}
+body.dark-theme .asset-chip-icon.a-amber{background:rgba(180,83,9,.15)}
+body.dark-theme .asset-chip-icon.a-teal{background:rgba(15,118,110,.15)}
+body.dark-theme .asset-chip-icon.a-rose{background:rgba(225,29,72,.15)}
+body.dark-theme .asset-chip-icon.a-maroon{background:rgba(100,116,139,.15)}
 body.dark-theme .feature-card{background:rgba(20,20,20,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(255,255,255,.06)}
 body.dark-theme .feature-card:hover{background:rgba(30,30,30,.6);border-color:rgba(255,255,255,.1);box-shadow:0 2px 16px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.04) inset}
 body.dark-theme .feature-card h3{color:#e5e5e5}

@@ -205,19 +205,19 @@ class SummaryManager {
         strip.style.setProperty('--allocation-width', `${percentage}%`);
         
         // Set color based on element type
-        let color = '#8b7765'; // default brown
+        let color = '#64748b'; // default slate
         if (elementId === 'stocks_allocation_pct') {
-          color = '#7c5cdb'; // purple
+          color = '#6366f1'; // indigo
         } else if (elementId === 'etf_allocation_pct') {
-          color = '#d94d8f'; // magenta
+          color = '#7c3aed'; // violet
         } else if (elementId === 'mf_allocation_pct') {
-          color = '#5ca0db'; // blue
+          color = '#0284c7'; // sky blue
         } else if (elementId === 'gold_allocation_pct') {
-          color = '#d4af37'; // gold
+          color = '#b45309'; // amber
         } else if (elementId === 'silver_allocation_pct') {
-          color = '#c0c0c0'; // silver
+          color = '#64748b'; // slate
         } else if (elementId === 'fd_allocation_pct') {
-          color = '#5f9e8a'; // turtle green
+          color = '#0f766e'; // teal
         }
         strip.style.setProperty('--allocation-color', color);
       }

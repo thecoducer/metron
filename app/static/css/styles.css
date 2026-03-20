@@ -55,13 +55,19 @@ body::after {
 /* ============ HEADER ============ */
 
 header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  padding: 0 0 0 0;
-  margin-bottom: 32px;
-  z-index: 100;
+  padding: 14px 0;
+  margin: -32px -32px 40px;
+  padding-left: 32px;
+  padding-right: 32px;
+  z-index: 200;
   flex-wrap: nowrap;
 }
 
@@ -175,6 +181,7 @@ header > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: 32px;
   margin-bottom: 32px;
   gap: 16px;
   flex-wrap: wrap;
@@ -194,12 +201,13 @@ header > div {
   display: flex;
   align-items: center;
   gap: 0;
+  width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;          /* Firefox */
+  scrollbar-width: none;
 }
 .index-tickers::-webkit-scrollbar {
-  display: none;                  /* Chrome / Safari */
+  display: none;
 }
 
 .index-ticker {
@@ -207,13 +215,13 @@ header > div {
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
-  padding: 0 10px;
+  padding: 0 16px;
   background: transparent;
   border: none;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease;
   cursor: default;
-  min-width: 0;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 155px;
 }
 
 .index-ticker:hover {
@@ -310,39 +318,33 @@ header > div {
 .index-value.flash-green { animation: value-flash-green 0.6s ease-out; border-radius: 3px; }
 .index-value.flash-red   { animation: value-flash-red   0.6s ease-out; border-radius: 3px; }
 
-/* Responsive */
-@media (max-width: 900px) {
-  .index-ticker {
-    padding: 4px 8px;
-    gap: 2px;
-  }
-  .index-value {
-    font-size: 12px;
-  }
+.index-value--skeleton,
+.index-change--skeleton {
+  color: #bbb;
+}
+
+/* Ticker responsive */
+
+/* Medium screens: hide sparklines to give each ticker more room */
+@media (max-width: 1100px) {
   .sparkline-canvas {
-    width: 48px;
-    height: 20px;
+    display: none;
   }
   .index-data-row {
-    gap: 6px;
+    gap: 0;
+  }
+  .index-ticker {
+    padding: 0 12px;
+    min-width: 110px;
   }
 }
 
+/* Small screens: tighter text, fixed min-width for scroll */
 @media (max-width: 600px) {
-  .overview-top-row {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .overview-tickers {
-    margin-top: 14px;
-    padding-top: 12px;
-  }
   .index-ticker {
-    padding: 0 6px;
+    padding: 0 10px;
     gap: 2px;
-  }
-  .index-divider {
-    height: 16px;
+    min-width: 100px;
   }
   .index-value {
     font-size: 11px;
@@ -354,12 +356,22 @@ header > div {
   .index-change {
     font-size: 9px;
   }
-  .sparkline-canvas {
-    width: 40px;
-    height: 18px;
+  .index-divider {
+    height: 16px;
   }
-  .index-data-row {
-    gap: 4px;
+  .market-tickers-row {
+    margin-top: 0;
+    margin-bottom: 24px;
+    margin-left: -12px;
+    margin-right: -12px;
+    padding: 14px 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .overview-top-row {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 
@@ -562,32 +574,45 @@ h1 {
   transform: translateY(0);
 }
 
-/* ============ REFRESH ICON ============ */
+/* ============ REFRESH BUTTON ============ */
 
 .refresh-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #aaa;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
+  border: 1px solid #e2e2e2;
+  border-radius: 100px;
+  background: #f8f8f8;
+  color: #555;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: color 0.3s cubic-bezier(.4,0,.2,1);
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease,
+              color 0.15s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .refresh-btn:hover {
-  color: #37352f;
+  background: #f0f0f0;
+  border-color: #d0d0d0;
+  color: #222;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+
+.refresh-btn:active {
+  background: #e8e8e8;
+  box-shadow: none;
 }
 
 .refresh-btn .refresh-icon {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  transition: transform 0.5s cubic-bezier(.4,0,.2,1), color 0.3s cubic-bezier(.4,0,.2,1);
+  width: 13px;
+  height: 13px;
+  transition: transform 0.5s cubic-bezier(.4, 0, .2, 1);
 }
 
 .refresh-btn:hover .refresh-icon {
@@ -599,8 +624,12 @@ h1 {
   transition-duration: 0.25s;
 }
 
+.refresh-label {
+  line-height: 1;
+}
+
 .refresh-btn:disabled {
-  color: #ccc;
+  opacity: 0.45;
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -612,6 +641,24 @@ h1 {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Dark theme */
+body.dark-theme .refresh-btn {
+  background: #1e1e1e;
+  border-color: #2e2e2e;
+  color: #999;
+}
+
+body.dark-theme .refresh-btn:hover {
+  background: #252525;
+  border-color: #3a3a3a;
+  color: #e5e5e5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme .refresh-btn:active {
+  background: #2a2a2a;
 }
 
 /* ============ HAMBURGER NAVIGATION MENU ============ */
@@ -627,16 +674,16 @@ h1 {
   width: 36px;
   height: 36px;
   border: none;
-  background: #f0efee;
-  border-radius: 10px;
+  background: transparent;
+  border-radius: 8px;
   cursor: pointer;
-  color: #666;
-  transition: background .2s, color .2s;
+  color: #777;
+  transition: background .15s, color .15s;
   padding: 0;
 }
 .hamburger-btn:hover {
-  background: #e5e4e3;
-  color: #37352f;
+  background: rgba(0, 0, 0, 0.05);
+  color: #111;
 }
 
 .hamburger-close-icon {
@@ -705,12 +752,17 @@ h1 {
 }
 
 /* Dark theme */
+body.dark-theme header {
+  background: #181818;
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
 body.dark-theme .hamburger-btn {
-  background: #252525;
-  color: #999;
+  background: transparent;
+  color: #777;
 }
 body.dark-theme .hamburger-btn:hover {
-  background: #333;
+  background: rgba(255, 255, 255, 0.07);
   color: #e5e5e5;
 }
 
@@ -779,267 +831,148 @@ body.dark-theme .theme-toggle:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
 
-/* ============ PORTFOLIO ALLOCATION STRIP ============ */
+/* ============ PORTFOLIO ALLOCATION SNAP CARDS ============ */
 
 .portfolio-allocation {
-  margin-bottom: 28px;
+  margin-bottom: 60px;
 }
 
-.allocation-bar {
-  display: flex;
-  height: 14px;
-  border-radius: 7px;
-  overflow: visible;
-  background: rgba(0, 0, 0, 0.04);
-  margin-bottom: 10px;
+.snap-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
 }
 
-.alloc-seg {
-  height: 100%;
-  background: var(--seg-color, #ccc);
-  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+.snap-card {
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.025);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  font-family: 'Inter', sans-serif;
   min-width: 0;
 }
 
-.alloc-seg:first-child {
-  border-radius: 5px 0 0 5px;
+.snap-card:hover {
+  background: rgba(0, 0, 0, 0.045);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
 }
 
-/* Right border-radius is applied dynamically via JS to the last visible
-   (non-zero-width) segment so the bar stays rounded even when trailing
-   segments are hidden. */
-
-.allocation-legend {
+.snap-card-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px 4px;
-}
-
-.alloc-chip {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: none;
-  background: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: #777;
-  transition: background 0.15s ease, color 0.15s ease;
+  justify-content: space-between;
+  margin-bottom: 7px;
 }
 
-.alloc-chip:hover {
+.snap-card-name {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+}
+
+.snap-card-alloc {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--card-color, #999);
   background: rgba(0, 0, 0, 0.04);
-  color: #333;
+  padding: 1px 6px;
+  border-radius: 10px;
 }
 
-.alloc-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.allocation-bar--interactive .alloc-seg {
-  cursor: pointer;
-  transition: width 0.5s cubic-bezier(.4,0,.2,1), opacity 0.15s ease, filter 0.15s ease;
-}
-
-.allocation-bar--interactive .alloc-seg:hover {
-  filter: brightness(1.15);
-}
-
-.allocation-bar--interactive.has-focus .alloc-seg {
-  opacity: 0.35;
-  filter: none;
-}
-
-.allocation-bar--interactive.has-focus .alloc-seg.active {
-  opacity: 1;
-  filter: brightness(1.1);
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.5), 0 0 8px var(--seg-color);
-  position: relative;
-  z-index: 1;
-}
-
-/* ============ ALLOCATION LABEL STRIP ============ */
-
-.alloc-labels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 4px;
+.snap-card-current {
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+  letter-spacing: -0.02em;
   margin-bottom: 6px;
 }
 
-.alloc-tag {
-  display: inline-flex;
+.snap-card-row {
+  display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.12s ease, opacity 0.2s ease;
-  font-family: 'Inter', sans-serif;
 }
 
-.alloc-tag:hover {
-  background: rgba(0, 0, 0, 0.04);
+.snap-card-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #bbb;
 }
 
-.alloc-labels.has-focus .alloc-tag {
-  opacity: 0.4;
-}
-
-.alloc-labels.has-focus .alloc-tag.active {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.alloc-tag-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--seg-color, #ccc);
-  flex-shrink: 0;
-}
-
-.alloc-tag-name {
+.snap-card-invested {
   font-size: 11px;
   font-weight: 600;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: #777;
 }
 
-.alloc-tag-val {
-  font-size: 12.5px;
+.snap-card-pl-row {
+  margin-top: 3px;
+}
+
+.snap-card-pl {
+  font-size: 12px;
   font-weight: 700;
   color: #444;
-  letter-spacing: -0.01em;
 }
 
-.alloc-tag-pct {
+.snap-card-pct {
   font-size: 10.5px;
   font-weight: 600;
-  opacity: 0.75;
+  color: #777;
 }
 
-/* ============ FOCUS SHELF (detail on segment click) ============ */
-
-.alloc-focus {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.3s cubic-bezier(.4,0,.2,1), opacity 0.2s ease, margin 0.3s ease;
-  margin: 0;
+body.dark-theme .snap-card {
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.alloc-focus.open {
-  max-height: 44px;
-  opacity: 1;
-  margin-bottom: 8px;
+body.dark-theme .snap-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
 }
 
-.alloc-focus-row {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.025);
-  font-family: 'Inter', sans-serif;
-  animation: focusSlideIn 0.2s ease;
+body.dark-theme .snap-card-current {
+  color: #e2e2e2;
 }
 
-.alloc-focus-row.active {
-  display: flex;
-}
-
-@keyframes focusSlideIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.alloc-focus-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--seg-color, #ccc);
-  flex-shrink: 0;
-}
-
-.alloc-focus-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.alloc-focus-val {
-  font-size: 12.5px;
-  font-weight: 600;
+body.dark-theme .snap-card-name {
   color: #666;
 }
 
-.alloc-focus-val::before {
-  content: 'Invested ';
-  font-size: 9.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #bbb;
+body.dark-theme .snap-card-invested {
+  color: #999;
 }
 
-.alloc-focus-sep {
-  width: 1px;
-  height: 14px;
-  background: rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
+body.dark-theme .snap-card-pct {
+  color: #888;
 }
 
-.alloc-focus-pl {
-  font-size: 13px;
-  font-weight: 700;
-  color: #333;
+body.dark-theme .snap-card-alloc {
+  background: rgba(255, 255, 255, 0.07);
 }
 
-.alloc-focus-pl::before {
-  content: 'P&L ';
-  font-size: 9.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #bbb;
-}
-
-.alloc-focus-pct {
-  font-size: 11px;
-  font-weight: 600;
-  opacity: 0.7;
-  margin-left: -4px;
-}
-
-@media (max-width: 600px) {
-  .alloc-labels {
-    gap: 2px 3px;
+@media (max-width: 900px) {
+  .snap-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
-  .alloc-tag {
-    padding: 3px 6px;
-    gap: 4px;
+}
+
+@media (max-width: 540px) {
+  .snap-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
-  .alloc-tag-name {
-    font-size: 10px;
+
+  .snap-card {
+    padding: 8px 10px;
   }
-  .alloc-tag-val {
-    font-size: 11.5px;
-  }
-  .alloc-focus-row {
-    gap: 6px;
-    padding: 6px 8px;
+
+  .snap-card-current {
+    font-size: 13px;
   }
 }
 
@@ -1298,15 +1231,15 @@ body.dark-theme .theme-toggle:hover {
 /* ============ PORTFOLIO OVERVIEW (banner above cards) ============ */
 
 .portfolio-overview {
-  margin-bottom: 32px;
-  padding: 0 4px 24px;
+  margin-bottom: 40px;
+  padding: 0;
 }
 
 .overview-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .overview-top-right {
@@ -1316,8 +1249,15 @@ body.dark-theme .theme-toggle:hover {
 }
 
 .overview-tickers {
-  margin-top: 24px;
-  padding-top: 20px;
+  margin-top: 0;
+}
+
+.market-tickers-row {
+  margin-top: 0;
+  margin-bottom: 32px;
+  margin-left: -32px;
+  margin-right: -32px;
+  padding: 18px 32px;
 }
 
 .overview-label {
@@ -1746,15 +1686,20 @@ body.privacy-mode .allocation-pct {
 
 @media (max-width: 600px) {
   .portfolio-overview {
-    padding: 0 0 20px;
+    padding: 0;
+    margin-bottom: 24px;
   }
 }
 
 /* ============ SECTIONS ============ */
 
+#data-container-sections {
+  margin-top: 0;
+}
+
 .section-wrapper {
   width: 100%;
-  margin: 0 auto 48px;
+  margin: 0 auto 56px;
 }
 
 .section-wrapper > table,
@@ -2902,8 +2847,9 @@ body.dark-theme .nav-date-sub {
 
   /* Header */
   header {
-    margin-bottom: 24px;
-    gap: 12px;
+    margin: -16px -12px 28px;
+    padding: 12px 12px;
+    gap: 10px;
   }
 
   .brand-name {
@@ -2962,17 +2908,6 @@ body.dark-theme .nav-date-sub {
     font-size: 20px;
   }
 
-  /* Refresh icon */
-  .refresh-btn {
-    width: 24px;
-    height: 24px;
-  }
-
-  .refresh-btn .refresh-icon {
-    width: 16px;
-    height: 16px;
-  }
-
   /* Status tag */
   #status_tag {
     padding: 3px 10px;
@@ -2987,8 +2922,8 @@ body.dark-theme .nav-date-sub {
 
   /* Overview */
   .portfolio-overview {
-    padding: 0 0 16px;
-    margin-bottom: 20px;
+    padding: 0;
+    margin-bottom: 28px;
   }
 
   .overview-top-right {
@@ -3043,11 +2978,6 @@ body.dark-theme .nav-date-sub {
 
   .overview-pct {
     font-size: 13px;
-  }
-
-  .overview-tickers {
-    margin-top: 14px;
-    padding-top: 12px;
   }
 
   /* Summary cards */
@@ -3282,9 +3212,6 @@ body.dark-theme::after {
   display: none;
 }
 
-body.dark-theme header {
-  background: transparent;
-}
 
 body.dark-theme h1 {
   color: #f5f5f5;
@@ -3348,18 +3275,6 @@ body.dark-theme .btn {
 body.dark-theme .btn:hover {
   background: #d4d4d4;
   box-shadow: 0 4px 16px rgba(55,53,47,.15), 0 2px 8px rgba(0,0,0,.25);
-}
-
-body.dark-theme .refresh-btn {
-  color: #666;
-}
-
-body.dark-theme .refresh-btn:hover {
-  color: #ebebea;
-}
-
-body.dark-theme .refresh-btn:disabled {
-  color: #444;
 }
 
 body.dark-theme .card {
@@ -3972,6 +3887,33 @@ body.privacy-mode .sip-total-value {
   user-select: none;
   transform: translateZ(0);
   will-change: filter;
+}
+
+/* Snap card privacy blur */
+body.privacy-mode .snap-card-current {
+  filter: blur(6px);
+  user-select: none;
+  transform: translateZ(0);
+}
+
+/* P&L: blur + grayscale to mask both value and color signal (green/red).
+   !important overrides the inline style.color set by JS. */
+body.privacy-mode .snap-card-pl,
+body.privacy-mode .snap-card-pct {
+  filter: blur(6px) grayscale(1) !important;
+  user-select: none;
+  transform: translateZ(0);
+}
+
+body.dark-theme.privacy-mode .snap-card-pl,
+body.dark-theme.privacy-mode .snap-card-pct {
+  filter: blur(6px) grayscale(1) !important;
+}
+
+body.privacy-mode .snap-card-invested {
+  color: transparent;
+  text-shadow: 0 0 8px rgba(0,0,0,0.4);
+  user-select: none;
 }
 
 /* Blur invested value but keep "Inv." label visible */

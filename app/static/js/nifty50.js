@@ -1,6 +1,7 @@
 // Nifty 50 Page Application
 import { Formatter, metronFetch } from './utils.js';
 import PaginationManager from './pagination.js';
+import IndexTicker from './index-ticker.js';
 
 class Nifty50App {
   constructor() {
@@ -15,6 +16,7 @@ class Nifty50App {
     this.setupHeaderSortListeners();
     this.renderNifty50Table();
     this._startRelativeStatusUpdater();
+    new IndexTicker().init();
 
     try {
       // Check backend state before deciding what to do
