@@ -24,27 +24,29 @@ from ..logging_config import logger
 
 
 class MarketDataClient:
-    """Client for stock/ETF quotes and market index data via Yahoo Finance.
+    """Client for stock/ETF quotes and market index data.
 
-    NSE is used only for fetching the Nifty 50 constituent symbol list.
+    NSE India is used for individual symbol lookups (returns LTP + ISIN).
+    Yahoo Finance is used for bulk async LTP fetching (batch-capable).
     """
+
+    # Shared NSE session across all instances (cookies persist between calls).
+    _nse_session: "requests.Session | None" = None
+    _nse_session_lock = threading.Lock()
 
     def __init__(self):
         """Initialize the market data client."""
-        self.base_url = NSE_BASE_URL  # used for Nifty 50 symbol list only
+        self.base_url = NSE_BASE_URL
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Accept": "application/json",
             "Accept-Language": "en-US,en;q=0.9",
+            "Referer": f"{NSE_BASE_URL}/",
         }
         self.timeout = NSE_REQUEST_TIMEOUT
 
     def _create_session(self) -> requests.Session:
-        """Create and initialize an NSE session with cookies.
-
-        Returns:
-            Configured requests.Session instance
-        """
+        """Create and initialise an NSE session by visiting the homepage for cookies."""
         try:
             session = requests.Session()
             session.get(self.base_url, headers=self.headers, timeout=self.timeout)
@@ -58,6 +60,19 @@ class MarketDataClient:
         except Exception as e:
             logger.error("Error creating NSE session: %s", str(e))
             raise
+
+    def _get_nse_session(self) -> "requests.Session":
+        """Return the shared NSE session, creating it if absent."""
+        with MarketDataClient._nse_session_lock:
+            if MarketDataClient._nse_session is None:
+                MarketDataClient._nse_session = self._create_session()
+            return MarketDataClient._nse_session
+
+    def _refresh_nse_session(self) -> "requests.Session":
+        """Force-create a fresh NSE session (called on cookie expiry / 403)."""
+        with MarketDataClient._nse_session_lock:
+            MarketDataClient._nse_session = self._create_session()
+            return MarketDataClient._nse_session
 
     def fetch_nifty50_symbols(self) -> list[str]:
         """Fetch Nifty 50 constituent symbols from NSE API.
@@ -91,6 +106,59 @@ class MarketDataClient:
         except Exception as e:
             logger.error("Error fetching Nifty 50 symbols: %s", str(e))
             return []
+
+    # ------------------------------------------------------------------
+    # NSE India – Single symbol quote (LTP + ISIN)
+    # ------------------------------------------------------------------
+
+    def fetch_nse_quote(self, symbol: str) -> dict[str, Any] | None:
+        """Fetch quote data + ISIN for a single NSE stock/ETF symbol.
+
+        Uses the NSE ``quote-equity`` endpoint which returns both price data
+        and the ISIN in one call.  Retries once with a fresh session on 403
+        (expired cookie).
+
+        Returns a dict with ``ltp``, ``change``, ``pChange``, ``isin`` and
+        ``symbol``, or ``None`` on any failure.
+        """
+        url = f"{self.base_url}/api/quote-equity?symbol={quote(symbol)}"
+        logger.debug("Fetching NSE quote for %s", symbol)
+
+        for attempt in range(2):
+            try:
+                session = self._get_nse_session() if attempt == 0 else self._refresh_nse_session()
+                resp = session.get(url, headers=self.headers, timeout=self.timeout)
+
+                if resp.status_code == 403 and attempt == 0:
+                    logger.debug("NSE 403 for %s — refreshing session and retrying", symbol)
+                    continue
+
+                if resp.status_code != 200:
+                    logger.warning("NSE HTTP %d for %s", resp.status_code, symbol)
+                    return None
+
+                data = resp.json()
+                price_info = data.get("priceInfo", {})
+                ltp = price_info.get("lastPrice", 0)
+                if not ltp:
+                    return None
+
+                return {
+                    "symbol": symbol,
+                    "ltp": round(float(ltp), 2),
+                    "change": round(float(price_info.get("change", 0)), 2),
+                    "pChange": round(float(price_info.get("pChange", 0)), 2),
+                    "isin": data.get("info", {}).get("isin", "").strip().upper(),
+                }
+
+            except (Timeout, ConnectionError) as e:
+                logger.warning("NSE quote network error for %s: %s", symbol, e)
+                return None
+            except Exception as e:
+                logger.error("Unexpected NSE quote error for %s: %s", symbol, e, exc_info=True)
+                return None
+
+        return None
 
     # ------------------------------------------------------------------
     # Yahoo Finance – Stock / ETF quotes

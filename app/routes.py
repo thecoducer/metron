@@ -617,15 +617,23 @@ def _build_stocks_data(user):
 
 
 def _validate_nse_symbol(symbol: str) -> dict | None:
-    """Validate a symbol by fetching its quote via Yahoo Finance.
+    """Validate a symbol and return its quote (with ISIN when available).
 
-    Returns the quote dict (with 'ltp' > 0) if valid, or None if the
-    symbol does not exist or the fetch fails.
+    Tries NSE India first — returns LTP + ISIN in one call.
+    Falls back to Yahoo Finance if NSE is unreachable (no ISIN in that case).
+    Returns None when the symbol does not exist on the exchange.
     """
     from .api.market_data import MarketDataClient
 
+    client = MarketDataClient()
     try:
-        client = MarketDataClient()
+        data = client.fetch_nse_quote(symbol)
+        if data and data.get("ltp"):
+            return data
+    except Exception:
+        logger.warning("NSE validation failed for %s, trying Yahoo Finance", symbol)
+
+    try:
         data = client.fetch_stock_quote(symbol)
         if data and data.get("ltp"):
             return data
@@ -1353,14 +1361,21 @@ def sheets_add(sheet_type):
     symbol = (data.get("symbol") or "").upper()
 
     # Validate stock/ETF symbols against NSE before saving.
+    nse_isin = ""
     if sheet_type in ("stocks", "etfs") and symbol:
         quote = _validate_nse_symbol(symbol)
         if not quote:
             return jsonify({"error": f"Symbol {symbol} doesn't exist on exchange."}), 400
         # Cache the validated LTP immediately.
         manual_ltp_cache.put(symbol, quote)
+        nse_isin = quote.get("isin", "")
 
     values = [data.get(f, "") for f in cfg["fields"]]
+    # Auto-fill ISIN from NSE when the user left it blank.
+    if nse_isin and "isin" in cfg["fields"]:
+        isin_idx = cfg["fields"].index("isin")
+        if not values[isin_idx]:
+            values[isin_idx] = nse_isin
     # Default source to "manual" for user-added entries
     if "source" in cfg["fields"]:
         si = cfg["fields"].index("source")

@@ -1135,9 +1135,26 @@ class TestRouteHelpers(unittest.TestCase):
         _enrich_manual_entries_with_ltp([])  # should not raise
 
     @patch("app.api.market_data.MarketDataClient")
-    def test_validate_nse_symbol_valid(self, mock_client_cls):
+    def test_validate_nse_symbol_valid_via_nse(self, mock_client_cls):
+        """NSE quote succeeds — returns data with ISIN, Yahoo Finance not called."""
         from app.routes import _validate_nse_symbol
 
+        mock_client_cls.return_value.fetch_nse_quote.return_value = {
+            "ltp": 1500,
+            "isin": "INE009A01021",
+        }
+        result = _validate_nse_symbol("INFY")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["isin"], "INE009A01021")
+        mock_client_cls.return_value.fetch_nse_quote.assert_called_once_with("INFY")
+        mock_client_cls.return_value.fetch_stock_quote.assert_not_called()
+
+    @patch("app.api.market_data.MarketDataClient")
+    def test_validate_nse_symbol_falls_back_to_yahoo(self, mock_client_cls):
+        """NSE returns None — Yahoo Finance fallback is used."""
+        from app.routes import _validate_nse_symbol
+
+        mock_client_cls.return_value.fetch_nse_quote.return_value = None
         mock_client_cls.return_value.fetch_stock_quote.return_value = {"ltp": 1500}
         result = _validate_nse_symbol("INFY")
         self.assertIsNotNone(result)
@@ -1145,17 +1162,20 @@ class TestRouteHelpers(unittest.TestCase):
 
     @patch("app.api.market_data.MarketDataClient")
     def test_validate_nse_symbol_invalid(self, mock_client_cls):
+        """Both NSE and Yahoo Finance return no LTP — symbol is invalid."""
         from app.routes import _validate_nse_symbol
 
+        mock_client_cls.return_value.fetch_nse_quote.return_value = None
         mock_client_cls.return_value.fetch_stock_quote.return_value = {"ltp": 0}
         result = _validate_nse_symbol("FAKE")
         self.assertIsNone(result)
-        mock_client_cls.return_value.fetch_stock_quote.assert_called_once_with("FAKE")
 
     @patch("app.api.market_data.MarketDataClient")
-    def test_validate_nse_symbol_exception(self, mock_client_cls):
+    def test_validate_nse_symbol_both_fail(self, mock_client_cls):
+        """Both NSE and Yahoo Finance raise exceptions — returns None."""
         from app.routes import _validate_nse_symbol
 
+        mock_client_cls.return_value.fetch_nse_quote.return_value = None
         mock_client_cls.return_value.fetch_stock_quote.side_effect = Exception("err")
         result = _validate_nse_symbol("FAIL")
         self.assertIsNone(result)
@@ -2128,13 +2148,26 @@ class TestSheetsDeleteRoute(unittest.TestCase):
 
 class TestValidateNseSymbol(unittest.TestCase):
     @patch("app.api.market_data.MarketDataClient")
-    def test_valid_symbol(self, mock_mdc):
+    def test_valid_symbol_via_nse(self, mock_mdc):
         from app.routes import _validate_nse_symbol
 
         mock_inst = mock_mdc.return_value
+        mock_inst.fetch_nse_quote.return_value = {"ltp": 1500, "isin": "INE009A01021"}
+        result = _validate_nse_symbol("INFY")
+        self.assertEqual(result["ltp"], 1500)
+        self.assertEqual(result["isin"], "INE009A01021")
+        mock_inst.fetch_nse_quote.assert_called_once_with("INFY")
+        mock_inst.fetch_stock_quote.assert_not_called()
+
+    @patch("app.api.market_data.MarketDataClient")
+    def test_falls_back_to_yahoo_when_nse_returns_none(self, mock_mdc):
+        from app.routes import _validate_nse_symbol
+
+        mock_inst = mock_mdc.return_value
+        mock_inst.fetch_nse_quote.return_value = None
         mock_inst.fetch_stock_quote.return_value = {"ltp": 1500}
         result = _validate_nse_symbol("INFY")
-        self.assertEqual(result, {"ltp": 1500})
+        self.assertEqual(result["ltp"], 1500)
         mock_inst.fetch_stock_quote.assert_called_once_with("INFY")
 
     @patch("app.api.market_data.MarketDataClient")
@@ -2142,14 +2175,18 @@ class TestValidateNseSymbol(unittest.TestCase):
         from app.routes import _validate_nse_symbol
 
         mock_inst = mock_mdc.return_value
+        mock_inst.fetch_nse_quote.return_value = None
         mock_inst.fetch_stock_quote.return_value = None
         result = _validate_nse_symbol("FAKE")
         self.assertIsNone(result)
 
-    @patch("app.api.market_data.MarketDataClient", side_effect=Exception("err"))
-    def test_exception(self, mock_mdc):
+    @patch("app.api.market_data.MarketDataClient")
+    def test_both_sources_fail(self, mock_mdc):
         from app.routes import _validate_nse_symbol
 
+        mock_inst = mock_mdc.return_value
+        mock_inst.fetch_nse_quote.return_value = None
+        mock_inst.fetch_stock_quote.side_effect = Exception("err")
         result = _validate_nse_symbol("FAIL")
         self.assertIsNone(result)
 

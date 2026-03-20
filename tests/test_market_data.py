@@ -474,5 +474,102 @@ class TestParseYfChart(unittest.TestCase):
         self.assertEqual(result["open"], 0)
 
 
+class TestFetchNseQuote(unittest.TestCase):
+    """Tests for MarketDataClient.fetch_nse_quote."""
+
+    def setUp(self):
+        # Reset the shared session before each test so tests are isolated.
+        MarketDataClient._nse_session = None
+
+    def _make_client_with_session(self, session_mock):
+        """Return a client whose _get_nse_session returns session_mock."""
+        client = MarketDataClient()
+        client._get_nse_session = Mock(return_value=session_mock)
+        client._refresh_nse_session = Mock(return_value=session_mock)
+        return client
+
+    def _nse_response(self, ltp=1500.0, change=10.0, pchange=0.67, isin="INE009A01021"):
+        mock_resp = Mock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "info": {"symbol": "INFY", "isin": isin},
+            "priceInfo": {
+                "lastPrice": ltp,
+                "change": change,
+                "pChange": pchange,
+                "previousClose": ltp - change,
+            },
+        }
+        return mock_resp
+
+    def test_returns_ltp_and_isin(self):
+        session = Mock()
+        session.get.return_value = self._nse_response()
+        client = self._make_client_with_session(session)
+
+        result = client.fetch_nse_quote("INFY")
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["ltp"], 1500.0)
+        self.assertEqual(result["isin"], "INE009A01021")
+        self.assertEqual(result["symbol"], "INFY")
+
+    def test_refreshes_session_on_403(self):
+        fresh_session = Mock()
+        fresh_session.get.return_value = self._nse_response()
+
+        expired_session = Mock()
+        expired_resp = Mock()
+        expired_resp.status_code = 403
+        expired_session.get.return_value = expired_resp
+
+        client = MarketDataClient()
+        client._get_nse_session = Mock(return_value=expired_session)
+        client._refresh_nse_session = Mock(return_value=fresh_session)
+
+        result = client.fetch_nse_quote("INFY")
+
+        self.assertIsNotNone(result)
+        client._refresh_nse_session.assert_called_once()
+
+    def test_returns_none_on_non_200(self):
+        session = Mock()
+        resp = Mock()
+        resp.status_code = 404
+        session.get.return_value = resp
+        client = self._make_client_with_session(session)
+
+        self.assertIsNone(client.fetch_nse_quote("UNKNOWN"))
+
+    def test_returns_none_when_ltp_zero(self):
+        session = Mock()
+        session.get.return_value = self._nse_response(ltp=0)
+        client = self._make_client_with_session(session)
+
+        self.assertIsNone(client.fetch_nse_quote("INFY"))
+
+    def test_returns_none_on_timeout(self):
+        session = Mock()
+        session.get.side_effect = Timeout("slow")
+        client = self._make_client_with_session(session)
+
+        self.assertIsNone(client.fetch_nse_quote("INFY"))
+
+    def test_returns_none_on_connection_error(self):
+        session = Mock()
+        session.get.side_effect = ConnectionError("down")
+        client = self._make_client_with_session(session)
+
+        self.assertIsNone(client.fetch_nse_quote("INFY"))
+
+    def test_isin_uppercased_and_stripped(self):
+        session = Mock()
+        session.get.return_value = self._nse_response(isin="  ine009a01021  ")
+        client = self._make_client_with_session(session)
+
+        result = client.fetch_nse_quote("INFY")
+        self.assertEqual(result["isin"], "INE009A01021")
+
+
 if __name__ == "__main__":
     unittest.main()
