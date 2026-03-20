@@ -37,14 +37,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install ruff
-        run: pip install ruff
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dev dependencies
+        run: uv sync --group dev
 
       - name: Ruff check
-        run: ruff check --output-format=github .
+        run: uv run ruff check --output-format=github .
 
       - name: Ruff format
-        run: ruff format .
+        run: uv run ruff format .
 
       - name: Commit formatting changes
         if: github.event_name == 'push'
@@ -68,13 +70,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dev dependencies
+        run: uv sync --group dev
 
       - name: Run tests
-        run: pytest --tb=short -q
+        run: uv run pytest --tb=short -q
 
       - name: Test summary
         if: always()

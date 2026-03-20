@@ -1,5 +1,0 @@
-# Production dependencies (includes everything from requirements.txt)
--r requirements.txt
-
-# Production WSGI server
-gunicorn==22.0.0
