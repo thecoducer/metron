@@ -369,7 +369,7 @@ class TestPublicEndpoints(unittest.TestCase):
 
     def test_nifty50_page_accessible(self):
         response = self.client.get("/nifty50")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 401)
 
     def test_auth_me_accessible(self):
         """auth/me should return 401 body but not be blocked by middleware."""

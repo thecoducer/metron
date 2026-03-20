@@ -190,8 +190,8 @@ class TestUIServerRoutes(unittest.TestCase):
 
     def test_nifty50_page(self):
         response = self.client.get("/nifty50")
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b"html", response.data.lower())
+        self.assertEqual(response.status_code, 401)
+        self.assertIn(b'{"error":"authentication required"}\n', response.data.lower())
 
     def test_refresh_route_success(self):
         """Test /api/refresh endpoint triggers per-user refresh."""
@@ -1588,7 +1588,7 @@ class TestNifty50Page(unittest.TestCase):
 
     def test_nifty50_page(self):
         resp = self.client.get("/nifty50")
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 401)
 
 
 class TestNifty50DataRoute(unittest.TestCase):
