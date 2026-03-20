@@ -324,7 +324,6 @@ class Calculator {
 // Constants
 const GOLD_PREFIXES = ['SGB', 'GOLD'];
 const SILVER_PREFIXES = ['SILVR', 'SILVER'];
-const ETF_SUFFIXES = ['BEES', 'ETF'];
 const SGB_PREFIX = 'SGB';
 
 /**
@@ -354,21 +353,6 @@ function isSilverInstrument(symbol) {
   return SILVER_PREFIXES.some(prefix => symbol.startsWith(prefix));
 }
 
-/**
- * Check if a symbol represents an ETF instrument.
- * Uses two signals: symbol suffix (BEES, ETF) and ISIN prefix (INF for ETFs vs INE for equities).
- * @param {string} symbol - Trading symbol to check
- * @param {string} [isin] - Optional ISIN number (INF = ETF/MF, INE = equity)
- * @param {string} [manualType] - Optional manual_type from Google Sheets (e.g. 'etfs')
- * @returns {boolean} - True if symbol is an ETF (e.g., NIFTYBEES, GOLDBEES, LIQUIDETF)
- */
-function isETFInstrument(symbol, isin, manualType) {
-  const normalizedIsin = (isin || '').trim().toUpperCase();
-  if (manualType === 'etfs') return true;
-  if (normalizedIsin) return normalizedIsin.startsWith('INF');
-  if (ETF_SUFFIXES.some(suffix => symbol.endsWith(suffix))) return true;
-  return false;
-}
 
 /**
  * Fetch wrapper that attaches the app identification header.
@@ -406,4 +390,4 @@ async function metronFetch(url, options = {}) {
 
 window.metronFetch = metronFetch;
 
-export { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, isETFInstrument, metronFetch };
+export { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, metronFetch };

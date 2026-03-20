@@ -44,11 +44,16 @@ class TestFetchPortfolioData(unittest.TestCase):
         mock_pcache.set_fetch_in_progress.assert_called_once_with("user1")
         mock_state.set_portfolio_updating.assert_called_once_with(google_id="user1")
         mock_pcache.set.assert_called_once_with(
-            "user1", stocks=[{"stock": 1}], mf_holdings=[{"mf": 1}], sips=[{"sip": 1}], connected_accounts={"test"}
+            "user1",
+            stocks=[{"stock": 1}],
+            etfs=[],
+            mf_holdings=[{"mf": 1}],
+            sips=[{"sip": 1}],
+            connected_accounts={"test"},
         )
         mock_state.set_portfolio_updated.assert_called_once_with(google_id="user1", error=None)
         mock_pcache.clear_fetch_in_progress.assert_called_once_with("user1")
-        mock_sync.assert_called_once_with("user1", [{"stock": 1}], [{"mf": 1}], [{"sip": 1}], {"test"})
+        mock_sync.assert_called_once_with("user1", [{"stock": 1}], [], [{"mf": 1}], [{"sip": 1}], {"test"})
 
     @patch("app.fetchers.portfolio_cache")
     @patch("app.fetchers.zerodha_client")
@@ -95,6 +100,7 @@ class TestFetchPortfolioData(unittest.TestCase):
         mock_pcache.set.assert_called_once_with(
             "user1",
             stocks=[{"new_stock": 1}],
+            etfs=[],
             mf_holdings=[{"new_mf": 1}],
             sips=[{"new_sip": 1}],
             connected_accounts={"test"},

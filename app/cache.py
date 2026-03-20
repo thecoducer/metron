@@ -19,6 +19,7 @@ from .constants import (
 @dataclass
 class UserPortfolioData:
     stocks: list[dict[str, Any]] = field(default_factory=list)
+    etfs: list[dict[str, Any]] = field(default_factory=list)
     mf_holdings: list[dict[str, Any]] = field(default_factory=list)
     sips: list[dict[str, Any]] = field(default_factory=list)
     connected_accounts: set[str] = field(default_factory=set)
@@ -66,6 +67,7 @@ class PortfolioCacheManager:
         google_id: str,
         *,
         stocks: list = None,
+        etfs: list = None,
         mf_holdings: list = None,
         sips: list = None,
         connected_accounts: set = None,
@@ -81,6 +83,8 @@ class PortfolioCacheManager:
                 self._user_data[google_id] = data
         if stocks is not None:
             data.stocks = stocks
+        if etfs is not None:
+            data.etfs = etfs
         if mf_holdings is not None:
             data.mf_holdings = mf_holdings
         if sips is not None:

@@ -1,6 +1,6 @@
 /* Metron - Table Rendering Module */
 
-import { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, isETFInstrument } from './utils.js';
+import { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument } from './utils.js';
 
 /**
  * Build inline edit + delete action buttons for a manual-entry row.
@@ -288,8 +288,8 @@ class TableRenderer {
       const isGold = isGoldInstrument(symbol);
       const isSGB = isSGBInstrument(symbol);
       const isSilver = isSilverInstrument(symbol);
-      const isETF = isETFInstrument(symbol, isin, holding.manual_type);
-      
+      const isETF = holding.manual_type === 'etfs';
+
       // Skip ETFs - they go to the ETF table
       if (isETF) return;
       
@@ -948,7 +948,7 @@ class TableRenderer {
     holdings.forEach(holding => {
       const symbol = holding.tradingsymbol || '';
       const isin = holding.isin || '';
-      const isETF = isETFInstrument(symbol, isin, holding.manual_type);
+      const isETF = holding.manual_type === 'etfs';
 
       if (!isETF) return;
       if (isGoldInstrument(symbol) || isSilverInstrument(symbol)) return;
@@ -1002,7 +1002,7 @@ class TableRenderer {
 
     if (filteredHoldings.length === 0 && holdings.filter(h => {
       const s = h.tradingsymbol || '';
-      return isETFInstrument(s, h.isin || '', h.manual_type) && !isGoldInstrument(s) && !isSilverInstrument(s);
+      return h.manual_type === 'etfs' && !isGoldInstrument(s) && !isSilverInstrument(s);
     }).length === 0) {
       this._renderEmptyCta(tbody, 'etfs', 'ETFs', 10);
     } else {
@@ -1079,8 +1079,7 @@ class TableRenderer {
 
     holdings.forEach(holding => {
       const symbol = holding.tradingsymbol || '';
-      const isin = holding.isin || '';
-      const isETF = isETFInstrument(symbol, isin, holding.manual_type);
+      const isETF = holding.manual_type === 'etfs';
 
       if (!isETF) return;
       if (!filterFn(symbol)) return;

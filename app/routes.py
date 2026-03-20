@@ -566,11 +566,16 @@ def _build_stocks_data(user):
 
     # Only use cached broker data when at least one broker session is live;
     # when all offline, synced sheet data is the sole source of truth.
-    broker_stocks = list(user_data.stocks) if connected_accounts else []
-
-    # Tag live broker entries
-    for s in broker_stocks:
-        s.setdefault("source", "zerodha")
+    broker_stocks = []
+    if connected_accounts:
+        for s in user_data.stocks:
+            s.setdefault("source", "zerodha")
+            broker_stocks.append(s)
+        for s in user_data.etfs:
+            # Tag ETFs so the frontend can classify without ISIN/symbol heuristics.
+            s.setdefault("source", "zerodha")
+            s.setdefault("manual_type", "etfs")
+            broker_stocks.append(s)
 
     sheet_entries = []
     for sheet_type in ("stocks", "etfs"):

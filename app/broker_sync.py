@@ -45,6 +45,24 @@ def _format_num(v: Any) -> str:
     return str(v)
 
 
+_ETF_ISIN_PREFIX = "INF"
+_ETF_SYMBOL_SUFFIXES = ("BEES", "ETF")
+
+
+def is_etf_holding(holding: dict) -> bool:
+    """Return True if a broker holding is an ETF.
+
+    Uses ISIN prefix as the primary signal (INF = ETF/MF; holdings from
+    Zerodha's equity holdings() are ETFs, not MFs).  Falls back to symbol
+    suffix when ISIN is absent.
+    """
+    isin = str(holding.get("isin", "")).strip().upper()
+    if isin:
+        return isin.startswith(_ETF_ISIN_PREFIX)
+    symbol = str(holding.get("tradingsymbol", "")).upper()
+    return any(symbol.endswith(suffix) for suffix in _ETF_SYMBOL_SUFFIXES)
+
+
 def _stock_to_row(stock: dict) -> list[str]:
     """Convert a broker stock holding to a sheet row."""
     return [
@@ -56,6 +74,11 @@ def _stock_to_row(stock: dict) -> list[str]:
         str(stock.get("isin", "")).strip().upper(),
         "zerodha",
     ]
+
+
+def _etf_to_row(etf: dict) -> list[str]:
+    """Convert a broker ETF holding to a sheet row."""
+    return _stock_to_row(etf)
 
 
 def _mf_to_row(mf: dict) -> list[str]:
@@ -211,6 +234,7 @@ def _sync_one_sheet(
 def sync_broker_to_sheets(
     google_id: str,
     stocks: list[dict[str, Any]],
+    etfs: list[dict[str, Any]],
     mf_holdings: list[dict[str, Any]],
     sips: list[dict[str, Any]],
     synced_accounts: set[str] | None = None,
@@ -232,7 +256,7 @@ def sync_broker_to_sheets(
         return
 
     try:
-        _do_sync(google_id, stocks, mf_holdings, sips, synced_accounts)
+        _do_sync(google_id, stocks, etfs, mf_holdings, sips, synced_accounts)
     except Exception:
         logger.exception("Broker sync failed")
     finally:
@@ -242,6 +266,7 @@ def sync_broker_to_sheets(
 def _do_sync(
     google_id: str,
     stocks: list[dict],
+    etfs: list[dict],
     mf_holdings: list[dict],
     sips: list[dict],
     synced_accounts: set[str] | None = None,
@@ -272,7 +297,8 @@ def _do_sync(
 
     # Ensure sheet tabs have the Source column header
     tabs_to_check = [
-        (SHEET_CONFIGS[st]["sheet_name"], SHEET_CONFIGS[st]["headers"]) for st in ("stocks", "mutual_funds", "sips")
+        (SHEET_CONFIGS[st]["sheet_name"], SHEET_CONFIGS[st]["headers"])
+        for st in ("stocks", "etfs", "mutual_funds", "sips")
     ]
     try:
         client.ensure_sheet_tabs(spreadsheet_id, tabs_to_check)
@@ -282,6 +308,7 @@ def _do_sync(
     # Sync each data type
     sync_configs = [
         ("stocks", stocks, _stock_to_row),
+        ("etfs", etfs, _etf_to_row),
         ("mutual_funds", mf_holdings, _mf_to_row),
         ("sips", sips, _sip_to_row),
     ]
@@ -313,6 +340,7 @@ def _do_sync(
 def start_broker_sync_thread(
     google_id: str,
     stocks: list[dict],
+    etfs: list[dict],
     mf_holdings: list[dict],
     sips: list[dict],
     synced_accounts: set[str] | None = None,
@@ -320,7 +348,7 @@ def start_broker_sync_thread(
     """Fire a background daemon thread for broker → sheets sync."""
     threading.Thread(
         target=sync_broker_to_sheets,
-        args=(google_id, stocks, mf_holdings, sips, synced_accounts),
+        args=(google_id, stocks, etfs, mf_holdings, sips, synced_accounts),
         name=f"BrokerSync-{google_id[:8]}",
         daemon=True,
     ).start()
@@ -350,7 +378,7 @@ def delete_account_from_sheets(google_id: str, account_name: str) -> None:
     creds = credentials_from_dict(creds_dict)
     client = GoogleSheetsClient(user_credentials=creds)
 
-    for sheet_type in ("stocks", "mutual_funds", "sips"):
+    for sheet_type in ("stocks", "etfs", "mutual_funds", "sips"):
         cfg = SHEET_CONFIGS[sheet_type]
         fields = cfg["fields"]
         sheet_name = cfg["sheet_name"]

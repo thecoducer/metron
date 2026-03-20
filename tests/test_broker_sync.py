@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 from app.broker_sync import (
     _do_sync,
+    _etf_to_row,
     _format_num,
     _key_from_row,
     _mf_to_row,
@@ -14,6 +15,7 @@ from app.broker_sync import (
     _sync_one_sheet,
     _values_changed,
     delete_account_from_sheets,
+    is_etf_holding,
     start_broker_sync_thread,
     sync_broker_to_sheets,
 )
@@ -31,6 +33,71 @@ class TestFormatNum(unittest.TestCase):
 
     def test_zero(self):
         self.assertEqual(_format_num(0), "0")
+
+
+class TestIsEtfHolding(unittest.TestCase):
+    """Tests for the ETF detection helper."""
+
+    def test_inf_isin_is_etf(self):
+        """Holdings with INF ISIN prefix are ETFs (when manual_type absent)."""
+        self.assertTrue(is_etf_holding({"tradingsymbol": "NIFTYBEES", "isin": "INF204KB14I2"}))
+
+    def test_ine_isin_is_stock(self):
+        """Holdings with INE ISIN prefix are equities."""
+        self.assertFalse(is_etf_holding({"tradingsymbol": "INFY", "isin": "INE009A01021"}))
+
+    def test_bees_suffix_fallback(self):
+        """When ISIN absent, BEES suffix identifies ETF."""
+        self.assertTrue(is_etf_holding({"tradingsymbol": "GOLDBEES", "isin": ""}))
+
+    def test_etf_suffix_fallback(self):
+        """When ISIN absent, ETF suffix identifies ETF."""
+        self.assertTrue(is_etf_holding({"tradingsymbol": "LIQUIDETF", "isin": ""}))
+
+    def test_plain_stock_no_isin(self):
+        """Plain stock symbol without ISIN is not an ETF."""
+        self.assertFalse(is_etf_holding({"tradingsymbol": "HDFCBANK", "isin": ""}))
+
+    def test_missing_isin_key(self):
+        """Missing isin key treated as empty string."""
+        self.assertFalse(is_etf_holding({"tradingsymbol": "TCS"}))
+
+    def test_gold_etf_inf_isin(self):
+        """GOLDBEES with INF ISIN detected via ISIN (not symbol suffix)."""
+        self.assertTrue(is_etf_holding({"tradingsymbol": "GOLDBEES", "isin": "INF204KB14I2"}))
+
+    def test_silver_etf_inf_isin(self):
+        """Silver ETF with INF ISIN is an ETF."""
+        self.assertTrue(is_etf_holding({"tradingsymbol": "SILVERBEES", "isin": "INF204KB15I9"}))
+
+
+class TestEtfToRow(unittest.TestCase):
+    def test_etf_to_row(self):
+        """ETF row has same structure as stock row with zerodha source."""
+        etf = {
+            "tradingsymbol": "NIFTYBEES",
+            "quantity": 50,
+            "average_price": 200.5,
+            "exchange": "NSE",
+            "account": "MyAccount",
+            "isin": "INF204KB14I2",
+        }
+        row = _etf_to_row(etf)
+        self.assertEqual(row, ["NIFTYBEES", "50", "200.5", "NSE", "MyAccount", "INF204KB14I2", "zerodha"])
+
+    def test_etf_to_row_missing_isin(self):
+        """ETF without ISIN still produces valid row."""
+        etf = {
+            "tradingsymbol": "GOLDBEES",
+            "quantity": 10,
+            "average_price": 5000,
+            "exchange": "NSE",
+            "account": "MyAcc",
+        }
+        row = _etf_to_row(etf)
+        self.assertEqual(row[0], "GOLDBEES")
+        self.assertEqual(row[5], "")  # empty ISIN
+        self.assertEqual(row[6], "zerodha")
 
 
 class TestTransformFunctions(unittest.TestCase):
@@ -381,19 +448,19 @@ class TestSyncBrokerToSheets(unittest.TestCase):
 
     @patch("app.broker_sync._do_sync")
     def test_calls_do_sync(self, mock_sync):
-        sync_broker_to_sheets("user1", [{"s": 1}], [{"m": 1}], [{"sip": 1}])
-        mock_sync.assert_called_once_with("user1", [{"s": 1}], [{"m": 1}], [{"sip": 1}], None)
+        sync_broker_to_sheets("user1", [{"s": 1}], [{"e": 1}], [{"m": 1}], [{"sip": 1}])
+        mock_sync.assert_called_once_with("user1", [{"s": 1}], [{"e": 1}], [{"m": 1}], [{"sip": 1}], None)
 
     @patch("app.broker_sync._do_sync")
     def test_calls_do_sync_with_synced_accounts(self, mock_sync):
         accts = {"Mine", "Mom"}
-        sync_broker_to_sheets("user1", [], [], [], synced_accounts=accts)
-        mock_sync.assert_called_once_with("user1", [], [], [], accts)
+        sync_broker_to_sheets("user1", [], [], [], [], synced_accounts=accts)
+        mock_sync.assert_called_once_with("user1", [], [], [], [], accts)
 
     @patch("app.broker_sync._do_sync", side_effect=Exception("boom"))
     def test_exception_caught(self, mock_sync):
         # Should not raise
-        sync_broker_to_sheets("user1", [], [], [])
+        sync_broker_to_sheets("user1", [], [], [], [])
 
     @patch("app.broker_sync._do_sync")
     def test_concurrent_sync_skipped(self, mock_sync):
@@ -408,12 +475,12 @@ class TestSyncBrokerToSheets(unittest.TestCase):
 
         mock_sync.side_effect = slow_sync
 
-        t1 = threading.Thread(target=sync_broker_to_sheets, args=("user1", [], [], []))
+        t1 = threading.Thread(target=sync_broker_to_sheets, args=("user1", [], [], [], []))
         t1.start()
         barrier.wait()
 
         # Second call should skip (non-blocking acquire fails)
-        sync_broker_to_sheets("user1", [], [], [])
+        sync_broker_to_sheets("user1", [], [], [], [])
 
         t1.join(timeout=5)
         # Only one actual sync call
@@ -422,7 +489,7 @@ class TestSyncBrokerToSheets(unittest.TestCase):
     @patch("app.broker_sync._do_sync")
     def test_start_broker_sync_thread(self, mock_sync):
         """Verify sync thread is started as daemon."""
-        start_broker_sync_thread("user1", [{"s": 1}], [], [])
+        start_broker_sync_thread("user1", [{"s": 1}], [], [], [])
         import time
 
         time.sleep(0.2)
@@ -445,21 +512,49 @@ class TestDoSync(unittest.TestCase):
         mock_gsc.return_value = mock_client
         mock_sync_sheet.return_value = {"updated": 0, "added": 0, "deleted": 0}
 
-        _do_sync("user1", [{"stock": 1}], [{"mf": 1}], [{"sip": 1}])
+        _do_sync("user1", [{"stock": 1}], [{"etf": 1}], [{"mf": 1}], [{"sip": 1}])
 
-        # Should sync 3 sheet types: stocks, mutual_funds, sips
-        self.assertEqual(mock_sync_sheet.call_count, 3)
+        # Should sync 4 sheet types: stocks, etfs, mutual_funds, sips
+        self.assertEqual(mock_sync_sheet.call_count, 4)
+
+    @patch("app.api.google_auth.persist_refreshed_credentials")
+    @patch("app.broker_sync._sync_one_sheet")
+    @patch("app.api.google_sheets_client.GoogleSheetsClient")
+    @patch("app.api.google_auth.credentials_from_dict")
+    @patch("app.fetchers.get_google_creds_dict", return_value={"token": "t"})
+    @patch("app.firebase_store.get_user", return_value={"spreadsheet_id": "sid"})
+    def test_etfs_synced_to_etfs_sheet(
+        self, mock_user, mock_creds_dict, mock_creds, mock_gsc, mock_sync_sheet, mock_persist
+    ):
+        """ETFs are synced to the ETFs sheet, not the Stocks sheet."""
+        from app.api.user_sheets import SHEET_CONFIGS
+
+        mock_client = Mock()
+        mock_gsc.return_value = mock_client
+        mock_sync_sheet.return_value = {"updated": 0, "added": 0, "deleted": 0}
+
+        etfs = [{"tradingsymbol": "NIFTYBEES", "quantity": 10, "average_price": 200, "isin": "INF204KB14I2"}]
+        _do_sync("user1", [], etfs, [], [])
+
+        # Find the call that used the ETFs sheet
+        etf_sheet_name = SHEET_CONFIGS["etfs"]["sheet_name"]
+        stocks_sheet_name = SHEET_CONFIGS["stocks"]["sheet_name"]
+        called_sheet_names = [call[0][2] for call in mock_sync_sheet.call_args_list]
+        self.assertIn(etf_sheet_name, called_sheet_names)
+        # ETFs should NOT be passed to the Stocks sheet call
+        stocks_call = next(c for c in mock_sync_sheet.call_args_list if c[0][2] == stocks_sheet_name)
+        self.assertEqual(stocks_call[0][4], [])  # empty stocks list
 
     @patch("app.fetchers.get_google_creds_dict", return_value=None)
     @patch("app.firebase_store.get_user", return_value={"spreadsheet_id": "sid"})
     def test_no_credentials_skips(self, mock_user, mock_creds_dict):
         # Should not raise
-        _do_sync("user1", [], [], [])
+        _do_sync("user1", [], [], [], [])
 
     @patch("app.firebase_store.get_user", return_value=None)
     def test_no_user_skips(self, mock_user):
         # Should not raise
-        _do_sync("user1", [], [], [])
+        _do_sync("user1", [], [], [], [])
 
 
 class TestDeleteAccountFromSheets(unittest.TestCase):
@@ -496,6 +591,7 @@ class TestDeleteAccountFromSheets(unittest.TestCase):
         # Return correct data per sheet name
         sheet_data_map = {
             SHEET_CONFIGS["stocks"]["sheet_name"]: make_sheet_data("stocks"),
+            SHEET_CONFIGS["etfs"]["sheet_name"]: make_sheet_data("etfs"),
             SHEET_CONFIGS["mutual_funds"]["sheet_name"]: make_sheet_data("mutual_funds"),
             SHEET_CONFIGS["sips"]["sheet_name"]: make_sheet_data("sips"),
         }
@@ -503,8 +599,8 @@ class TestDeleteAccountFromSheets(unittest.TestCase):
 
         delete_account_from_sheets("user1", "Mom")
 
-        # Should delete 1 row (Mom) from each of the 3 sheet types
-        self.assertEqual(mock_client.batch_delete_rows.call_count, 3)
+        # Should delete 1 row (Mom) from each of the 4 sheet types
+        self.assertEqual(mock_client.batch_delete_rows.call_count, 4)
         for call in mock_client.batch_delete_rows.call_args_list:
             rows = call[0][2]
             self.assertEqual(rows, [3])  # Row 3 is Mom's row
@@ -553,6 +649,7 @@ class TestDeleteAccountFromSheets(unittest.TestCase):
 
         sheet_data_map = {
             SHEET_CONFIGS["stocks"]["sheet_name"]: legacy_stocks,
+            SHEET_CONFIGS["etfs"]["sheet_name"]: make_sheet_data("etfs"),
             SHEET_CONFIGS["mutual_funds"]["sheet_name"]: make_sheet_data("mutual_funds"),
             SHEET_CONFIGS["sips"]["sheet_name"]: make_sheet_data("sips"),
         }
@@ -560,8 +657,8 @@ class TestDeleteAccountFromSheets(unittest.TestCase):
 
         delete_account_from_sheets("user1", "Mom")
 
-        # Stocks + MF + SIP should each delete Mom row.
-        self.assertEqual(mock_client.batch_delete_rows.call_count, 3)
+        # Stocks + ETFs + MF + SIP should each delete Mom row.
+        self.assertEqual(mock_client.batch_delete_rows.call_count, 4)
 
     @patch("app.fetchers.get_google_creds_dict", return_value=None)
     @patch("app.firebase_store.get_user", return_value={"spreadsheet_id": "sid"})

@@ -5,7 +5,7 @@
  * window.__TABLE_KEY__.
  */
 
-import { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, isETFInstrument, metronFetch } from './utils.js';
+import { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, metronFetch } from './utils.js';
 import PaginationManager from './pagination.js';
 import SortManager from './sort-manager.js';
 import ThemeManager from './theme-manager.js';
@@ -478,10 +478,10 @@ class TableDetailApp {
   _filterData(data) {
     // Filter data based on table type (ETFs come from stocks endpoint)
     if (this.tableKey === 'stocks') {
-      return data.filter(h => !isETFInstrument(h.tradingsymbol || '', h.isin || '', h.manual_type));
+      return data.filter(h => h.manual_type !== 'etfs');
     }
     if (this.tableKey === 'etfs') {
-      return data.filter(h => isETFInstrument(h.tradingsymbol || '', h.isin || '', h.manual_type));
+      return data.filter(h => h.manual_type === 'etfs');
     }
     return data;
   }

@@ -367,15 +367,26 @@ def fetch_portfolio_data(google_id: str, accounts: list | None = None) -> None:
         stocks, mfs, sips, error = zerodha_client.fetch_all_accounts_data(accounts)
         if not error:
             synced_accounts = {acc.get("name", "") for acc in accounts}
+
+            from .broker_sync import is_etf_holding
+
+            pure_stocks = [s for s in stocks if not is_etf_holding(s)]
+            etfs = [s for s in stocks if is_etf_holding(s)]
+
             portfolio_cache.set(
-                google_id, stocks=stocks, mf_holdings=mfs, sips=sips, connected_accounts=synced_accounts
+                google_id,
+                stocks=pure_stocks,
+                etfs=etfs,
+                mf_holdings=mfs,
+                sips=sips,
+                connected_accounts=synced_accounts,
             )
             logger.info("Portfolio updated in fetch")
 
             # Async sync broker data to Google Sheets (fire and forget)
             from .broker_sync import start_broker_sync_thread
 
-            start_broker_sync_thread(google_id, stocks, mfs, sips, synced_accounts)
+            start_broker_sync_thread(google_id, pure_stocks, etfs, mfs, sips, synced_accounts)
         else:
             portfolio_cache.set(google_id, connected_accounts=set())
             logger.info("Broker fetch failed, will use sheet data as fallback")
