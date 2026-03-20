@@ -14,12 +14,17 @@ body.theme-transitioning *::after {
   transition: none !important;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: #ffffff;
   margin: 0;
   padding: 0;
   color: #37352f;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -3148,7 +3153,8 @@ body.dark-theme .nav-date-sub {
   }
 
   header {
-    margin-bottom: 16px;
+    margin: -12px -8px 16px;
+    padding: 12px 8px;
   }
 
   /* Stack overview tickers vertically on very small screens */
@@ -3184,6 +3190,19 @@ body.dark-theme .nav-date-sub {
   /* Allow table to scroll starting from a smaller min-width */
   table {
     min-width: 500px;
+  }
+
+  /* Correct negative margins for 8px container padding */
+  .table-scroll-wrapper {
+    margin: 0 -8px;
+    padding: 0 8px;
+  }
+
+  .market-tickers-row {
+    margin-left: -8px;
+    margin-right: -8px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   /* User profile margin */
