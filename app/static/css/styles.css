@@ -8014,6 +8014,7 @@ body.dark-theme .table-detail-title { color: #ebebea; }
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-bottom: 10vh;
   background: rgba(250, 250, 249, 0.75);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
@@ -8116,77 +8117,72 @@ body.dark-theme .pin-overlay {
   animation: dashRevealFadeUp 0.5s cubic-bezier(.16, 1, .3, 1) 0.15s both;
 }
 
-.pin-card {
-  width: 400px;
-  max-width: 92vw;
-  background: #fff;
-  border-radius: 24px;
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.03),
-    0 1px 2px rgba(0,0,0,.04),
-    0 8px 24px rgba(0,0,0,.06),
-    0 24px 48px rgba(0,0,0,.04);
-  padding: 40px 36px 32px;
-  text-align: center;
-  animation: pinCardIn .4s cubic-bezier(.16,1,.3,1);
+/* ── Metron brand mark ── */
+
+.pin-brand {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.18);
+  margin-bottom: 44px;
+  font-family: inherit;
+  user-select: none;
 }
 
-body.dark-theme .pin-card {
-  background: #1a1a1a;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.06),
-    0 1px 2px rgba(0,0,0,.2),
-    0 8px 24px rgba(0,0,0,.3),
-    0 24px 48px rgba(0,0,0,.2);
+body.dark-theme .pin-brand {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.pin-content {
+  width: 420px;
+  max-width: 94vw;
+  text-align: center;
+  animation: pinCardIn .45s cubic-bezier(.16,1,.3,1);
 }
 
 @keyframes pinCardIn {
-  from { transform: scale(.92) translateY(16px); opacity: 0; }
+  from { transform: scale(.94) translateY(20px); opacity: 0; }
   to   { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.pin-header { margin-bottom: 28px; }
+.pin-header { margin-bottom: 36px; }
 
-.pin-icon-circle {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 18px;
+.pin-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #f5f5f4, #eee);
-  color: #37352f;
-  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  color: rgba(0, 0, 0, 0.3);
 }
 
-body.dark-theme .pin-icon-circle {
-  background: linear-gradient(135deg, #2a2a2a, #222);
-  color: #d4d4d4;
-  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+body.dark-theme .pin-icon {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .pin-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: #111;
-  margin: 0 0 8px;
-  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  letter-spacing: -0.025em;
 }
 
 body.dark-theme .pin-title { color: #f0f0f0; }
 
 .pin-subtitle {
-  font-size: 13.5px;
-  color: #777;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
   margin: 0;
-  line-height: 1.55;
-  max-width: 280px;
+  line-height: 1.6;
+  max-width: 300px;
   margin-left: auto;
   margin-right: auto;
 }
 
-body.dark-theme .pin-subtitle { color: #888; }
+body.dark-theme .pin-subtitle { color: rgba(255, 255, 255, 0.35); }
 
 .pin-info {
   font-size: 11px;
@@ -8264,68 +8260,71 @@ body.dark-theme .pin-field-check.done {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 0;
-  transition: opacity .35s ease, filter .35s ease, transform .35s ease;
+  transition: opacity .3s ease, transform .3s ease;
+}
+
+.pin-input-row.pin-loading {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .pin-digit {
-  width: 44px;
-  height: 52px;
+  width: 50px;
+  height: 50px;
   text-align: center;
-  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 400;
   color: #111;
-  background: #fafaf9;
-  border: 1.5px solid #e5e4e3;
-  border-radius: 14px;
+  background: transparent;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
   outline: none;
-  transition: border-color .2s, box-shadow .2s, background .2s, transform .15s;
+  transition: border-color .2s, box-shadow .2s, background .2s, color .2s;
   caret-color: transparent;
+  line-height: 1;
 }
 
 .pin-digit:focus {
-  border-color: #37352f;
-  box-shadow: 0 0 0 3px rgba(55, 53, 47, .08), 0 2px 8px rgba(55, 53, 47, .06);
-  background: #fff;
-  transform: translateY(-1px);
+  border-color: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Filled digit indicator */
+/* Filled: solid dot */
 .pin-digit.pin-digit-filled {
-  border-color: #c4c3c1;
-  background: #f0f0ee;
-}
-
-body.dark-theme .pin-digit.pin-digit-filled {
-  border-color: #4a4a4a;
-  background: #303030;
+  background: #18181b;
+  border-color: #18181b;
+  color: #fff;
 }
 
 body.dark-theme .pin-digit {
-  background: #242424;
-  border-color: #333;
-  color: #eee;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f0f0f0;
   caret-color: transparent;
 }
 
 body.dark-theme .pin-digit:focus {
-  border-color: #999;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.06), 0 2px 8px rgba(255,255,255,.03);
-  background: #2a2a2a;
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.07);
+}
+
+body.dark-theme .pin-digit.pin-digit-filled {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(255, 255, 255, 0.88);
+  color: #0a0a0a;
 }
 
 .pin-digit-sep {
-  width: 10px;
+  width: 14px;
   height: 2px;
-  background: #d4d3d2;
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 1px;
   flex-shrink: 0;
 }
 
-body.dark-theme .pin-digit-sep { background: #3a3a3a; }
+body.dark-theme .pin-digit-sep { background: rgba(255, 255, 255, 0.1); }
 
 /* ── PIN Error Animation ── */
 
@@ -8342,18 +8341,14 @@ body.dark-theme .pin-digit-sep { background: #3a3a3a; }
 
 .pin-digit.pin-digit-error {
   border-color: #ef4444;
-  background: #fef2f2;
-  animation: pinDigitFlash .5s ease;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
 }
 
 body.dark-theme .pin-digit.pin-digit-error {
-  border-color: #dc2626;
-  background: #3a1c1c;
-}
-
-@keyframes pinDigitFlash {
-  0%   { background: #fee2e2; }
-  100% { background: #fef2f2; }
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
 }
 
 /* ── Wrong PIN attempt counter ── */
@@ -8411,15 +8406,23 @@ body.dark-theme .pin-field-group + .pin-field-group {
   border-top-color: #262626;
 }
 
-/* ── Error / Submit / Forgot ── */
+/* ── Error / Submit / Footer ── */
 
 .pin-error {
   font-size: 13px;
   color: #ef4444;
   min-height: 20px;
-  margin-bottom: 14px;
-  transition: opacity .2s;
+  margin-bottom: 16px;
   font-weight: 500;
+}
+
+.pin-error.pin-error-active {
+  animation: pinErrorFadeIn .25s cubic-bezier(.16,1,.3,1) both;
+}
+
+@keyframes pinErrorFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .pin-mismatch-msg {
@@ -8460,96 +8463,68 @@ body.dark-theme .pin-mismatch-msg::before {
   to   { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.pin-submit-btn {
-  width: 100%;
-  padding: 13px 16px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  background: #18181b;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all .3s cubic-bezier(.4,0,.2,1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
-  letter-spacing: -0.01em;
-  margin-top: 4px;
-}
-
-.pin-submit-btn:hover:not(:disabled) {
-  background: #27272a;
-  box-shadow: 0 4px 12px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08);
-  transform: translateY(-1px);
-}
-.pin-submit-btn:active:not(:disabled) {
-  transform: translateY(0) scale(.99);
-  box-shadow: 0 1px 2px rgba(0,0,0,.08);
-}
-.pin-submit-btn:disabled {
-  opacity: .35;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-body.dark-theme .pin-submit-btn {
-  background: #f0f0f0;
-  color: #111;
-  box-shadow: 0 1px 3px rgba(255,255,255,.05);
-}
-body.dark-theme .pin-submit-btn:hover:not(:disabled) {
-  background: #e0e0e0;
-  box-shadow: 0 4px 12px rgba(255,255,255,.06);
-}
-
-.pin-submit-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255,255,255,.25);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: pinSpin .7s linear infinite;
-}
-
-body.dark-theme .pin-submit-spinner {
-  border-color: rgba(0,0,0,.12);
-  border-top-color: #111;
-}
-
 @keyframes pinSpin {
   to { transform: rotate(360deg); }
 }
 
-.pin-forgot-btn {
-  display: inline-block;
-  margin-top: 16px;
-  padding: 4px 12px;
+.pin-footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.pin-footer-sep {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.18);
+  user-select: none;
+  line-height: 1;
+}
+
+body.dark-theme .pin-footer-sep { color: rgba(255, 255, 255, 0.18); }
+
+.pin-text-btn {
+  padding: 5px 10px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
-  color: #aaa;
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
-  text-decoration: none;
   transition: color .2s, background .2s;
   letter-spacing: 0.01em;
 }
 
-.pin-forgot-btn:hover {
-  color: #ef4444;
-  background: rgba(239,68,68,.06);
+.pin-forgot-btn {
+  color: rgba(0, 0, 0, 0.35);
 }
 
-body.dark-theme .pin-forgot-btn { color: #555; }
+.pin-forgot-btn:hover {
+  color: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.pin-logout-btn {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.pin-logout-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.07);
+}
+
+body.dark-theme .pin-forgot-btn { color: rgba(255, 255, 255, 0.25); }
 body.dark-theme .pin-forgot-btn:hover {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-theme .pin-logout-btn { color: rgba(255, 255, 255, 0.25); }
+body.dark-theme .pin-logout-btn:hover {
   color: #f87171;
-  background: rgba(248,113,113,.08);
+  background: rgba(248, 113, 113, 0.1);
 }
 
 /* ── PIN Reset Dialog ── */
@@ -8561,6 +8536,7 @@ body.dark-theme .pin-forgot-btn:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-bottom: 10vh;
   background: rgba(250, 250, 249, 0.75);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
@@ -8571,216 +8547,197 @@ body.dark-theme .pin-reset-dialog {
   background: rgba(10, 10, 10, 0.8);
 }
 
-.pin-reset-card {
-  width: 400px;
-  max-width: 92vw;
-  background: #fff;
-  border-radius: 24px;
-  padding: 40px 36px 32px;
+.pin-reset-content {
+  width: 420px;
+  max-width: 94vw;
   text-align: center;
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.03),
-    0 1px 2px rgba(0,0,0,.04),
-    0 8px 24px rgba(0,0,0,.06),
-    0 24px 48px rgba(0,0,0,.04);
   animation: pinCardIn .3s cubic-bezier(.16,1,.3,1);
 }
 
-body.dark-theme .pin-reset-card {
-  background: #1a1a1a;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.06),
-    0 1px 2px rgba(0,0,0,.2),
-    0 8px 24px rgba(0,0,0,.3),
-    0 24px 48px rgba(0,0,0,.2);
-}
-
 .pin-reset-header {
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
-.pin-reset-icon-circle {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 18px;
+.pin-reset-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  color: #d97706;
-  box-shadow: 0 2px 8px rgba(217,119,6,.1);
+  color: rgba(217, 119, 6, 0.7);
 }
 
-body.dark-theme .pin-reset-icon-circle {
-  background: linear-gradient(135deg, #422006, #3a1c04);
-  color: #fbbf24;
-  box-shadow: 0 2px 8px rgba(251,191,36,.1);
+body.dark-theme .pin-reset-icon {
+  color: rgba(251, 191, 36, 0.6);
 }
 
 .pin-reset-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: #111;
-  margin: 0 0 8px;
-  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  letter-spacing: -0.025em;
 }
 
 body.dark-theme .pin-reset-title { color: #f0f0f0; }
 
 .pin-reset-desc {
-  font-size: 13.5px;
-  color: #777;
-  line-height: 1.55;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+  line-height: 1.6;
   margin: 0;
-  max-width: 280px;
+  max-width: 300px;
   margin-left: auto;
   margin-right: auto;
 }
 
-body.dark-theme .pin-reset-desc { color: #888; }
+body.dark-theme .pin-reset-desc { color: rgba(255, 255, 255, 0.35); }
 
 .pin-reset-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .pin-reset-field-group {
-  padding-top: 4px;
+  padding-top: 0;
 }
 
 .pin-reset-prompt {
-  font-size: 13px;
-  color: #555;
-  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: rgba(0, 0, 0, 0.35);
+  margin: 0 0 16px;
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .pin-reset-prompt strong {
   font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-  font-size: 12px;
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
-  padding: 2px 8px;
-  border-radius: 5px;
+  font-size: 11.5px;
+  background: rgba(239, 68, 68, 0.08);
+  padding: 2px 7px;
+  border-radius: 4px;
   color: #dc2626;
-  border: 1px solid #fecaca;
 }
 
-body.dark-theme .pin-reset-prompt { color: #999; }
+body.dark-theme .pin-reset-prompt { color: rgba(255, 255, 255, 0.3); }
 body.dark-theme .pin-reset-prompt strong {
-  background: linear-gradient(135deg, #2a1515, #331a1a);
+  background: rgba(239, 68, 68, 0.14);
   color: #f87171;
-  border-color: #4a2020;
 }
 
 .pin-reset-input {
   display: block;
   width: 100%;
-  max-width: 220px;
-  margin: 0 auto 0;
-  padding: 12px 16px;
+  max-width: 160px;
+  margin: 0 auto;
+  padding: 8px 0 10px;
   font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-  font-size: 14px;
+  font-size: 15px;
   text-align: center;
   color: #111;
-  background: #fafaf9;
-  border: 1.5px solid #e5e4e3;
-  border-radius: 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0;
   outline: none;
-  transition: border-color .2s, box-shadow .2s, background .2s;
-  letter-spacing: 0.05em;
+  transition: border-color .2s;
+  letter-spacing: 0.12em;
 }
 
 .pin-reset-input::placeholder {
-  color: #ccc;
-  letter-spacing: 0;
+  color: rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.08em;
 }
 
 .pin-reset-input:focus {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, .08), 0 2px 8px rgba(239, 68, 68, .06);
-  background: #fff;
+  border-bottom-color: rgba(239, 68, 68, 0.5);
 }
 
-/* Matched state — green border when user types 'reset' */
 .pin-reset-input.matched {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, .1);
+  border-bottom-color: #22c55e;
 }
 
 body.dark-theme .pin-reset-input {
-  background: #242424;
-  border-color: #333;
   color: #eee;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
 }
 
-body.dark-theme .pin-reset-input::placeholder { color: #444; }
+body.dark-theme .pin-reset-input::placeholder { color: rgba(255, 255, 255, 0.2); }
 
 body.dark-theme .pin-reset-input:focus {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, .12);
-  background: #2a2a2a;
+  border-bottom-color: rgba(239, 68, 68, 0.5);
 }
 
 body.dark-theme .pin-reset-input.matched {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, .15);
+  border-bottom-color: #22c55e;
 }
 
 .pin-reset-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
+  align-items: center;
 }
 
 .pin-reset-cancel,
 .pin-reset-confirm {
-  flex: 1;
-  padding: 13px 16px;
+  padding: 9px 22px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   border: none;
-  border-radius: 14px;
+  border-radius: 9px;
   cursor: pointer;
-  transition: all .3s cubic-bezier(.4,0,.2,1);
-  letter-spacing: -0.01em;
+  transition: all .2s ease;
+  letter-spacing: 0.01em;
+  flex: none;
 }
 
 .pin-reset-cancel {
-  background: #f5f5f4;
-  color: #37352f;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  background: none;
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .pin-reset-cancel:hover {
-  background: #e8e8e7;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.65);
 }
 
-body.dark-theme .pin-reset-cancel { background: #262626; color: #ccc; }
-body.dark-theme .pin-reset-cancel:hover { background: #333; }
+body.dark-theme .pin-reset-cancel { color: rgba(255, 255, 255, 0.3); }
+body.dark-theme .pin-reset-cancel:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+}
 
 .pin-reset-confirm {
-  background: #ef4444;
-  color: #fff;
-  box-shadow: 0 1px 3px rgba(239,68,68,.2);
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
 }
 
 .pin-reset-confirm:hover:not(:disabled) {
-  background: #dc2626;
-  box-shadow: 0 4px 12px rgba(239,68,68,.25);
-  transform: translateY(-1px);
+  background: rgba(239, 68, 68, 0.16);
+  color: #b91c1c;
 }
+
 .pin-reset-confirm:active:not(:disabled) {
-  transform: translateY(0) scale(.99);
+  transform: scale(.98);
 }
+
 .pin-reset-confirm:disabled {
-  opacity: .45;
+  opacity: .35;
   cursor: not-allowed;
-  box-shadow: none;
+}
+
+body.dark-theme .pin-reset-confirm {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+body.dark-theme .pin-reset-confirm:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
 }
 
 /* ── PIN Overlay Responsive ── */
@@ -8788,10 +8745,10 @@ body.dark-theme .pin-reset-cancel:hover { background: #333; }
 /* ── PIN Overlay Responsive ── */
 
 @media (max-width: 420px) {
-  .pin-card { padding: 32px 22px 26px; width: 360px; }
-  .pin-digit { width: 38px; height: 46px; font-size: 18px; border-radius: 12px; }
-  .pin-input-row { gap: 6px; }
+  .pin-content { width: 340px; }
+  .pin-digit { width: 42px; height: 42px; font-size: 18px; }
+  .pin-input-row { gap: 7px; }
   .pin-field-group { margin-bottom: 16px; }
-  .pin-reset-card { padding: 32px 24px 26px; }
-  .pin-reset-icon-circle { width: 48px; height: 48px; border-radius: 14px; }
+  .pin-reset-content { width: 340px; }
+  .pin-icon, .pin-reset-icon { width: 56px; height: 56px; }
 }

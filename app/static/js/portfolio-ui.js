@@ -525,10 +525,9 @@ function removeDrawerAccount(name) {
   const confirmGroup = document.getElementById('pinConfirmGroup');
   const confirmRow = document.getElementById('pinConfirmRow');
   const errorEl  = document.getElementById('pinError');
-  const submitBtn = document.getElementById('pinSubmitBtn');
-  const submitText = document.getElementById('pinSubmitText');
-  const submitSpinner = document.getElementById('pinSubmitSpinner');
   const forgotBtn = document.getElementById('pinForgotBtn');
+  const logoutBtn = document.getElementById('pinLogoutBtn');
+  const footerLinks = document.getElementById('pinFooterLinks');
   const infoEl   = document.getElementById('pinInfo');
   const pinCheck1 = document.getElementById('pinCheck1');
   const pinCheck2 = document.getElementById('pinCheck2');
@@ -573,7 +572,15 @@ function removeDrawerAccount(name) {
     clearRow(inputRow);
     if (confirmRow) clearRow(confirmRow);
     errorEl.textContent = '';
-    submitBtn.disabled = true;
+    errorEl.classList.remove('pin-error-active');
+  }
+
+  function showError(html) {
+    errorEl.classList.remove('pin-error-active');
+    // Force reflow to re-trigger animation
+    void errorEl.offsetWidth;
+    errorEl.innerHTML = html;
+    if (html) errorEl.classList.add('pin-error-active');
   }
 
   function flashError(row) {
@@ -595,12 +602,12 @@ function removeDrawerAccount(name) {
         inp.value = inp.value.replace(/[^a-zA-Z0-9]/g, '').slice(-1);
         // Toggle filled-state styling
         inp.classList.toggle('pin-digit-filled', !!inp.value);
+        updateSubmitState();
         if (inp.value && i < inputs.length - 1) {
           inputs[i + 1].focus();
         } else if (inp.value && i === inputs.length - 1 && onRowComplete) {
           onRowComplete();
         }
-        updateSubmitState();
       });
       inp.addEventListener('keydown', (e) => {
         if (e.key === 'Backspace' && !inp.value && i > 0) {
@@ -608,7 +615,7 @@ function removeDrawerAccount(name) {
           inputs[i - 1].value = '';
           updateSubmitState();
         }
-        if (e.key === 'Enter') submitBtn.click();
+        if (e.key === 'Enter') handlePinSubmit();
       });
       inp.addEventListener('paste', (e) => {
         e.preventDefault();
@@ -635,28 +642,25 @@ function removeDrawerAccount(name) {
     if (pinCheck2) pinCheck2.classList.toggle('done', confirm.length === 6);
   }
 
-  wireDigitInputs(inputRow);
-  if (confirmRow) wireDigitInputs(confirmRow);
+  wireDigitInputs(inputRow, {
+    onRowComplete: () => {
+      if (mode === 'verify') handlePinSubmit();
+      else if (mode === 'setup') confirmRow.querySelector('.pin-digit')?.focus();
+    },
+  });
+  if (confirmRow) wireDigitInputs(confirmRow, {
+    onRowComplete: () => { if (mode === 'setup') handlePinSubmit(); },
+  });
 
   function updateSubmitState() {
-    if (_lockoutTimer) return; // locked out — keep disabled
-    const pin = getDigits(inputRow);
-    if (mode === 'setup') {
-      const confirm = getDigits(confirmRow);
-      submitBtn.disabled = pin.length !== 6 || confirm.length !== 6;
-    } else {
-      submitBtn.disabled = pin.length !== 6;
-    }
     updateCheckmarks();
   }
 
   let _lockoutTimer = null;
 
   function startLockout(seconds) {
-    // Disable all inputs during lockout
     inputRow.querySelectorAll('.pin-digit').forEach(d => d.disabled = true);
-    submitBtn.disabled = true;
-    forgotBtn.style.display = '';
+    if (footerLinks) footerLinks.style.display = '';
 
     function tick() {
       if (seconds <= 0) {
@@ -673,7 +677,7 @@ function removeDrawerAccount(name) {
       const timeStr = mins > 0
         ? `${mins}m ${secs.toString().padStart(2, '0')}s`
         : `${secs}s`;
-      errorEl.innerHTML = '<span class="pin-lockout-msg">Try again in <strong>' + timeStr + '</strong></span>';
+      showError('<span class="pin-lockout-msg">Try again in <strong>' + timeStr + '</strong></span>');
       seconds--;
     }
 
@@ -682,9 +686,12 @@ function removeDrawerAccount(name) {
   }
 
   function setLoading(loading) {
-    submitBtn.disabled = loading;
-    submitText.style.display = loading ? 'none' : '';
-    submitSpinner.style.display = loading ? 'inline-block' : 'none';
+    inputRow.querySelectorAll('.pin-digit').forEach(d => { d.disabled = loading; });
+    inputRow.classList.toggle('pin-loading', loading);
+    if (mode === 'setup' && confirmRow) {
+      confirmRow.querySelectorAll('.pin-digit').forEach(d => { d.disabled = loading; });
+      confirmRow.classList.toggle('pin-loading', loading);
+    }
   }
 
   // ── Show / Hide ──
@@ -695,27 +702,22 @@ function removeDrawerAccount(name) {
     clearAll();
 
     if (mode === 'setup') {
-      title.textContent = 'Create Security PIN';
-      subtitle.textContent = 'Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored — remember it carefully.';
-      submitText.textContent = 'Create PIN';
+      title.textContent = 'Create PIN';
+      if (subtitle) { subtitle.style.display = ''; subtitle.textContent = 'Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored — remember it carefully.'; }
       if (infoEl) infoEl.style.display = '';
-      // Show both rows, both always editable
       confirmGroup.style.display = '';
       if (fieldLabel1) fieldLabel1.parentElement.style.display = '';
-      forgotBtn.style.display = 'none';
-      // Reset checkmarks
+      if (footerLinks) footerLinks.style.display = 'none';
       if (pinCheck1) pinCheck1.classList.remove('done');
       if (pinCheck2) pinCheck2.classList.remove('done');
     } else {
-      title.textContent = 'Enter Security PIN';
-      subtitle.textContent = 'Enter your 6-character PIN to unlock your portfolio data.';
-      submitText.textContent = 'Unlock';
+      title.textContent = 'Enter PIN';
+      if (subtitle) subtitle.style.display = 'none';
       confirmGroup.style.display = 'none';
       if (fieldLabel1) fieldLabel1.parentElement.style.display = 'none';
-      forgotBtn.style.display = '';
+      if (footerLinks) footerLinks.style.display = '';
       if (infoEl) infoEl.style.display = 'none';
       _wrongAttempts = 0;
-      // Reset checkmark
       if (pinCheck1) pinCheck1.classList.remove('done');
     }
 
@@ -767,21 +769,19 @@ function removeDrawerAccount(name) {
 
   // ── Submit ──
 
-  submitBtn.addEventListener('click', async () => {
-    errorEl.textContent = '';
+  async function handlePinSubmit() {
     const pin = getDigits(inputRow);
-
-    if (pin.length !== 6) return; // button should be disabled — guard only
+    if (pin.length !== 6) return;
 
     if (mode === 'setup') {
       const confirm = getDigits(confirmRow);
-      if (confirm.length !== 6) return; // guard only
+      if (confirm.length !== 6) return;
       if (pin !== confirm) {
-        errorEl.innerHTML = '<span class="pin-mismatch-msg">PINs do not match — try again</span>';
+        showError('<span class="pin-mismatch-msg">PINs do not match — try again</span>');
         flashError(confirmRow);
         clearRow(confirmRow);
         updateCheckmarks();
-        confirmRow.querySelector('.pin-digit').focus();
+        confirmRow.querySelector('.pin-digit')?.focus();
         return;
       }
     }
@@ -797,7 +797,6 @@ function removeDrawerAccount(name) {
       const data = await resp.json();
       if (!resp.ok) {
         if (data.locked && data.retry_after) {
-          // Server-enforced lockout — start countdown
           console.debug('[PIN] Locked out for', data.retry_after, 's');
           flashError(inputRow);
           clearAll();
@@ -808,15 +807,15 @@ function removeDrawerAccount(name) {
           _wrongAttempts = data.attempts || (_wrongAttempts + 1);
           console.debug('[PIN] Verify failed: attempt', _wrongAttempts);
           const msg = _wrongPinMessages[(_wrongAttempts - 1) % _wrongPinMessages.length];
-          errorEl.innerHTML = msg + (_wrongAttempts >= 2
+          showError(msg + (_wrongAttempts >= 2
             ? ' <span class="pin-attempt-count">' + _wrongAttempts + ' attempt' + (_wrongAttempts !== 1 ? 's' : '') + '</span>'
-            : '');
+            : ''));
         } else {
-          errorEl.textContent = data.error || 'Setup failed';
+          showError(data.error || 'Setup failed');
         }
-        flashError(inputRow);
+        flashError(mode === 'setup' ? confirmRow : inputRow);
         clearAll();
-        inputRow.querySelector('.pin-digit').focus();
+        requestAnimationFrame(() => inputRow.querySelector('.pin-digit')?.focus());
         return;
       }
       _wrongAttempts = 0;
@@ -824,11 +823,11 @@ function removeDrawerAccount(name) {
       hideOverlay();
       if (_onComplete) _onComplete();
     } catch {
-      errorEl.textContent = 'Network error — try again';
+      showError('Network error — try again');
     } finally {
       setLoading(false);
     }
-  });
+  }
 
   // ── Forgot PIN ──
 
@@ -877,6 +876,20 @@ function removeDrawerAccount(name) {
       resetConfirm.textContent = 'Reset Everything';
     }
   });
+
+  // ── Logout ──
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      logoutBtn.disabled = true;
+      logoutBtn.textContent = 'Logging out…';
+      try {
+        await window.metronFetch('/api/auth/logout', { method: 'POST' });
+      } finally {
+        window.location.href = '/';
+      }
+    });
+  }
 
   // ── Keyboard: close reset dialog on Escape ──
   document.addEventListener('keydown', (e) => {
