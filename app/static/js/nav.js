@@ -38,24 +38,20 @@ document.addEventListener('keydown', function(event) {
   }
 });
 
-// Nav drawer backdrop click
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
+  // Nav drawer backdrop click
   var backdrop = document.getElementById('navDrawerBackdrop');
   if (backdrop) {
     backdrop.addEventListener('click', closeNavDrawer);
   }
-})();
 
-// Nav drawer close button
-(function() {
+  // Nav drawer close button
   var closeBtn = document.getElementById('navDrawerClose');
   if (closeBtn) {
     closeBtn.addEventListener('click', closeNavDrawer);
   }
-})();
 
-// User avatar dropdown toggle
-(function() {
+  // User avatar dropdown toggle
   var avatarBtn = document.getElementById('userAvatarBtn');
   var dropdown = document.getElementById('userDropdown');
   if (avatarBtn && dropdown) {
@@ -64,10 +60,8 @@ document.addEventListener('keydown', function(event) {
       dropdown.classList.toggle('open');
     });
   }
-})();
 
-// Hamburger opens nav drawer
-(function() {
+  // Hamburger opens nav drawer
   var hamburgerBtn = document.getElementById('hamburgerBtn');
   if (hamburgerBtn) {
     hamburgerBtn.addEventListener('click', function(e) {
@@ -75,4 +69,4 @@ document.addEventListener('keydown', function(event) {
       openNavDrawer();
     });
   }
-})();
+});
