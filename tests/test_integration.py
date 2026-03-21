@@ -221,7 +221,7 @@ class TestIntegration(unittest.TestCase):
 
         # Verify MF holdings
         self.assertEqual(len(mfs), 1)
-        self.assertEqual(mfs[0]["tradingsymbol"], "INF209K01157")
+        self.assertEqual(mfs[0]["isin"], "INF209K01157")
         self.assertEqual(mfs[0]["last_price_date"], "2025-11-21")
 
         # Add account info

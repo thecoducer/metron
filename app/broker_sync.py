@@ -19,6 +19,7 @@ from typing import Any
 from .api.user_sheets import SHEET_CONFIGS
 from .constants import BROKER_SYNC_LOCKS_MAX
 from .logging_config import logger
+from .utils import format_date_for_sheet
 
 # Per-user sync locks — bounded to prevent memory leaks.
 _sync_locks: dict[str, threading.Lock] = {}
@@ -84,12 +85,14 @@ def _etf_to_row(etf: dict) -> list[str]:
 def _mf_to_row(mf: dict) -> list[str]:
     """Convert a broker MF holding to a sheet row."""
     return [
-        mf.get("tradingsymbol", mf.get("fund", "")),
-        mf.get("fund", ""),
+        str(mf.get("isin", "")).strip().upper(),  # ISIN
+        mf.get("fund", ""),                        # Fund Name
         _format_num(mf.get("quantity", 0)),
         _format_num(mf.get("average_price", 0)),
         mf.get("account", ""),
         "zerodha",
+        _format_num(mf.get("last_price", 0)),                    # Latest NAV
+        format_date_for_sheet(mf.get("last_price_date", "")),  # NAV Updated Date
     ]
 
 
@@ -103,7 +106,7 @@ def _sip_to_row(sip: dict) -> list[str]:
         _format_num(sip.get("instalments", -1)),
         _format_num(sip.get("completed_instalments", 0)),
         sip.get("status", ""),
-        str(sip.get("next_instalment", "")),
+        format_date_for_sheet(sip.get("next_instalment", "")),
         sip.get("account", ""),
         "zerodha",
     ]

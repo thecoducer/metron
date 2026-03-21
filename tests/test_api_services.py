@@ -164,7 +164,7 @@ class TestHoldingsService(unittest.TestCase):
         self.assertEqual(len(stocks), 1)
         self.assertEqual(stocks[0]["tradingsymbol"], "RELIANCE")
         self.assertEqual(len(mfs), 1)
-        self.assertEqual(mfs[0]["tradingsymbol"], "MF1")
+        self.assertEqual(mfs[0]["isin"], "MF1")
         mock_add_nav_dates.assert_called_once()
 
     def test_add_nav_dates_with_instruments(self):

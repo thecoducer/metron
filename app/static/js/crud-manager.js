@@ -64,17 +64,18 @@ const SCHEMAS = {
     label: 'Mutual Fund',
     sheetType: 'mutual_funds',
     fields: [
-      { key: 'fund',     label: 'Fund Name', type: 'text',   required: true, placeholder: 'e.g. AXIS BLUECHIP FUND' },
-      { key: 'qty',      label: 'Units',     type: 'number', required: true, step: '0.001', min: '0' },
-      { key: 'avg_nav',  label: 'Avg NAV',   type: 'number', required: true, step: '0.01',  min: '0' },
-      { key: 'account',  label: 'Account',   type: 'text',   required: false, placeholder: 'e.g. Personal' },
+      { key: 'isin',      label: 'ISIN',      type: 'text',   required: false, placeholder: 'e.g. INF009K01RQ2', uppercase: true },
+      { key: 'fund_name', label: 'Fund Name', type: 'text',   required: true,  placeholder: 'Search fund name...', suggestApi: '/api/mutual_funds/search' },
+      { key: 'qty',       label: 'Units',     type: 'number', required: true,  step: '0.001', min: '0' },
+      { key: 'avg_nav',   label: 'Avg NAV',   type: 'number', required: true,  step: '0.01',  min: '0' },
+      { key: 'account',   label: 'Account',   type: 'text',   required: false, placeholder: 'e.g. Personal' },
     ],
   },
   sips: {
     label: 'SIP',
     sheetType: 'sips',
     fields: [
-      { key: 'fund',         label: 'Fund Name',    type: 'text',   required: true, placeholder: 'e.g. AXIS BLUECHIP FUND' },
+      { key: 'fund',         label: 'Fund Name',    type: 'text',   required: true, placeholder: 'Search fund name...', suggestApi: '/api/mutual_funds/search' },
       { key: 'amount',       label: 'Amount',        type: 'number', required: true, step: '1', min: '1' },
       { key: 'frequency',    label: 'Frequency',     type: 'select', required: true, options: ['MONTHLY', 'WEEKLY', 'QUARTERLY'] },
       { key: 'installments', label: 'Installments',  type: 'number', required: false, step: '1', min: '0', placeholder: '-1 for perpetual' },
@@ -377,13 +378,16 @@ class CrudManager {
     const firstInput = drawer.querySelector('input, select');
     if (firstInput) setTimeout(() => firstInput.focus(), 300);
 
-    // Wire suggestions
-    if (this._fieldSuggestions) {
-      drawer.querySelectorAll('input.crud-inline-input').forEach(inp => {
+    // Wire suggestions (static list or API-based)
+    drawer.querySelectorAll('input.crud-inline-input').forEach(inp => {
+      const fieldDef = schema.fields.find(f => f.key === inp.name);
+      if (fieldDef?.suggestApi) {
+        this._initApiSuggestDropdown(inp, fieldDef.suggestApi);
+      } else if (this._fieldSuggestions) {
         const items = this._fieldSuggestions[inp.name];
         if (items && items.length) this._initSuggestDropdown(inp, items);
-      });
-    }
+      }
+    });
 
     // Wire conditional fields
     this._initConditionalFields(drawer, schema);
@@ -591,13 +595,16 @@ class CrudManager {
     const firstInput = tr.querySelector('input, select');
     if (firstInput) setTimeout(() => firstInput.focus(), 100);
 
-    // Wire up custom suggestion dropdowns
-    if (this._fieldSuggestions) {
-      tr.querySelectorAll('input.crud-inline-input').forEach(inp => {
+    // Wire up custom suggestion dropdowns (static list or API-based)
+    tr.querySelectorAll('input.crud-inline-input').forEach(inp => {
+      const fieldDef = schema.fields.find(f => f.key === inp.name);
+      if (fieldDef?.suggestApi) {
+        this._initApiSuggestDropdown(inp, fieldDef.suggestApi);
+      } else if (this._fieldSuggestions) {
         const items = this._fieldSuggestions[inp.name];
         if (items && items.length) this._initSuggestDropdown(inp, items);
-      });
-    }
+      }
+    });
 
     // Wire up conditional field visibility (showWhen / dynamicLabel)
     this._initConditionalFields(tr, schema);
@@ -622,7 +629,7 @@ class CrudManager {
 
   _buildInlineField(f, value, datalistItems) {
     const req = f.required ? '<span class="crud-req">*</span>' : '';
-    const hasSuggestions = datalistItems && datalistItems.length > 0;
+    const hasSuggestions = (datalistItems && datalistItems.length > 0) || !!f.suggestApi;
     let input = '';
 
     if (f.type === 'select') {
@@ -794,6 +801,57 @@ class CrudManager {
       if (item) {
         inp.value = item.textContent;
         dropdown.classList.remove('open');
+      }
+    });
+
+    inp.addEventListener('blur', () => {
+      setTimeout(() => dropdown.classList.remove('open'), 150);
+    });
+  }
+
+  /**
+   * Wire up a debounced API-backed autocomplete dropdown.
+   * Fetches suggestions from apiUrl?q=<query> with a 300 ms debounce.
+   * Minimum query length is 2 characters to avoid huge result sets.
+   */
+  _initApiSuggestDropdown(inp, apiUrl) {
+    const wrap = inp.closest('.crud-suggest-wrap');
+    const dropdown = document.createElement('div');
+    dropdown.className = 'crud-suggest-dropdown';
+    wrap.appendChild(dropdown);
+
+    let debounceTimer = null;
+
+    const fetchAndRender = async (query) => {
+      if (!query || query.length < 2) { dropdown.classList.remove('open'); return; }
+      try {
+        const resp = await metronFetch(`${apiUrl}?q=${encodeURIComponent(query)}`);
+        if (!resp.ok) { dropdown.classList.remove('open'); return; }
+        const items = await resp.json();
+        if (!items.length) { dropdown.classList.remove('open'); return; }
+        dropdown.innerHTML = items.map(v => `<div class="crud-suggest-item">${this._esc(v)}</div>`).join('');
+        dropdown.classList.add('open');
+      } catch (_) {
+        dropdown.classList.remove('open');
+      }
+    };
+
+    inp.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchAndRender(inp.value.trim()), 300);
+    });
+
+    inp.addEventListener('focus', () => {
+      if (inp.value.trim().length >= 2) fetchAndRender(inp.value.trim());
+    });
+
+    dropdown.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // keep focus on input
+      const item = e.target.closest('.crud-suggest-item');
+      if (item) {
+        inp.value = item.textContent;
+        dropdown.classList.remove('open');
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
       }
     });
 

@@ -17,6 +17,7 @@ dependencies = [
     "google-auth-httplib2==0.1.1",
     "google-api-python-client==2.108.0",
     "firebase-admin==6.4.0",
+    "apscheduler>=3.11.2",
 ]
 
 [dependency-groups]

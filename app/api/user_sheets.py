@@ -67,12 +67,14 @@ ETFS_HEADERS = [
 
 MF_SHEET_NAME = "MutualFunds"
 MF_HEADERS = [
-    "Fund",
+    "ISIN",        # was "Fund" — stores ISIN / trading symbol
     "Fund Name",
     "Qty",
     "Avg NAV",
     "Account",
     "Source",
+    "Latest NAV",
+    "NAV Updated Date",
 ]
 
 SIPS_SHEET_NAME = "SIPs"
@@ -89,6 +91,11 @@ SIPS_HEADERS = [
     "Source",
 ]
 
+# Fields that hold date values and must be stored as MM/DD/YYYY in sheets.
+DATE_FIELDS: frozenset[str] = frozenset(
+    {"date", "original_investment_date", "reinvested_date", "nav_updated_date", "next_due"}
+)
+
 # Unified registry used by the CRUD API (sheet_type → config)
 SHEET_CONFIGS = {
     "stocks": {
@@ -104,7 +111,7 @@ SHEET_CONFIGS = {
     "mutual_funds": {
         "sheet_name": MF_SHEET_NAME,
         "headers": MF_HEADERS,
-        "fields": ["fund", "fund_name", "qty", "avg_nav", "account", "source"],
+        "fields": ["isin", "fund_name", "qty", "avg_nav", "account", "source", "latest_nav", "nav_updated_date"],
     },
     "sips": {
         "sheet_name": SIPS_SHEET_NAME,

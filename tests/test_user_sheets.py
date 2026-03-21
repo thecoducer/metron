@@ -44,7 +44,8 @@ class TestSheetConstants(unittest.TestCase):
 
     def test_mf_config(self):
         self.assertEqual(MF_SHEET_NAME, "MutualFunds")
-        self.assertEqual(len(MF_HEADERS), 6)
+        self.assertEqual(len(MF_HEADERS), 8)  # ISIN, Fund Name, Qty, Avg NAV, Account, Source, Latest NAV, NAV Updated Date
+        self.assertEqual(MF_HEADERS[0], "ISIN")
 
     def test_sips_config(self):
         self.assertEqual(SIPS_SHEET_NAME, "SIPs")

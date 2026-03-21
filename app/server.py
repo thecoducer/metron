@@ -84,6 +84,14 @@ def main() -> None:
         logger.info("Starting UI server at %s", dashboard_url)
         start_server(app_ui, app_config.ui_host, app_config.ui_port)
 
+        # Start background scheduler (MF data cron + initial fetch).
+        try:
+            from .scheduler import start_scheduler
+
+            start_scheduler()
+        except Exception as exc:
+            logger.warning("Scheduler start failed: %s", exc)
+
         # Eagerly initialise Firestore so the first request isn't slow.
         try:
             from .firebase_store import _db

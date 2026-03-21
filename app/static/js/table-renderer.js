@@ -414,8 +414,8 @@ class TableRenderer {
     let filteredHoldings = [];
 
     mfHoldings.forEach(mf => {
-      const fundName = mf.fund_name || mf.fund || mf.tradingsymbol;
-      const text = (fundName + (mf.fund || '') + mf.account).toLowerCase();
+      const fundName = mf.fund || mf.isin;
+      const text = (fundName + mf.account).toLowerCase();
       if (!text.includes(this.searchQuery)) return;
 
       filteredHoldings.push(mf);
@@ -435,7 +435,7 @@ class TableRenderer {
     let rowsHTML = '';
     pageData.forEach((group, index) => {
       const groupId = `mf-group-${index}`;
-      const fundName = group.holdings[0].fund_name || group.holdings[0].fund || group.holdings[0].tradingsymbol;
+      const fundName = group.holdings[0].fund || group.holdings[0].isin;
       const metrics = this._calculateAggregatedMFMetrics(group.holdings);
       rowsHTML += this._buildMFRow(fundName, group.holdings[0], metrics, {
         fundClass: this._getUpdateClass(isUpdating),
@@ -454,7 +454,7 @@ class TableRenderer {
       // Add breakdown rows if multiple accounts
       if (group.holdings.length > 1) {
         group.holdings.forEach(mf => {
-          const fundName = mf.fund_name || mf.fund || mf.tradingsymbol;
+          const fundName = mf.fund || mf.isin;
           const holdingMetrics = Calculator.calculateMFMetrics(mf);
           rowsHTML += this._buildMFBreakdownRow(fundName, mf, holdingMetrics, groupId);
         });
@@ -628,12 +628,14 @@ class TableRenderer {
   }
 
   /**
-   * Group mutual funds by fund name
+   * Group mutual funds by ISIN (falling back to fund name when ISIN is absent).
+   * ISIN-based equality ensures entries from different sources (broker vs manual)
+   * for the same fund are merged into one summary row.
    */
   _groupMFByFundName(holdings) {
     const groups = {};
     holdings.forEach(mf => {
-      const key = mf.fund || mf.tradingsymbol;
+      const key = mf.isin || mf.fund;
       if (!groups[key]) {
         groups[key] = { holdings: [] };
       }
@@ -834,10 +836,10 @@ class TableRenderer {
     const isManual = !classes.hasMultipleAccounts && mf.source === 'manual';
     const manualBadge = isManual ? '<span class="source-indicator source-manual" data-tip="Manually added"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5c0 .3-.2.5-.5.5h-9a.5.5 0 0 1-.5-.5Z"/></svg></span>' : '';
     const crudActions = isManual ? buildCrudActions('mutual_funds', mf.row_number, {
-      fund: mf.fund || mf.tradingsymbol, qty: mf.quantity,
-      avg_nav: mf.average_price, account: mf.account
+      isin: mf.isin || '', fund_name: mf.fund || '',
+      qty: mf.quantity, avg_nav: mf.average_price, account: mf.account,
     }) : '';
-    
+
     const manualAttrs = isManual ? ` data-manual-row="${mf.row_number}" data-schema="mutual_funds"` : '';
     return `<tr${manualAttrs} class="${classes.groupId ? `group-row ${classes.groupId}` : ''}" style="background-color:${Formatter.rowColor(pl)}">
   ${this._buildCell(expandBtn + mfNameCell + manualBadge, classes.fundClass)}
@@ -856,11 +858,11 @@ class TableRenderer {
     const isManual = mf.source === 'manual';
     const manualBadge = isManual ? ' <span class="source-indicator source-manual" data-tip="Manually added"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5c0 .3-.2.5-.5.5h-9a.5.5 0 0 1-.5-.5Z"/></svg></span>' : '';
     const crudActions = isManual ? buildCrudActions('mutual_funds', mf.row_number, {
-      fund: mf.fund || mf.tradingsymbol, qty: mf.quantity,
-      avg_nav: mf.average_price, account: mf.account
+      isin: mf.isin || '', fund_name: mf.fund || '',
+      qty: mf.quantity, avg_nav: mf.average_price, account: mf.account,
     }) : '';
     const manualAttrs = isManual ? ` data-manual-row="${mf.row_number}" data-schema="mutual_funds"` : '';
-    
+
     let navDateText = '';
     if (mf.last_price_date) {
       const formattedDate = Formatter.formatRelativeDate(mf.last_price_date, true);

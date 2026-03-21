@@ -114,21 +114,41 @@ class TestTransformFunctions(unittest.TestCase):
         self.assertEqual(row, ["HDFCBANK", "6", "1500", "NSE", "MyAccount", "INE040A01034", "zerodha"])
 
     def test_mf_to_row(self):
+        # Data is already normalised by HoldingsService._normalise_mf_fields before reaching here.
         mf = {
-            "tradingsymbol": "INF123",
+            "isin": "INF123",
             "fund": "Test Fund",
             "quantity": 100.5,
             "average_price": 25.75,
             "account": "MyAcc",
         }
         row = _mf_to_row(mf)
-        self.assertEqual(row, ["INF123", "Test Fund", "100.5", "25.75", "MyAcc", "zerodha"])
+        # ISIN, Fund Name, Qty, Avg NAV, Account, Source, Latest NAV, NAV Updated Date
+        self.assertEqual(row, ["INF123", "Test Fund", "100.5", "25.75", "MyAcc", "zerodha", "0", ""])
+
+    def test_mf_to_row_with_isin(self):
+        mf = {
+            "tradingsymbol": "2456_AX",
+            "fund": "Axis Bluechip Fund",
+            "quantity": 50,
+            "average_price": 40.0,
+            "account": "MyAcc",
+            "isin": "INF846K01DP8",
+            "last_price": 42.56,
+            "last_price_date": "2026-03-21",
+        }
+        row = _mf_to_row(mf)
+        # ISIN in column 0, Fund Name in column 1, Latest NAV in column 6, NAV Date in column 7
+        self.assertEqual(row[0], "INF846K01DP8")
+        self.assertEqual(row[1], "Axis Bluechip Fund")
+        self.assertEqual(row[6], "42.56")
+        self.assertEqual(row[7], "03/21/2026")
 
     def test_mf_to_row_uses_fund_fallback(self):
         mf = {"fund": "TestFund", "quantity": 10, "average_price": 20, "account": "A"}
         row = _mf_to_row(mf)
-        self.assertEqual(row[0], "TestFund")
-        self.assertEqual(row[1], "TestFund")  # fund_name from fund fallback
+        self.assertEqual(row[0], "")       # isin — empty when not provided
+        self.assertEqual(row[1], "TestFund")  # fund_name from fund
 
     def test_sip_to_row(self):
         sip = {

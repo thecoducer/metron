@@ -2466,7 +2466,16 @@ class TestBuildMfDataWithManual(unittest.TestCase):
 
     @patch(
         "app.routes._fetch_manual_entries",
-        return_value=[{"fund": "AXIS", "qty": "100", "avg_nav": "50", "account": "Manual", "row_number": 2}],
+        return_value=[
+            {
+                "isin": "INF846K01DP8",
+                "fund_name": "Axis Bluechip Fund",
+                "qty": "100",
+                "avg_nav": "50",
+                "account": "Manual",
+                "row_number": 2,
+            }
+        ],
     )
     @patch("app.routes.portfolio_cache")
     def test_manual_entries_merged(self, mock_pc, mock_manual):
@@ -2476,7 +2485,8 @@ class TestBuildMfDataWithManual(unittest.TestCase):
         mock_pc.get.return_value = UserPortfolioData(mf_holdings=[])
         result = _build_mf_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["fund"], "AXIS")
+        self.assertEqual(result[0]["fund"], "Axis Bluechip Fund")
+        self.assertEqual(result[0]["isin"], "INF846K01DP8")
         self.assertEqual(result[0]["quantity"], 100.0)
 
 

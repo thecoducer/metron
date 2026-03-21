@@ -86,6 +86,14 @@ NSE_BASE_URL = "https://www.nseindia.com"
 IBJA_BASE_URL = "https://ibjarates.com/"
 YF_BASE_URL = "https://query1.finance.yahoo.com"
 
+# Mutual fund market data (mfapi.in)
+MF_API_URL = "https://api.mfapi.in/mf/latest"
+MF_HOLDINGS_URL_TEMPLATE = "https://staticassets.zerodha.com/coin/scheme-portfolio/{isin}.json"
+MF_API_TIMEOUT = 90  # seconds — the response is large (~4 MB)
+MF_API_MAX_RETRIES = 3  # retry attempts on transient failures
+MF_API_RETRY_DELAY = 5  # base delay in seconds (exponential backoff: 5s, 10s)
+MARKET_DATA_CRON_HOUR_IST = 2  # daily refresh at 2 AM IST
+
 # External service purities (gold)
 IBJA_GOLD_PURITIES = ["999", "995", "916", "750", "585"]
 

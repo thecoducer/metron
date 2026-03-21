@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WSGI entry point for production deployment (Gunicorn on Render).
+WSGI entry point for production deployment
 
 Usage:
     gunicorn wsgi:app -c gunicorn.conf.py
@@ -37,3 +37,11 @@ def _graceful_shutdown(signum, frame):
 # Register signal handlers for graceful shutdown
 signal.signal(signal.SIGTERM, _graceful_shutdown)
 signal.signal(signal.SIGINT, _graceful_shutdown)
+
+# Start background scheduler (Market data cron job+ initial fetch).
+try:
+    from app.scheduler import start_scheduler
+
+    start_scheduler()
+except Exception as _exc:
+    logger.warning("Scheduler start failed: %s", _exc)

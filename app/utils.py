@@ -633,6 +633,21 @@ def _try_serial_date(raw_str: str):
     return _SHEETS_EPOCH + timedelta(days=num)
 
 
+def format_date_for_sheet(raw) -> str:
+    """Convert any date value to the canonical sheet format MM/DD/YYYY.
+
+    Accepts ISO strings, DD-MM-YYYY, serial numbers, and other formats
+    supported by :func:`parse_date`.  Returns an empty string when the
+    input is absent or unparseable.
+    """
+    if not raw or not str(raw).strip():
+        return ""
+    d = parse_date(raw)
+    if d is None:
+        return ""
+    return d.strftime("%m/%d/%Y")
+
+
 def parse_date(raw):
     """Parse a flexible date string into a ``datetime.date``, or *None*.
 

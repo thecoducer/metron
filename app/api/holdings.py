@@ -37,6 +37,7 @@ class HoldingsService(BaseDataService):
             stock_holdings = kite.holdings() or []
             mf_holdings = kite.mf_holdings() or []
             self._add_nav_dates(mf_holdings, kite)
+            self._normalise_mf_fields(mf_holdings)
             return stock_holdings, mf_holdings
         except (ReadTimeout, ConnectionError) as e:
             logger.warning("Kite API timeout while fetching holdings: %s", str(e))
@@ -76,6 +77,18 @@ class HoldingsService(BaseDataService):
             # Ensure all holdings have last_price_date field
             for holding in mf_holdings:
                 holding.setdefault("last_price_date", None)
+
+    def _normalise_mf_fields(self, mf_holdings: list[dict[str, Any]]) -> None:
+        """Normalise broker MF holdings to a broker-agnostic schema.
+
+        Zerodha stores the fund ISIN in ``tradingsymbol``.  This method
+        promotes it to ``isin`` and removes ``tradingsymbol`` so the rest
+        of the codebase only needs to deal with one field.
+        """
+        for mf in mf_holdings:
+            if not mf.get("isin"):
+                mf["isin"] = str(mf.get("tradingsymbol") or "").strip().upper()
+            mf.pop("tradingsymbol", None)
 
     def add_account_info(self, holdings: list[dict[str, Any]], account_name: str) -> None:
         """Add account name and calculate invested amount for holdings.

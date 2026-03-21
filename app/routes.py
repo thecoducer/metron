@@ -26,7 +26,7 @@ from .services import (
     get_user_accounts,
     session_manager,
 )
-from .utils import pin_rate_limiter
+from .utils import format_date_for_sheet, pin_rate_limiter
 
 _REAUTH_MESSAGE = "Google session expired. Please sign in again."
 _BYTES_PER_MB = 1024 * 1024
@@ -108,8 +108,10 @@ app_ui.config.update(
 @app_ui.route("/healthz", methods=["GET"])
 def healthz():
     """Health check with basic performance metrics for Render / load balancer probes."""
+    from .api.mf_market_data import mf_market_cache
+
     metrics = _collect_process_metrics()
-    return jsonify({"status": "ok", **metrics}), 200
+    return jsonify({"status": "ok", **metrics, "cron": {"market_data": mf_market_cache.status}}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -642,6 +644,58 @@ def _validate_nse_symbol(symbol: str) -> dict | None:
     return None
 
 
+def _normalize_date_values(fields: list[str], values: list) -> None:
+    """Reformat any date field in *values* to MM/DD/YYYY before saving to sheets."""
+    from .api.user_sheets import DATE_FIELDS
+
+    for i, field in enumerate(fields):
+        if field in DATE_FIELDS and i < len(values) and values[i]:
+            values[i] = format_date_for_sheet(values[i])
+
+
+def _autofill_mf_nav_from_cache(fields: list[str], values: list) -> None:
+    """Populate ISIN, latest NAV and NAV date from the MF market cache when the fund name matches.
+
+    Looks up the fund name ("fund_name" field) in the in-memory mf_market_cache.
+    If an exact match is found, fills in any empty isin, latest_nav and
+    nav_updated_date columns so manual entries have up-to-date NAV data.
+
+    Args:
+        fields: Ordered list of field names for the mutual_funds sheet config.
+        values: Mutable list of column values aligned with *fields*.
+    """
+    from .api.mf_market_data import mf_market_cache
+
+    if not mf_market_cache.is_populated:
+        return
+
+    fund_name_idx = fields.index("fund_name") if "fund_name" in fields else -1
+    if fund_name_idx < 0 or fund_name_idx >= len(values):
+        return
+
+    fund_name = str(values[fund_name_idx]).strip()
+    isin = mf_market_cache.get_isin_for_name(fund_name)
+    if not isin:
+        return
+
+    scheme = mf_market_cache.get_by_isin(isin)
+    if not scheme:
+        return
+
+    # Only fill fields that are empty — never overwrite user-provided data.
+    for field_key, value in [
+        ("isin", scheme.isin),
+        ("latest_nav", scheme.latest_nav),
+        ("nav_updated_date", format_date_for_sheet(scheme.nav_updated_date)),
+    ]:
+        if field_key in fields:
+            idx = fields.index(field_key)
+            if idx < len(values) and not values[idx]:
+                values[idx] = value
+
+    logger.debug("MF cache autofill: fund_name=%s isin=%s nav=%s", fund_name, scheme.isin, scheme.latest_nav)
+
+
 def _fetch_uncached_manual_ltps(user: dict, new_symbol: str = "") -> None:
     """Fetch LTPs for all uncached manual stock/ETF symbols after a CRUD add.
 
@@ -719,23 +773,49 @@ def _build_mf_data(user):
 
         qty = float(m.get("qty") or 0)
         avg = float(m.get("avg_nav") or 0)
-        fund_id = (m.get("fund") or "").upper()
-        fund_name = m.get("fund_name") or fund_id
+        # Column 0 is now "ISIN" (renamed from "Fund") — stores ISIN / trading symbol.
+        isin = (m.get("isin") or "").upper()
+        fund_name = m.get("fund_name") or isin
+        # Use stored latest NAV if available, otherwise fall back to avg NAV.
+        latest_nav = float(m.get("latest_nav") or 0)
+        nav_date = m.get("nav_updated_date") or None
         broker_mf.append(
             {
                 "fund": fund_name,
-                "tradingsymbol": fund_id,
+                "isin": isin,
                 "quantity": qty,
                 "average_price": avg,
-                "last_price": avg,
+                "last_price": latest_nav if latest_nav else avg,
                 "invested": qty * avg,
                 "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
-                "last_price_date": None,
+                "last_price_date": nav_date,
                 "source": source,
                 "row_number": m.get("row_number"),
             }
         )
+    _normalize_mf_names(broker_mf)
     return sorted(broker_mf, key=lambda x: x.get("fund", ""))
+
+
+def _normalize_mf_names(holdings: list[dict]) -> None:
+    """Replace broker/sheet fund names with canonical names from mfapi.in.
+
+    mfapi.in names take precedence over broker-reported names.  Equality is
+    established via ISIN so entries that share an ISIN always display the
+    same canonical name regardless of their source.
+    """
+    from .api.mf_market_data import mf_market_cache
+
+    if not mf_market_cache.is_populated:
+        return
+
+    for mf in holdings:
+        isin = (mf.get("isin") or "").upper()
+        if not isin:
+            continue
+        scheme = mf_market_cache.get_by_isin(isin)
+        if scheme:
+            mf["fund"] = scheme.scheme_name.upper()
 
 
 def _build_sips_data(user):
@@ -808,6 +888,24 @@ def mf_holdings_data():
     """Return merged broker + manual mutual fund holdings."""
     user = _current_user()
     return _json_response(_build_mf_data(user))
+
+
+@app_ui.route("/api/mutual_funds/search", methods=["GET"])
+@login_required
+def mutual_funds_search():
+    """Search mutual fund names from the in-memory mfapi.in cache.
+
+    Query params:
+      q (str): Search string — minimum 2 characters.
+
+    Returns up to 20 matching scheme names as a JSON array.
+    """
+    from .api.mf_market_data import mf_market_cache
+
+    q = request.args.get("q", "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    return jsonify(mf_market_cache.search_names(q))
 
 
 @app_ui.route("/api/sips_data", methods=["GET"])
@@ -1371,6 +1469,7 @@ def sheets_add(sheet_type):
         nse_isin = quote.get("isin", "")
 
     values = [data.get(f, "") for f in cfg["fields"]]
+    _normalize_date_values(cfg["fields"], values)
     # Auto-fill ISIN from NSE when the user left it blank.
     if nse_isin and "isin" in cfg["fields"]:
         isin_idx = cfg["fields"].index("isin")
@@ -1387,6 +1486,9 @@ def sheets_add(sheet_type):
         fi = cfg["fields"].index("fund")
         if not values[ni] and values[fi]:
             values[ni] = values[fi]
+    # Auto-populate ISIN and latest NAV from in-memory MF cache when fund name matches.
+    if sheet_type == "mutual_funds":
+        _autofill_mf_nav_from_cache(cfg["fields"], values)
 
     try:
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
@@ -1437,6 +1539,7 @@ def sheets_update(sheet_type, row_number):
         manual_ltp_cache.put(symbol, quote)
 
     values = [data.get(f, "") for f in cfg["fields"]]
+    _normalize_date_values(cfg["fields"], values)
     # Default source to "manual" for user-edited entries
     if "source" in cfg["fields"]:
         si = cfg["fields"].index("source")
@@ -1448,6 +1551,9 @@ def sheets_update(sheet_type, row_number):
         fi = cfg["fields"].index("fund")
         if not values[ni] and values[fi]:
             values[ni] = values[fi]
+    # Auto-populate ISIN and latest NAV from in-memory MF cache when fund name matches.
+    if sheet_type == "mutual_funds":
+        _autofill_mf_nav_from_cache(cfg["fields"], values)
 
     try:
         client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)

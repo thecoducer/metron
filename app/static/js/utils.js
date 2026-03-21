@@ -179,9 +179,13 @@ class Formatter {
    */
   static formatRelativeDate(dateStr, isPastDate = true) {
     if (!dateStr) return '';
-    
+
     try {
-      const date = new Date(dateStr);
+      // Normalise DD-MM-YYYY → YYYY-MM-DD so JS Date parses it correctly.
+      const normalised = /^\d{2}-\d{2}-\d{4}$/.test(dateStr)
+        ? `${dateStr.slice(6)}-${dateStr.slice(3, 5)}-${dateStr.slice(0, 2)}`
+        : dateStr;
+      const date = new Date(normalised);
       if (isNaN(date.getTime())) return '';
       
       const today = new Date();
