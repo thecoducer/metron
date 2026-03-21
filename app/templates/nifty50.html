@@ -32,18 +32,7 @@
 <nav class="nav-hamburger">
 <button class="hamburger-btn" id="hamburgerBtn" aria-label="Navigation menu" aria-expanded="false">
 <svg class="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-<svg class="hamburger-close-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 </button>
-<div class="nav-dropdown" id="navDropdown">
-<a href="/" class="nav-dropdown-item">
-<svg class="nav-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-<span>Portfolio</span>
-</a>
-<a href="/nifty50" class="nav-dropdown-item active">
-<svg class="nav-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-<span>Nifty 50</span>
-</a>
-</div>
 </nav>
 <div class="header-brand">
 <a href="/" class="brand-mark" aria-label="Metron home">
@@ -175,5 +164,27 @@ Data sources: NSE, Yahoo Finance
 <link rel="stylesheet" href="/static/css/pwa-install.css">
 <script src="/static/js/pwa-install.js"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
+<!-- Nav Drawer -->
+<div class="drawer-backdrop" id="navDrawerBackdrop"></div>
+<aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
+  <div class="drawer-header">
+    <h2 class="drawer-title">Menu</h2>
+    <button class="drawer-close" id="navDrawerClose" title="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <nav class="nav-drawer-links">
+      <a href="/" class="nav-drawer-link">
+        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Portfolio</span>
+      </a>
+      <a href="/nifty50" class="nav-drawer-link active">
+        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <span>Nifty 50</span>
+      </a>
+    </nav>
+  </div>
+</aside>
 </body>
 </html>

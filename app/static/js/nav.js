@@ -1,5 +1,27 @@
 // Shared navigation utilities (loaded by both portfolio and nifty50 pages)
 
+function openNavDrawer() {
+  var drawer = document.getElementById('navDrawer');
+  var backdrop = document.getElementById('navDrawerBackdrop');
+  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  if (!drawer || !backdrop) return;
+  drawer.classList.add('open');
+  backdrop.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'true');
+}
+
+function closeNavDrawer() {
+  var drawer = document.getElementById('navDrawer');
+  var backdrop = document.getElementById('navDrawerBackdrop');
+  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  if (!drawer || !backdrop) return;
+  drawer.classList.remove('open');
+  backdrop.classList.remove('open');
+  document.body.style.overflow = '';
+  if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'false');
+}
+
 // Close user dropdown when clicking outside
 document.addEventListener('click', function(event) {
   var dropdown = document.getElementById('userDropdown');
@@ -7,15 +29,30 @@ document.addEventListener('click', function(event) {
   if (dropdown && avatarBtn && !avatarBtn.contains(event.target) && !dropdown.contains(event.target)) {
     dropdown.classList.remove('open');
   }
-  // Close nav dropdown when clicking outside
-  var navDropdown = document.getElementById('navDropdown');
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
-  if (navDropdown && hamburgerBtn && !hamburgerBtn.contains(event.target) && !navDropdown.contains(event.target)) {
-    navDropdown.classList.remove('open');
-    hamburgerBtn.classList.remove('open');
-    hamburgerBtn.setAttribute('aria-expanded', 'false');
+});
+
+// Escape key closes nav drawer (and settings drawer if open)
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeNavDrawer();
   }
 });
+
+// Nav drawer backdrop click
+(function() {
+  var backdrop = document.getElementById('navDrawerBackdrop');
+  if (backdrop) {
+    backdrop.addEventListener('click', closeNavDrawer);
+  }
+})();
+
+// Nav drawer close button
+(function() {
+  var closeBtn = document.getElementById('navDrawerClose');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeNavDrawer);
+  }
+})();
 
 // User avatar dropdown toggle
 (function() {
@@ -29,16 +66,13 @@ document.addEventListener('click', function(event) {
   }
 })();
 
-// Hamburger navigation menu toggle
+// Hamburger opens nav drawer
 (function() {
   var hamburgerBtn = document.getElementById('hamburgerBtn');
-  var navDropdown = document.getElementById('navDropdown');
-  if (hamburgerBtn && navDropdown) {
+  if (hamburgerBtn) {
     hamburgerBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      var isOpen = navDropdown.classList.toggle('open');
-      hamburgerBtn.classList.toggle('open');
-      hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
+      openNavDrawer();
     });
   }
 })();
