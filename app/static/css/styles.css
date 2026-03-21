@@ -2034,8 +2034,6 @@ body.privacy-mode .allocation-pct {
   display: flex;
   align-items: baseline;
   gap: 5px;
-  padding-left: 16px;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .gold-rhythm-secondary::before {
@@ -2060,8 +2058,6 @@ body.privacy-mode .allocation-pct {
   align-items: baseline;
   gap: 8px;
   margin-left: auto;
-  padding-left: 16px;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .gold-rhythm-pl::before {
@@ -2178,6 +2174,10 @@ body.privacy-mode .allocation-pct {
     gap: 12px;
     padding: 12px 14px;
     flex-wrap: wrap;
+  }
+  .gold-rhythm-pl {
+    margin-left: 0;
+    width: 100%;
   }
   .gold-rhythm-segments {
     margin-left: 0;
@@ -3773,13 +3773,6 @@ body.dark-theme .gold-rhythm-invested {
   color: #777;
 }
 
-body.dark-theme .gold-rhythm-secondary {
-  border-left-color: rgba(255, 255, 255, 0.08);
-}
-
-body.dark-theme .gold-rhythm-pl {
-  border-left-color: rgba(255, 255, 255, 0.08);
-}
 
 body.dark-theme .gold-seg {
   border-left-color: rgba(255, 255, 255, 0.06);
