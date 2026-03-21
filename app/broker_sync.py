@@ -86,12 +86,12 @@ def _mf_to_row(mf: dict) -> list[str]:
     """Convert a broker MF holding to a sheet row."""
     return [
         str(mf.get("isin", "")).strip().upper(),  # ISIN
-        mf.get("fund", ""),                        # Fund Name
+        mf.get("fund", ""),  # Fund Name
         _format_num(mf.get("quantity", 0)),
         _format_num(mf.get("average_price", 0)),
         mf.get("account", ""),
         "zerodha",
-        _format_num(mf.get("last_price", 0)),                    # Latest NAV
+        _format_num(mf.get("last_price", 0)),  # Latest NAV
         format_date_for_sheet(mf.get("last_price_date", "")),  # NAV Updated Date
     ]
 

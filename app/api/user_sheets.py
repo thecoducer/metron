@@ -67,7 +67,7 @@ ETFS_HEADERS = [
 
 MF_SHEET_NAME = "MutualFunds"
 MF_HEADERS = [
-    "ISIN",        # was "Fund" — stores ISIN / trading symbol
+    "ISIN",  # was "Fund" — stores ISIN / trading symbol
     "Fund Name",
     "Qty",
     "Avg NAV",

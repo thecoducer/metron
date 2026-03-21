@@ -1532,14 +1532,21 @@ def sheets_update(sheet_type, row_number):
     symbol = (data.get("symbol") or "").upper()
 
     # Validate stock/ETF symbols against NSE before saving.
+    nse_isin = ""
     if sheet_type in ("stocks", "etfs") and symbol:
         quote = _validate_nse_symbol(symbol)
         if not quote:
             return jsonify({"error": f"Symbol {symbol} doesn't exist on exchange."}), 400
         manual_ltp_cache.put(symbol, quote)
+        nse_isin = quote.get("isin", "")
 
     values = [data.get(f, "") for f in cfg["fields"]]
     _normalize_date_values(cfg["fields"], values)
+    # Auto-fill ISIN from NSE so existing ISIN data is preserved/refreshed on edit.
+    if nse_isin and "isin" in cfg["fields"]:
+        isin_idx = cfg["fields"].index("isin")
+        if not values[isin_idx]:
+            values[isin_idx] = nse_isin
     # Default source to "manual" for user-edited entries
     if "source" in cfg["fields"]:
         si = cfg["fields"].index("source")

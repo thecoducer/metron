@@ -7122,293 +7122,142 @@ body.dark-theme .source-indicator::after {
    CRUD – Inline Form Rows (Add / Edit inside table)
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Slide-in entrance ──────────────────────────────────────── */
-@keyframes crudSlideIn {
-  0%   { opacity: 0; transform: translateY(-4px); }
-  60%  { opacity: 1; transform: translateY(1px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
 
-/* Subtle shimmer sweep on the left accent bar */
-@keyframes crudAccentShimmer {
-  0%   { background-position: 0 -100%; }
-  100% { background-position: 0 200%; }
-}
-
-.crud-inline-row {
-  background: linear-gradient(135deg, #fafafa 0%, #fafafa 100%);
-  border-left: 2.5px solid #37352f;
-  opacity: 0;
-  transform: translateY(-4px);
-  transform-origin: top center;
-  transition: opacity .25s cubic-bezier(.22,1,.36,1),
-              transform .25s cubic-bezier(.22,1,.36,1),
-              box-shadow .25s ease;
-  box-shadow: 0 1px 3px rgba(55,53,47,.05);
-  position: relative;
-}
-.crud-inline-row.open {
-  opacity: 1;
-  transform: translateY(0);
-  animation: crudSlideIn .3s cubic-bezier(.22,1,.36,1) forwards;
-  box-shadow: 0 1px 8px rgba(55,53,47,.07), 0 0 0 1px rgba(55,53,47,.03);
-}
-
-.crud-inline-row > td {
-  padding: 0 !important;
-  position: relative;
-}
-
-/* Accent bar shimmer on initial open */
-.crud-inline-row.open > td::before {
-  content: '';
-  position: absolute;
-  left: -2.5px;
-  top: 0;
-  bottom: 0;
-  width: 2.5px;
-  background: linear-gradient(180deg,
-    transparent 0%,
-    rgba(255,255,255,.5) 40%,
-    rgba(255,255,255,.5) 60%,
-    transparent 100%
-  );
-  background-size: 100% 200%;
-  animation: crudAccentShimmer .8s .2s ease-out forwards;
-  pointer-events: none;
-}
-
-.crud-inline-form {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 10px 14px;
-  flex-wrap: wrap;
-}
-
-.crud-inline-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-/* ── Staggered field entrance ───────────────────────────────── */
+/* ── CRUD form fields ────────────────────────────────────── */
 @keyframes crudFieldFadeIn {
-  0%   { opacity: 0; transform: translateY(4px); }
+  0%   { opacity: 0; transform: translateY(6px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
-.crud-inline-field {
+.crud-form-fields {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: 90px;
-  flex: 1 1 120px;
-  max-width: 190px;
-  opacity: 0;
-  animation: crudFieldFadeIn .25s cubic-bezier(.22,1,.36,1) forwards;
+  gap: 18px;
 }
-/* Stagger each field */
-.crud-inline-field:nth-child(1) { animation-delay: .06s; }
-.crud-inline-field:nth-child(2) { animation-delay: .1s; }
-.crud-inline-field:nth-child(3) { animation-delay: .14s; }
-.crud-inline-field:nth-child(4) { animation-delay: .18s; }
-.crud-inline-field:nth-child(5) { animation-delay: .22s; }
-.crud-inline-field:nth-child(6) { animation-delay: .26s; }
-.crud-inline-field:nth-child(7) { animation-delay: .30s; }
 
-.crud-inline-label {
-  font-size: 10px;
+.crud-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0;
+  animation: crudFieldFadeIn .28s cubic-bezier(.22,1,.36,1) forwards;
+}
+.crud-form-field:nth-child(1)  { animation-delay: .04s; }
+.crud-form-field:nth-child(2)  { animation-delay: .08s; }
+.crud-form-field:nth-child(3)  { animation-delay: .12s; }
+.crud-form-field:nth-child(4)  { animation-delay: .16s; }
+.crud-form-field:nth-child(5)  { animation-delay: .20s; }
+.crud-form-field:nth-child(6)  { animation-delay: .24s; }
+.crud-form-field:nth-child(7)  { animation-delay: .28s; }
+.crud-form-field:nth-child(8)  { animation-delay: .32s; }
+.crud-form-field:nth-child(9)  { animation-delay: .36s; }
+.crud-form-field:nth-child(10) { animation-delay: .40s; }
+
+.crud-field-label {
+  font-size: 11px;
   font-weight: 600;
   color: #8b8b9e;
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: .07em;
   font-family: 'Inter', sans-serif;
-  white-space: nowrap;
   transition: color .2s ease;
 }
-
-.crud-inline-label .required-star {
-  color: #ef4444;
-}
-
-/* Label highlights when its input is focused */
-.crud-inline-field:focus-within .crud-inline-label {
+.crud-form-field:focus-within .crud-field-label {
   color: #37352f;
 }
 
-.crud-inline-input {
+.crud-field-input {
   width: 100%;
-  padding: 6px 9px;
-  font-size: 12.5px;
+  padding: 11px 14px;
+  font-size: 14px;
   font-family: 'Inter', sans-serif;
-  border: 1.5px solid #e2e2ea;
-  border-radius: 6px;
-  background: #fff;
-  color: #37352f;
+  border: 1.5px solid #e4e4ec;
+  border-radius: 10px;
+  background: #fafafa;
+  color: #1a1a2e;
   outline: none;
   transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
   box-sizing: border-box;
 }
-.crud-inline-input:focus {
-  border-color: #ebebea;
-  box-shadow: 0 0 0 3px rgba(55,53,47,.1), 0 1px 2px rgba(55,53,47,.06);
+.crud-field-input:focus {
+  border-color: #1a1a2e;
+  box-shadow: 0 0 0 3px rgba(26,26,46,.08);
   background: #fff;
 }
-.crud-inline-input:hover:not(:focus) {
-  border-color: #c7c7d4;
+.crud-field-input:hover:not(:focus) {
+  border-color: #c4c4d4;
+  background: #fff;
 }
-.crud-inline-input::placeholder {
-  color: #c4c4c4;
-  font-size: 12px;
+.crud-field-input::placeholder {
+  color: #b8b8c8;
 }
-.crud-inline-input-uppercase {
+.crud-field-input--upper {
   text-transform: uppercase;
 }
-.crud-inline-input-uppercase::placeholder {
+.crud-field-input--upper::placeholder {
   text-transform: none;
 }
-.crud-inline-input-error {
+
+/* Native date input */
+input[type="date"].crud-field-input {
+  cursor: pointer;
+}
+input[type="date"].crud-field-input::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* Native select styled identically to text inputs */
+select.crud-field-select {
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  border: 1.5px solid #e4e4ec;
+  border-radius: 10px;
+  background: #fafafa;
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  box-sizing: border-box;
+  appearance: auto;
+  cursor: pointer;
+}
+select.crud-field-select:focus {
+  border-color: #1a1a2e;
+  box-shadow: 0 0 0 3px rgba(26,26,46,.08);
+  background: #fff;
+}
+
+/* Error state */
+@keyframes crudShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+.crud-field-error .crud-field-input,
+.crud-field-error select.crud-field-select {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 3px rgba(239,68,68,.1) !important;
   animation: crudShake .35s ease;
 }
-
-@keyframes crudShake {
-  0%, 100% { transform: translateX(0); }
-  20%      { transform: translateX(-3px); }
-  40%      { transform: translateX(3px); }
-  60%      { transform: translateX(-2px); }
-  80%      { transform: translateX(2px); }
+.crud-field-error .crud-field-label {
+  color: #ef4444;
 }
 
-select.crud-inline-input {
-  cursor: pointer;
+.crud-req {
+  color: #ef4444;
+  margin-left: 2px;
 }
 
-/* ── Action buttons ─────────────────────────────────────────── */
-@keyframes crudActionsIn {
-  0%   { opacity: 0; transform: scale(.85); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-.crud-inline-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding-bottom: 1px;
-  opacity: 0;
-  animation: crudActionsIn .25s .2s cubic-bezier(.22,1,.36,1) forwards;
-}
-
-.crud-inline-save,
-.crud-inline-cancel {
-  appearance: none;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  transition: background .18s ease, transform .12s ease,
-              opacity .18s ease, box-shadow .18s ease;
-}
-.crud-inline-save:active,
-.crud-inline-cancel:active {
-  transform: scale(.92);
-}
-
-.crud-inline-save {
-  background: #37352f;
-  color: #fff;
-  box-shadow: 0 1px 4px rgba(55,53,47,.25);
-}
-.crud-inline-save:hover:not(:disabled) {
-  background: #2b2a26;
-  box-shadow: 0 2px 8px rgba(55,53,47,.35);
-  transform: translateY(-1px);
-}
-.crud-inline-save:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-}
-.crud-inline-save span,
-.crud-inline-cancel span {
-  display: none;
-}
-
-/* ── Row-level saving pulse (entire row breathes) ───────────── */
-@keyframes crudRowSaving {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: .45; }
-}
-@keyframes crudRowSavingShimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.crud-inline-row.saving {
-  animation: crudRowSaving 1.4s ease-in-out infinite;
-  pointer-events: none;
-  border-left-color: #ebebea;
-}
-.crud-inline-row.validating {
-  pointer-events: none;
-  border-left-color: #f59e0b;
-}
-.crud-inline-row.validating > td::before {
-  content: 'Validating symbol…';
-  display: block;
-  font-size: 11px;
-  color: #b45309;
-  font-weight: 500;
-  padding: 2px 0 4px;
-  animation: crudPulse 1.2s ease-in-out infinite;
-}
-@keyframes crudPulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: .45; }
-}
-.crud-inline-row.saving > td::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(55,53,47,.06) 30%,
-    rgba(55,53,47,.12) 50%,
-    rgba(55,53,47,.06) 70%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: crudRowSavingShimmer 1.8s linear infinite;
-  pointer-events: none;
-}
-
-.crud-inline-cancel {
-  background: transparent;
-  color: #b0b0b8;
-}
-.crud-inline-cancel:hover {
-  background: rgba(0,0,0,.05);
-  color: #777;
-}
 
 /* ── Empty CTA row (in-table) ───────────────────────────────── */
 .crud-empty-cta-row td {
   padding: 6px 16px !important;
   text-align: center;
 }
-
-/* Mobile: when a section is empty, hide the table (headers + CTA row)
-   and the summary strip, leaving just the section title + Add button. */
 @media (max-width: 768px) {
   .section-wrapper:has(.crud-empty-cta-row) .table-scroll-wrapper {
     display: none;
@@ -7428,9 +7277,7 @@ select.crud-inline-input {
   cursor: pointer;
   transition: opacity .15s;
 }
-.crud-empty-cta:hover {
-  opacity: 0.7;
-}
+.crud-empty-cta:hover { opacity: 0.7; }
 .crud-empty-text {
   font-size: 12px;
   font-weight: 400;
@@ -7453,194 +7300,101 @@ select.crud-inline-input {
   align-items: center;
   gap: 3px;
   transition: background .15s;
-  box-shadow: none;
   line-height: 1.4;
 }
-.crud-empty-add-btn:hover {
-  background: rgba(55,53,47,.06);
-}
-.crud-empty-add-btn:active {
-  background: rgba(55,53,47,.1);
-}
-.crud-empty-add-btn svg {
-  opacity: 0.5;
-}
+.crud-empty-add-btn:hover { background: rgba(55,53,47,.06); }
+.crud-empty-add-btn:active { background: rgba(55,53,47,.1); }
+.crud-empty-add-btn svg { opacity: 0.5; }
 
-/* ── Inline form – dark theme ───────────────────────────────── */
-body.dark-theme .crud-inline-row {
-  background: linear-gradient(135deg, #1f1f1f 0%, #202020 100%);
-  border-left-color: #ebebea;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+/* ── Dark theme: form fields ────────────────────────────────── */
+body.dark-theme .crud-field-label {
+  color: #5a5a70;
 }
-body.dark-theme .crud-inline-row.open {
-  box-shadow: 0 1px 10px rgba(0,0,0,.25), 0 0 0 1px rgba(55,53,47,.08);
-}
-body.dark-theme .crud-inline-row.saving {
-  border-left-color: #ebebea;
-}
-body.dark-theme .crud-inline-row.saving > td::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(55,53,47,.05) 30%,
-    rgba(55,53,47,.1) 50%,
-    rgba(55,53,47,.05) 70%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-}
-body.dark-theme .crud-inline-row.validating {
-  border-left-color: #f59e0b;
-}
-body.dark-theme .crud-inline-row.validating > td::before {
-  color: #fbbf24;
-}
-body.dark-theme .crud-inline-label {
-  color: #6b6b7e;
-}
-body.dark-theme .crud-inline-field:focus-within .crud-inline-label {
+body.dark-theme .crud-form-field:focus-within .crud-field-label {
   color: #ebebea;
 }
-body.dark-theme .crud-inline-input {
-  background: #1e1e22;
-  border-color: #2e2e35;
-  color: #e5e5e5;
+body.dark-theme .crud-field-input {
+  background: #16161e;
+  border-color: #2a2a38;
+  color: #e8e8f0;
 }
-body.dark-theme .crud-inline-input:focus {
+body.dark-theme .crud-field-input:focus {
   border-color: #ebebea;
-  box-shadow: 0 0 0 3px rgba(55,53,47,.15), 0 1px 2px rgba(55,53,47,.08);
-  background: #222228;
+  box-shadow: 0 0 0 3px rgba(235,235,234,.08);
+  background: #1c1c26;
 }
-body.dark-theme .crud-inline-input:hover:not(:focus) {
-  border-color: #3e3e48;
+body.dark-theme .crud-field-input:hover:not(:focus) {
+  border-color: #3a3a4e;
+  background: #1a1a24;
 }
-body.dark-theme .crud-inline-input::placeholder {
-  color: #4a4a55;
+body.dark-theme .crud-field-input::placeholder {
+  color: #3e3e52;
 }
+body.dark-theme select.crud-field-select {
+  background: #16161e;
+  border-color: #2a2a38;
+  color: #e8e8f0;
+}
+body.dark-theme select.crud-field-select:focus {
+  border-color: #ebebea;
+  box-shadow: 0 0 0 3px rgba(235,235,234,.08);
+  background: #1c1c26;
+}
+body.dark-theme .crud-empty-cta { border: none; background: transparent; }
+body.dark-theme .crud-empty-text { color: #555; }
+body.dark-theme .crud-empty-add-btn { background: transparent; color: #9b9b9b; }
+body.dark-theme .crud-empty-add-btn:hover { background: rgba(255,255,255,.06); }
 
-/* ── Suggestion dropdown (custom datalist replacement) ──────── */
-.crud-suggest-wrap {
-  position: relative;
-}
-.crud-suggest-dropdown {
-  display: none;
+/* ── Custom suggest dropdown ───────────────────────────────── */
+.crud-suggest-list {
   position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  max-height: 140px;
-  overflow-y: auto;
   background: #fff;
-  border: 1.5px solid #e2e2ea;
-  border-radius: 6px;
-  margin-top: 2px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  border: 1.5px solid #e4e4ec;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(26,26,46,.12), 0 2px 8px rgba(26,26,46,.06);
+  z-index: 10;
+  overflow-y: auto;
+  max-height: 220px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
-.crud-suggest-dropdown.open { display: block; }
 .crud-suggest-item {
-  padding: 6px 10px;
-  font-size: 12.5px;
+  padding: 11px 14px;
+  font-size: 14px;
   font-family: 'Inter', sans-serif;
-  color: #37352f;
+  color: #1a1a2e;
   cursor: pointer;
-  transition: background .12s ease;
+  transition: background .1s;
+  line-height: 1.4;
 }
-.crud-suggest-item:hover {
-  background: #f0f0f0;
+.crud-suggest-item:hover,
+.crud-suggest-item.active {
+  background: #f0f0f6;
 }
-body.dark-theme .crud-suggest-dropdown {
-  background: #1e1e22;
-  border-color: #2e2e35;
-  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+body.dark-theme .crud-suggest-list {
+  background: #1c1c26;
+  border-color: #2a2a38;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
 }
 body.dark-theme .crud-suggest-item {
-  color: #e5e5e5;
+  color: #e8e8f0;
 }
-body.dark-theme .crud-suggest-item:hover {
-  background: #2a2a32;
-}
-
-body.dark-theme .crud-inline-save {
-  background: #ebebea;
-  color: #37352f;
-  box-shadow: 0 1px 6px rgba(0,0,0,.3);
-}
-body.dark-theme .crud-inline-save:hover:not(:disabled) {
-  background: #fff;
-  color: #2b2a26;
-  box-shadow: 0 2px 12px rgba(0,0,0,.45);
+body.dark-theme .crud-suggest-item:hover,
+body.dark-theme .crud-suggest-item.active {
+  background: #25253a;
 }
 
-body.dark-theme .crud-inline-cancel {
-  background: transparent;
-  color: #555;
-}
-body.dark-theme .crud-inline-cancel:hover {
-  background: rgba(255,255,255,.06);
-  color: #aaa;
-}
-body.dark-theme .crud-empty-cta {
-  border: none;
-  background: transparent;
-}
-body.dark-theme .crud-empty-text {
-  color: #555;
-}
-body.dark-theme .crud-empty-add-btn {
-  background: transparent;
-  color: #9b9b9b;
-  box-shadow: none;
-}
-body.dark-theme .crud-empty-add-btn:hover {
-  background: rgba(255,255,255,.06);
-  box-shadow: none;
-}
-
-/* ── Inline form – responsive ───────────────────────────────── */
-@media (max-width: 768px) {
-  .crud-inline-form {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    padding: 10px 12px;
-  }
-  .crud-inline-fields {
-    gap: 6px;
-  }
-  .crud-inline-field {
-    min-width: 0;
-    flex: 1 1 100%;
-    max-width: none;
-  }
-  .crud-inline-actions {
-    justify-content: flex-end;
-    padding-top: 2px;
-  }
-  .crud-inline-save span,
-  .crud-inline-cancel span {
-    display: none;
-  }
-  /* Reduce animation motion on mobile */
-  .crud-inline-field {
-    animation-delay: 0s !important;
-  }
-  .crud-empty-cta-row td {
-    padding: 12px 10px !important;
-  }
-}
-
-/* ── CRUD Drawer Modal (mobile & tablet) ────────────────────── */
+/* ── CRUD Drawer (all screen sizes) ─────────────────────── */
 .crud-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 10000;
+  background: rgba(0,0,0,.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1100;
   opacity: 0;
   visibility: hidden;
-  transition: opacity .25s ease, visibility .25s ease;
+  transition: opacity .3s ease, visibility .3s ease;
 }
 .crud-drawer-backdrop.open {
   opacity: 1;
@@ -7652,31 +7406,41 @@ body.dark-theme .crud-empty-add-btn:hover {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 10001;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  max-height: 92dvh;
   background: #fff;
   border-radius: 20px 20px 0 0;
-  max-height: 85vh;
+  box-shadow: 0 -4px 48px rgba(0,0,0,.14), 0 -1px 8px rgba(0,0,0,.06);
+  z-index: 1101;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -8px 32px rgba(0,0,0,.12);
   transform: translateY(100%);
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  transition: transform .38s cubic-bezier(.32,.72,0,1);
+  will-change: transform;
 }
 .crud-drawer.open {
   transform: translateY(0);
+}
+@media (min-width: 640px) {
+  .crud-drawer { max-width: 560px; }
+}
+@media (min-width: 1024px) {
+  .crud-drawer { max-width: 640px; }
 }
 
 .crud-drawer-handle {
   display: flex;
   justify-content: center;
-  padding: 10px 0 2px;
+  padding: 12px 0 6px;
   flex-shrink: 0;
 }
 .crud-drawer-handle::before {
   content: '';
-  width: 36px;
+  width: 40px;
   height: 4px;
-  background: #d4d4d4;
+  background: #d4d4de;
   border-radius: 2px;
 }
 
@@ -7684,14 +7448,15 @@ body.dark-theme .crud-empty-add-btn:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 20px 14px;
+  padding: 4px 24px 16px;
   flex-shrink: 0;
+  border-bottom: 1px solid #f0f0f6;
 }
 .crud-drawer-title {
   font-family: 'Inter', sans-serif;
   font-size: 17px;
-  font-weight: 650;
-  color: #111;
+  font-weight: 700;
+  color: #1a1a2e;
   letter-spacing: -.02em;
   margin: 0;
 }
@@ -7699,52 +7464,35 @@ body.dark-theme .crud-empty-add-btn:hover {
 .crud-drawer-close {
   appearance: none;
   border: none;
-  background: #f5f5f5;
-  color: #666;
+  background: #f0f0f6;
+  color: #8b8b9e;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background .15s, color .15s;
+  transition: background .15s, color .15s, transform .15s;
+  flex-shrink: 0;
 }
 .crud-drawer-close:hover {
-  background: #e5e5e5;
-  color: #111;
+  background: #e4e4ec;
+  color: #1a1a2e;
+  transform: scale(1.1);
 }
 
 .crud-drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.crud-drawer .crud-inline-field {
-  min-width: 0;
-  flex: 1 1 100%;
-  max-width: none;
-  opacity: 1;
-  animation: none;
-}
-.crud-drawer .crud-inline-label {
-  font-size: 11px;
-}
-.crud-drawer .crud-inline-input {
-  padding: 10px 12px;
-  font-size: 14px;
-  border-radius: 10px;
+  padding: 24px;
+  overscroll-behavior: contain;
 }
 
 .crud-drawer-footer {
-  padding: 14px 20px;
-  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #f0f0f6;
   display: flex;
   gap: 10px;
   flex-shrink: 0;
@@ -7754,116 +7502,86 @@ body.dark-theme .crud-empty-add-btn:hover {
   flex: 1;
   appearance: none;
   border: none;
-  background: #37352f;
+  background: #1a1a2e;
   color: #fff;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  padding: 12px 20px;
+  padding: 13px 20px;
   border-radius: 12px;
   cursor: pointer;
-  transition: background .2s, transform .1s;
-  box-shadow: 0 1px 4px rgba(55,53,47,.25);
+  transition: background .15s, transform .12s, box-shadow .15s;
+  box-shadow: 0 2px 10px rgba(26,26,46,.22);
+  letter-spacing: .01em;
 }
 .crud-drawer-save:hover:not(:disabled) {
-  background: #2b2a26;
+  background: #2d2d50;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(26,26,46,.3);
 }
-.crud-drawer-save:active:not(:disabled) {
-  transform: scale(.98);
-}
-.crud-drawer-save:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-}
+.crud-drawer-save:active:not(:disabled) { transform: scale(.98); }
+.crud-drawer-save:disabled { opacity: .45; cursor: not-allowed; }
 
 .crud-drawer-cancel {
   appearance: none;
-  border: 1px solid #e0e0e0;
-  background: #fff;
-  color: #555;
+  border: 1.5px solid #e4e4ec;
+  background: transparent;
+  color: #8b8b9e;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
-  padding: 12px 20px;
+  padding: 13px 20px;
   border-radius: 12px;
   cursor: pointer;
-  transition: background .15s, color .15s;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
 }
 .crud-drawer-cancel:hover {
-  background: #f5f5f5;
-  color: #111;
+  background: #f5f5f9;
+  color: #1a1a2e;
+  border-color: #c4c4d4;
 }
 
-/* Drawer saving state */
-.crud-drawer.saving {
-  pointer-events: none;
-}
-.crud-drawer.saving .crud-drawer-body {
-  opacity: .55;
-}
+.crud-drawer.saving { pointer-events: none; }
+.crud-drawer.saving .crud-drawer-body { opacity: .55; }
 
-/* Dark theme */
-body.dark-theme .crud-drawer-backdrop {
-  background: rgba(0,0,0,.55);
-}
+/* Dark theme: drawer */
+body.dark-theme .crud-drawer-backdrop { background: rgba(0,0,0,.65); }
 body.dark-theme .crud-drawer {
-  background: #1e1e1e;
-  box-shadow: 0 -8px 32px rgba(0,0,0,.4);
+  background: #18181f;
+  box-shadow: 0 -8px 56px rgba(0,0,0,.55);
 }
-body.dark-theme .crud-drawer-handle::before {
-  background: #444;
-}
-body.dark-theme .crud-drawer-title {
-  color: #e5e5e5;
-}
-body.dark-theme .crud-drawer-close {
-  background: #2a2a2a;
-  color: #999;
-}
-body.dark-theme .crud-drawer-close:hover {
-  background: #333;
-  color: #e5e5e5;
-}
-body.dark-theme .crud-drawer-footer {
-  border-top-color: #2a2a2a;
-}
+body.dark-theme .crud-drawer-handle::before { background: #30303e; }
+body.dark-theme .crud-drawer-header { border-bottom-color: #22222e; }
+body.dark-theme .crud-drawer-title { color: #e8e8f0; }
+body.dark-theme .crud-drawer-close { background: #22222e; color: #6a6a80; }
+body.dark-theme .crud-drawer-close:hover { background: #2a2a38; color: #e8e8f0; }
+body.dark-theme .crud-drawer-footer { border-top-color: #22222e; }
 body.dark-theme .crud-drawer-save {
   background: #ebebea;
-  color: #37352f;
+  color: #1a1a2e;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35);
 }
 body.dark-theme .crud-drawer-save:hover:not(:disabled) {
   background: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,.45);
 }
 body.dark-theme .crud-drawer-cancel {
   background: transparent;
-  border-color: #333;
-  color: #999;
+  border-color: #2a2a38;
+  color: #6a6a80;
 }
 body.dark-theme .crud-drawer-cancel:hover {
-  background: #2a2a2a;
-  color: #e5e5e5;
+  background: #22222e;
+  color: #e8e8f0;
+  border-color: #3a3a4e;
 }
 
 /* ── Reduced motion preference ──────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .crud-inline-row,
-  .crud-inline-row.open,
-  .crud-inline-field,
-  .crud-inline-actions {
+  .crud-form-field {
     animation: none !important;
-    transition-duration: 0s !important;
     opacity: 1 !important;
-    transform: none !important;
-  }
-  .crud-inline-row.open > td::before {
-    animation: none !important;
-  }
-  /* Row saving pulse is functional feedback — keep it in reduced-motion */
-  .crud-inline-row.saving {
-    animation: crudRowSaving 1.4s ease-in-out infinite !important;
-  }
-  .crud-inline-row.saving > td::after {
-    animation: none !important;
   }
 
   /* Dashboard entrance animation — instant reveal */

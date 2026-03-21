@@ -147,7 +147,7 @@ class TestTransformFunctions(unittest.TestCase):
     def test_mf_to_row_uses_fund_fallback(self):
         mf = {"fund": "TestFund", "quantity": 10, "average_price": 20, "account": "A"}
         row = _mf_to_row(mf)
-        self.assertEqual(row[0], "")       # isin — empty when not provided
+        self.assertEqual(row[0], "")  # isin — empty when not provided
         self.assertEqual(row[1], "TestFund")  # fund_name from fund
 
     def test_sip_to_row(self):
