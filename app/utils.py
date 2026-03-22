@@ -699,19 +699,54 @@ _BYTES_PER_MB = 1024 * 1024
 _REAUTH_MESSAGE = "Google session expired. Please sign in again."
 
 
+_IST = ZoneInfo("Asia/Kolkata")
+
+
+def _fmt_ist(dt: datetime | None) -> str:
+    """Format a naive or aware datetime as a human-readable IST string.
+
+    Naive datetimes are assumed to be local time (converted via astimezone).
+    Returns ``"never"`` when *dt* is None.
+    """
+    if dt is None:
+        return "never"
+    ist_dt = dt.astimezone(_IST)
+    return ist_dt.strftime("%d %b %Y, %I:%M %p IST")
+
+
+def _uptime_human(seconds: int) -> str:
+    """Convert seconds into a compact human-readable uptime string."""
+    days, remainder = divmod(seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes = remainder // 60
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    parts.append(f"{minutes}m")
+    return " ".join(parts)
+
+
 def _collect_process_metrics() -> dict[str, Any]:
-    """Collect process-level health metrics for the /healthz endpoint."""
+    """Collect process-level health metrics for the /health endpoint.
+
+    Returns only system/process telemetry — no user data or PII.
+    """
     import psutil
 
     process = psutil.Process(os.getpid())
-    mem_info = process.memory_info()
+    mem_rss = process.memory_info().rss
+    uptime_s = round(time.time() - process.create_time())
+
+    mem_mb = round(mem_rss / _BYTES_PER_MB, 1)
+    memory_display = f"{round(mem_mb / 1024, 2)} GB" if mem_mb >= 1024 else f"{mem_mb} MB"
 
     return {
-        "memory": {
-            "rss_mb": round(mem_info.rss / _BYTES_PER_MB, 1),
-        },
-        "cpu_percent": round(process.cpu_percent(interval=None), 1),
-        "uptime_seconds": round(time.time() - process.create_time()),
+        "uptime_seconds": uptime_s,
+        "uptime_human": _uptime_human(uptime_s),
+        "cpu_pct": round(psutil.cpu_percent(interval=None), 1),
+        "memory": memory_display,
         "threads": process.num_threads(),
     }
 

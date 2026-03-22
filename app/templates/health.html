@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Metron — Health</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <meta name="theme-color" content="#0f172a">
+        <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            background: #fff;
+            color: #111;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* ── Dot-grid background ─────────────────────── */
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image: radial-gradient(circle, #d1d1d1 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        body::after { display: none; }
+
+        /* ── Dark theme ─────────────────────────────── */
+
+        body.dark-theme {
+            background: #191919;
+            color: #e3e3e1;
+        }
+
+        body.dark-theme::before {
+            background-image: radial-gradient(circle, #333 1px, transparent 1px);
+            opacity: 0.25;
+        }
+
+        /* ── Header ─────────────────────────────────── */
+
+        .health-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 32px;
+            border-bottom: 1px solid rgb(0,0,0,.06);
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            gap: 16px;
+        }
+
+        body.dark-theme .health-header {
+            background: #181818;
+            border-bottom-color: rgb(255,255,255,.07);
+        }
+
+        /* ── Theme toggle button ─────────────────────── */
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #fff;
+            color: #555;
+            border: 1px solid #ebebeb;
+            cursor: pointer;
+            transition: border-color .2s, box-shadow .2s, transform .1s;
+            flex-shrink: 0;
+        }
+
+        .theme-toggle:hover {
+            border-color: #d4d4d4;
+            box-shadow: 0 2px 8px rgb(0,0,0,.04);
+        }
+
+        .theme-toggle:active { transform: scale(.97); }
+
+        body.dark-theme .theme-toggle {
+            background: #1a1a1a;
+            color: #999;
+            border-color: #2a2a2a;
+        }
+
+        body.dark-theme .theme-toggle:hover {
+            border-color: #333;
+            box-shadow: 0 2px 8px rgb(0,0,0,.2);
+        }
+
+        .theme-toggle .icon-sun  { display: block; }
+        .theme-toggle .icon-moon { display: none; }
+        body.dark-theme .theme-toggle .icon-sun  { display: none; }
+        body.dark-theme .theme-toggle .icon-moon { display: block; }
+
+        .brand-mark {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            text-decoration: none;
+            color: #111;
+        }
+
+        body.dark-theme .brand-mark { color: #e5e5e5; }
+
+        .brand-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+            position: relative;
+            box-shadow: 0 1px 4px rgb(0,0,0,.15), 0 0 0 1px rgb(255,255,255,.06) inset;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .brand-logo::before {
+            content: '';
+            position: absolute;
+            bottom: 7px;
+            left: 6px;
+            width: 4px;
+            height: 6px;
+            border-radius: 1.5px 1.5px 0 0;
+            background: rgb(255,255,255,.3);
+            box-shadow:
+                6px 0 0 0 rgb(255,255,255,.5),
+                6px -4px 0 0 rgb(255,255,255,.5),
+                12px 0 0 0 #2dd4bf,
+                12px -4px 0 0 #2dd4bf,
+                12px -8px 0 0 #2dd4bf;
+        }
+
+        .brand-logo::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 6px;
+            width: 18px;
+            height: 1px;
+            background: rgb(255,255,255,.12);
+            border-radius: 1px;
+        }
+
+        .brand-name {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        body.dark-theme .brand-name {
+            background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-clock {
+            font-size: 12px;
+            color: #999;
+            font-variant-numeric: tabular-nums;
+        }
+
+        body.dark-theme .header-clock { color: #666; }
+
+        /* ── Page layout ─────────────────────────────── */
+
+        .page {
+            position: relative;
+            z-index: 1;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* ── Page title ──────────────────────────────── */
+
+        .page-title-row {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: #111;
+        }
+
+        body.dark-theme .page-title { color: #f5f5f5; }
+
+        .page-subtitle {
+            font-size: 13px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        body.dark-theme .page-subtitle { color: #666; }
+
+        /* ── Overall status banner ───────────────────── */
+
+        .status-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+            background: #fafafa;
+            margin-bottom: 32px;
+        }
+
+        body.dark-theme .status-banner {
+            background: #141414;
+            border-color: #222;
+        }
+
+        .status-banner.ok    { border-color: rgb(34,197,94,.2);  background: rgb(34,197,94,.04);  }
+        .status-banner.warn  { border-color: rgb(234,179,8,.2);  background: rgb(234,179,8,.04);  }
+        .status-banner.error { border-color: rgb(239,68,68,.2);  background: rgb(239,68,68,.04);  }
+
+        body.dark-theme .status-banner.ok    { border-color: rgb(52,211,153,.2); background: rgb(52,211,153,.06);  }
+        body.dark-theme .status-banner.warn  { border-color: rgb(234,179,8,.2);  background: rgb(234,179,8,.06);   }
+        body.dark-theme .status-banner.error { border-color: rgb(239,68,68,.2);  background: rgb(239,68,68,.06);   }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: #bbb;
+        }
+
+        .status-dot.ok    { background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: blink 2.4s ease-in-out infinite; }
+        .status-dot.warn  { background: #eab308; box-shadow: 0 0 6px #eab308; }
+        .status-dot.error { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+
+        body.dark-theme .status-dot.ok { background: #34d399; box-shadow: 0 0 6px #34d399; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111;
+            flex: 1;
+        }
+
+        body.dark-theme .status-text { color: #f5f5f5; }
+
+        .status-meta {
+            font-size: 12px;
+            color: #999;
+        }
+
+        body.dark-theme .status-meta { color: #666; }
+
+        /* ── Section ─────────────────────────────────── */
+
+        .section { margin-bottom: 32px; }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        body.dark-theme .section-label { color: #555; }
+
+        /* ── Metric grid ─────────────────────────────── */
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .metric-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .metric-card {
+            padding: 16px 18px;
+            border-radius: 12px;
+            border: 1px solid #ebebeb;
+            background: #fafafa;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        body.dark-theme .metric-card {
+            background: #141414;
+            border-color: #1e1e1e;
+        }
+
+        .metric-card:hover {
+            border-color: #ddd;
+            box-shadow: 0 2px 8px rgb(0,0,0,.06);
+        }
+
+        body.dark-theme .metric-card:hover {
+            border-color: #2a2a2a;
+            box-shadow: 0 2px 8px rgb(0,0,0,.2);
+        }
+
+        .metric-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        body.dark-theme .metric-label { color: #555; }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #111;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        body.dark-theme .metric-value { color: #f5f5f5; }
+
+        .metric-sub {
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 5px;
+        }
+
+        body.dark-theme .metric-sub { color: #444; }
+
+        /* ── Cache table ─────────────────────────────── */
+
+        .cache-table {
+            border: 1px solid #ebebeb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        body.dark-theme .cache-table {
+            border-color: #1e1e1e;
+        }
+
+        .cache-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #fff;
+            transition: background .12s;
+        }
+
+        body.dark-theme .cache-row {
+            background: #111;
+            border-bottom-color: #1a1a1a;
+        }
+
+        .cache-row:last-child { border-bottom: none; }
+
+        .cache-row:hover { background: #fafafa; }
+        body.dark-theme .cache-row:hover { background: #141414; }
+
+        .cache-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #222;
+        }
+
+        body.dark-theme .cache-name { color: #e5e5e5; }
+
+        .cache-time {
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 2px;
+        }
+
+        body.dark-theme .cache-time { color: #444; }
+
+        .cache-count {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        body.dark-theme .cache-count { color: #888; }
+
+        .cache-count .count-sub {
+            display: block;
+            font-size: 11px;
+            color: #bbb;
+            font-weight: 400;
+        }
+
+        body.dark-theme .cache-count .count-sub { color: #444; }
+
+        /* ── Status pill ─────────────────────────────── */
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .pill::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .pill-green {
+            background: rgb(34,197,94,.08);
+            color: #16a34a;
+            border: 1px solid rgb(34,197,94,.18);
+        }
+        .pill-green::before { background: #22c55e; }
+
+        .pill-yellow {
+            background: rgb(234,179,8,.08);
+            color: #b45309;
+            border: 1px solid rgb(234,179,8,.2);
+        }
+        .pill-yellow::before { background: #eab308; }
+
+        .pill-red {
+            background: rgb(239,68,68,.07);
+            color: #dc2626;
+            border: 1px solid rgb(239,68,68,.15);
+        }
+        .pill-red::before { background: #ef4444; }
+
+        body.dark-theme .pill-green  { color: #4ade80; border-color: rgb(74,222,128,.2);  background: rgb(74,222,128,.08);  }
+        body.dark-theme .pill-yellow { color: #fbbf24; border-color: rgb(251,191,36,.2);  background: rgb(251,191,36,.08);  }
+        body.dark-theme .pill-red    { color: #f87171; border-color: rgb(248,113,113,.2); background: rgb(248,113,113,.08); }
+
+        /* ── Footer ──────────────────────────────────── */
+
+        .health-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 24px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        body.dark-theme .health-footer {
+            border-top-color: #1a1a1a;
+            color: #444;
+        }
+
+        .health-footer a {
+            color: #999;
+            text-decoration: none;
+        }
+
+        .health-footer a:hover { color: #111; }
+        body.dark-theme .health-footer a:hover { color: #e5e5e5; }
+
+        .countdown-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .countdown-bar {
+            width: 60px;
+            height: 2px;
+            background: #ebebeb;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        body.dark-theme .countdown-bar { background: #222; }
+
+        .countdown-fill {
+            height: 100%;
+            background: #22c55e;
+            border-radius: 2px;
+            transition: width 1s linear;
+            opacity: 0.6;
+        }
+
+        body.dark-theme .countdown-fill { background: #34d399; }
+
+        /* ── Skeleton ────────────────────────────────── */
+
+        .skel {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        body.dark-theme .skel {
+            background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
+            background-size: 200% 100%;
+        }
+
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        </style>
+    </head>
+    <body>
+        <script>
+            (function () {
+                var t = localStorage.getItem('theme');
+                if (t === 'dark') document.body.classList.add('dark-theme');
+            })();
+        </script>
+        <!-- Header -->
+        <header class="health-header">
+            <a href="/" class="brand-mark" aria-label="Metron home">
+                <span class="brand-logo"></span>
+                <span class="brand-name">Metron</span>
+            </a>
+            <span class="header-clock" id="clock">—</span>
+            <button class="theme-toggle"
+                    id="themeToggle"
+                    onclick="toggleTheme()"
+                    title="Toggle theme"
+                    aria-label="Toggle theme">
+                <!-- sun -->
+                <svg class="icon-sun"
+                     width="16"
+                     height="16"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+                <!-- moon -->
+                <svg class="icon-moon"
+                     width="16"
+                     height="16"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+            </button>
+        </header>
+        <!-- Page -->
+        <div class="page">
+            <!-- Title -->
+            <div class="page-title-row">
+                <h1 class="page-title">System Health</h1>
+            </div>
+            <!-- Status banner -->
+            <div class="status-banner" id="statusBanner">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-text" id="statusText">Checking systems…</span>
+                <span class="status-meta" id="statusMeta"></span>
+            </div>
+            <!-- Process section -->
+            <div class="section">
+                <div class="section-label">Process</div>
+                <div class="metric-grid" id="processGrid">
+                    <div class="metric-card">
+                        <div class="metric-label skel"
+                             style="width:55%;
+                                    height:11px;
+                                    margin-bottom:10px"></div>
+                        <div class="metric-value skel" style="width:70%;height:20px;"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label skel"
+                             style="width:45%;
+                                    height:11px;
+                                    margin-bottom:10px"></div>
+                        <div class="metric-value skel" style="width:55%;height:20px;"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label skel"
+                             style="width:55%;
+                                    height:11px;
+                                    margin-bottom:10px"></div>
+                        <div class="metric-value skel" style="width:65%;height:20px;"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label skel"
+                             style="width:50%;
+                                    height:11px;
+                                    margin-bottom:10px"></div>
+                        <div class="metric-value skel" style="width:40%;height:20px;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caches section -->
+            <div class="section">
+                <div class="section-label">Caches</div>
+                <div class="cache-table" id="cacheTable">
+                    <div class="cache-row">
+                        <div>
+                            <div class="cache-name skel" style="width:130px;height:13px;"></div>
+                            <div class="cache-time skel"
+                                 style="width:180px;
+                                        height:11px;
+                                        margin-top:6px"></div>
+                        </div>
+                        <div class="skel" style="width:65px;height:22px;border-radius:100px;"></div>
+                        <div class="cache-count skel" style="width:80px;height:13px;"></div>
+                    </div>
+                    <div class="cache-row">
+                        <div>
+                            <div class="cache-name skel" style="width:100px;height:13px;"></div>
+                            <div class="cache-time skel"
+                                 style="width:180px;
+                                        height:11px;
+                                        margin-top:6px"></div>
+                        </div>
+                        <div class="skel" style="width:65px;height:22px;border-radius:100px;"></div>
+                        <div class="cache-count skel" style="width:90px;height:13px;"></div>
+                    </div>
+                    <div class="cache-row">
+                        <div>
+                            <div class="cache-name skel" style="width:150px;height:13px;"></div>
+                            <div class="cache-time skel"
+                                 style="width:180px;
+                                        height:11px;
+                                        margin-top:6px"></div>
+                        </div>
+                        <div class="skel" style="width:55px;height:22px;border-radius:100px;"></div>
+                        <div class="cache-count skel" style="width:70px;height:13px;"></div>
+                    </div>
+                    <div class="cache-row">
+                        <div>
+                            <div class="cache-name skel" style="width:120px;height:13px;"></div>
+                            <div class="cache-time skel"
+                                 style="width:180px;
+                                        height:11px;
+                                        margin-top:6px"></div>
+                        </div>
+                        <div class="skel" style="width:60px;height:22px;border-radius:100px;"></div>
+                        <div class="cache-count skel" style="width:60px;height:13px;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Footer -->
+            <footer class="health-footer">
+                <div class="countdown-wrap">
+                    <span>Refreshes in <strong id="countdownNum">30</strong>s</span>
+                    <div class="countdown-bar">
+                        <div class="countdown-fill" id="countdownFill" style="width:100%"></div>
+                    </div>
+                </div>
+                <span><a href="/">← Dashboard</a></span>
+            </footer>
+        </div>
+        <script>
+(function () {
+    'use strict';
+
+    var REFRESH_S = 30;
+    var secondsLeft = REFRESH_S;
+    var countdownTimer = null;
+    var lastChecked = null;
+
+    // ── Theme toggle ────────────────────────────────
+    window.toggleTheme = function () {
+        var dark = document.body.classList.toggle('dark-theme');
+        localStorage.setItem('theme', dark ? 'dark' : '');
+    };
+
+    // ── Theme-aware clock ───────────────────────────
+    function tickClock() {
+        var now = new Date();
+        var months = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+        var hh = String(now.getHours()).padStart(2, '0');
+        var mm = String(now.getMinutes()).padStart(2, '0');
+        var ss = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('clock').textContent =
+            now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear() +
+            ' · ' + hh + ':' + mm + ':' + ss;
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    // ── Countdown ───────────────────────────────────
+    function startCountdown() {
+        clearInterval(countdownTimer);
+        secondsLeft = REFRESH_S;
+        updateCountdown();
+        countdownTimer = setInterval(function () {
+            secondsLeft--;
+            updateCountdown();
+            if (secondsLeft <= 0) {
+                clearInterval(countdownTimer);
+                fetchHealth();
+            }
+        }, 1000);
+    }
+
+    function updateCountdown() {
+        document.getElementById('countdownNum').textContent = secondsLeft;
+        document.getElementById('countdownFill').style.width =
+            (secondsLeft / REFRESH_S * 100) + '%';
+    }
+
+    // ── Relative timestamp ──────────────────────────
+    function relTime(date) {
+        var s = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (s < 5)  return 'just now';
+        if (s < 60) return s + 's ago';
+        if (s < 3600) return Math.floor(s / 60) + 'm ago';
+        return Math.floor(s / 3600) + 'h ago';
+    }
+
+    function updateStatusMeta() {
+        if (!lastChecked) return;
+        document.getElementById('statusMeta').textContent =
+            'checked ' + relTime(lastChecked);
+    }
+    setInterval(updateStatusMeta, 15000);
+
+    // ── Render helpers ──────────────────────────────
+    function fmtNum(n) {
+        return n == null ? '—' : Number(n).toLocaleString('en-IN');
+    }
+
+    function pill(state, label) {
+        var cls = state === 'ok' ? 'pill-green'
+                : state === 'warn' ? 'pill-yellow' : 'pill-red';
+        return '<span class="pill ' + cls + '">' + label + '</span>';
+    }
+
+    // ── Render process metrics ──────────────────────
+    function renderProcess(p) {
+        var cpuClass = p.cpu_pct > 80 ? ' style="color:#ef4444"'
+                     : p.cpu_pct > 60 ? ' style="color:#eab308"' : '';
+
+        var cards = [
+            card('Uptime', p.uptime_human, p.uptime_seconds.toLocaleString('en-IN') + 's'),
+            card('CPU', '<span ' + cpuClass + '>' + p.cpu_pct + '%</span>'),
+            card('Memory', p.memory),
+            card('Threads', fmtNum(p.threads)),
+        ];
+        document.getElementById('processGrid').innerHTML = cards.join('');
+    }
+
+    function card(label, value, sub) {
+        return '<div class="metric-card">' +
+            '<div class="metric-label">' + label + '</div>' +
+            '<div class="metric-value">' + value + '</div>' +
+            (sub ? '<div class="metric-sub">' + sub + '</div>' : '') +
+            '</div>';
+    }
+
+    // ── Render caches ───────────────────────────────
+    function renderCaches(c) {
+        var rows = [
+            cacheRow('NSE Equity',
+                c.nse_equity.last_refreshed,
+                c.nse_equity.entries > 0 ? 'ok' : 'error',
+                c.nse_equity.entries > 0 ? 'Ready' : 'Empty',
+                fmtNum(c.nse_equity.entries) + ' entries', null),
+
+            cacheRow('MF Schemes',
+                c.mf_schemes.last_refreshed,
+                c.mf_schemes.entries > 0 ? 'ok' : 'error',
+                c.mf_schemes.entries > 0 ? 'Ready' : 'Empty',
+                fmtNum(c.mf_schemes.entries) + ' entries', null),
+
+            cacheRow('Classification',
+                c.classification_cache.last_modified,
+                c.classification_cache.entries > 0 ? 'ok' : 'warn',
+                c.classification_cache.entries > 0 ? 'Ready' : 'Empty',
+                c.classification_cache.entries + ' entries',
+                c.classification_cache.disk_size_kb + ' KB on disk'),
+
+            cacheRow('Sector Labels',
+                c.sector_labels.last_modified,
+                c.sector_labels.count > 0 ? 'ok' : 'warn',
+                c.sector_labels.count > 0 ? 'Ready' : 'Empty',
+                c.sector_labels.count + ' labels', null),
+        ];
+        document.getElementById('cacheTable').innerHTML = rows.join('');
+    }
+
+    function cacheRow(name, time, pillState, pillLabel, count, countSub) {
+        return '<div class="cache-row">' +
+            '<div>' +
+                '<div class="cache-name">' + name + '</div>' +
+                '<div class="cache-time">' + (time || '—') + '</div>' +
+            '</div>' +
+            pill(pillState, pillLabel) +
+            '<div class="cache-count">' + count +
+                (countSub ? '<span class="count-sub">' + countSub + '</span>' : '') +
+            '</div>' +
+            '</div>';
+    }
+
+    // ── Overall status ──────────────────────────────
+    function renderStatus(data) {
+        var c = data.caches;
+        var coreOk  = c.nse_equity.entries > 0 && c.mf_schemes.entries > 0;
+        var mlReady = c.classification_cache.entries > 0 && c.sector_labels.count > 0;
+
+        var banner = document.getElementById('statusBanner');
+        var dot    = document.getElementById('statusDot');
+        var text   = document.getElementById('statusText');
+
+        banner.className = 'status-banner';
+        dot.className    = 'status-dot';
+
+        if (coreOk && mlReady) {
+            banner.classList.add('ok');
+            dot.classList.add('ok');
+            text.textContent = 'All systems operational';
+        } else if (coreOk) {
+            banner.classList.add('warn');
+            dot.classList.add('warn');
+            text.textContent = 'Systems partially ready — ML caches cold';
+        } else {
+            banner.classList.add('error');
+            dot.classList.add('error');
+            text.textContent = 'Core caches not loaded';
+        }
+
+        lastChecked = new Date();
+        document.getElementById('statusMeta').textContent = 'checked just now';
+    }
+
+    // ── Fetch ───────────────────────────────────────
+    function fetchHealth() {
+        fetch('/api/health')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                renderStatus(data);
+                renderProcess(data.process);
+                renderCaches(data.caches);
+                startCountdown();
+            })
+            .catch(function () {
+                var banner = document.getElementById('statusBanner');
+                var dot    = document.getElementById('statusDot');
+                banner.className = 'status-banner error';
+                dot.className    = 'status-dot error';
+                document.getElementById('statusText').textContent =
+                    'Unable to reach server';
+                startCountdown();
+            });
+    }
+
+    fetchHealth();
+})();
+        </script>
+    </body>
+</html>

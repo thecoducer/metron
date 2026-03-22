@@ -50,6 +50,7 @@ from .utils import (
     _create_flask_app,
     _current_user,
     _exposure_json_response,
+    _fmt_ist,
     _is_google_auth_error,  # noqa: F401 — re-exported for test imports
     _json_response,
     _normalize_date_values,
@@ -91,13 +92,57 @@ app_ui.config.update(
 # ---------------------------------------------------------------------------
 
 
-@app_ui.route("/healthz", methods=["GET"])
-def healthz():
-    """Health check with basic performance metrics for Render / load balancer probes."""
-    from .api.mf_market_data import mf_market_cache
+@app_ui.route("/health", methods=["GET"])
+def health_page():
+    """Serve the system health status page."""
+    return render_template("health.html")
 
-    metrics = _collect_process_metrics()
-    return jsonify({"status": "ok", **metrics, "cron": {"market_data": mf_market_cache.status}}), 200
+
+@app_ui.route("/api/health", methods=["GET"])
+def health_api():
+    """Return system and cache metrics as JSON. No user data or PII."""
+    from .api.company_classifier import classifier_stats
+    from .api.mf_market_data import mf_market_cache
+    from .api.nse_equity import nse_equity_cache
+
+    process = _collect_process_metrics()
+
+    nse_status = nse_equity_cache.status
+    mf_status = mf_market_cache.status
+
+    clf = classifier_stats()
+    clf_cache = clf["classification_cache"]
+    sectors = clf["sector_labels"]
+
+    return jsonify(
+        {
+            "status": "ok",
+            "process": process,
+            "caches": {
+                "nse_equity": {
+                    "entries": nse_status["entries"],
+                    "last_refreshed": nse_status["last_run"]
+                    if nse_status["last_run"] == "never"
+                    else _fmt_ist(nse_equity_cache._last_refreshed_at),
+                },
+                "mf_schemes": {
+                    "entries": mf_status["entries"],
+                    "last_refreshed": mf_status["last_run"]
+                    if mf_status["last_run"] == "never"
+                    else _fmt_ist(mf_market_cache._last_refreshed_at),
+                },
+                "classification_cache": {
+                    "entries": clf_cache["entries"],
+                    "disk_size_kb": clf_cache["disk_size_kb"],
+                    "last_modified": _fmt_ist(clf_cache["last_modified"]),
+                },
+                "sector_labels": {
+                    "count": sectors["count"],
+                    "last_modified": _fmt_ist(sectors["last_modified"]),
+                },
+            },
+        }
+    ), 200
 
 
 # ---------------------------------------------------------------------------

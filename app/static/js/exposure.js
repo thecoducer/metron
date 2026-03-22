@@ -517,8 +517,7 @@
     document.getElementById('exposureLoading').style.display = 'flex';
     document.getElementById('exposureDashboard').style.display = 'none';
     document.getElementById('exposureNoBanner').style.display = 'none';
-    showRefreshHeader();
-    refreshUI.setUpdating();
+    hideRefreshHeader();
 
     pollForData();
   }

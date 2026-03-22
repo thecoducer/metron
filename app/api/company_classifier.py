@@ -18,7 +18,9 @@ Performance optimisations
 import json
 import re
 import threading
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -163,6 +165,49 @@ def update_sector_labels(new_sectors: set[str]) -> None:
         len(merged),
         len(merged - existing),
     )
+
+
+# ---------------------------------------------------------------------------
+# Stats helper — no PII, no user data
+# ---------------------------------------------------------------------------
+
+
+def classifier_stats() -> dict[str, Any]:
+    """Return stats about the disk-persisted classification and sector caches.
+
+    Safe to expose in health endpoints — contains only aggregate counts and
+    file metadata, no user data or PII.
+    """
+    clf_entries = 0
+    clf_size_kb = 0.0
+    clf_last_modified: datetime | None = None
+    if _CACHE_PATH.exists():
+        try:
+            with open(_CACHE_PATH) as f:
+                raw: dict = json.load(f)
+            clf_entries = len(raw)
+        except (json.JSONDecodeError, OSError):
+            pass
+        stat = _CACHE_PATH.stat()
+        clf_size_kb = round(stat.st_size / 1024, 1)
+        clf_last_modified = datetime.fromtimestamp(stat.st_mtime)
+
+    sector_count = len(get_sector_labels())
+    sector_last_modified: datetime | None = None
+    if _SECTOR_LABELS_PATH.exists():
+        sector_last_modified = datetime.fromtimestamp(_SECTOR_LABELS_PATH.stat().st_mtime)
+
+    return {
+        "classification_cache": {
+            "entries": clf_entries,
+            "disk_size_kb": clf_size_kb,
+            "last_modified": clf_last_modified,
+        },
+        "sector_labels": {
+            "count": sector_count,
+            "last_modified": sector_last_modified,
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
