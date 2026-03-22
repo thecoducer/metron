@@ -137,18 +137,14 @@ class TableRenderer {
    * @param {boolean} hasData - Whether the section has data to display
    */
   _toggleSectionVisibility({ table, emptyState, controls, tabs }, hasData) {
-    // Table is always visible (headers stay accessible)
-    if (table) table.style.display = 'table';
+    // Hide the table (including headers) when there is no data.
+    if (table) table.style.display = hasData ? 'table' : 'none';
     if (emptyState) emptyState.style.display = 'none'; // replaced by in-table CTA
 
     // Always show the Add button; on mobile it's the primary CTA when empty
     if (controls) controls.style.display = 'flex';
 
-    if (hasData) {
-      if (tabs) tabs.style.display = 'flex';
-    } else {
-      if (tabs) tabs.style.display = 'none';
-    }
+    if (tabs) tabs.style.display = hasData ? 'flex' : 'none';
   }
 
   /**
@@ -1131,15 +1127,12 @@ class TableRenderer {
 
     this._updateTbodyContent(tbody, rowsHTML);
 
-    // Show/hide the commodity ETF table within the section.
-    // Keep table visible during idle/updating so empty state shows while loading.
+    // Hide table and its sub-label when there is no data.
     const table = tbody.closest('table');
     const tableWrapper = table?.closest('.table-scroll-wrapper');
     if (table) {
-      const dataLoaded = !isUpdating && status.portfolio_state !== 'idle';
-      const shouldHide = filteredHoldings.length === 0 && dataLoaded;
+      const shouldHide = filteredHoldings.length === 0;
       table.style.display = shouldHide ? 'none' : '';
-      // Also hide/show the sub-table-title (e.g. "ETFs") preceding this table
       const subTitle = tableWrapper?.previousElementSibling;
       if (subTitle && subTitle.classList.contains('sub-table-title')) {
         subTitle.style.display = shouldHide ? 'none' : '';
@@ -1165,13 +1158,22 @@ class TableRenderer {
     
     if (!tbody) return { invested: 0, current: 0, pl: 0, plPct: 0 };
 
+    const physicalTable = document.getElementById('physicalGoldTable');
+    const physicalWrapper = physicalTable?.closest('.table-scroll-wrapper');
+    const physicalSubTitle = physicalWrapper?.previousElementSibling;
+
     const sectionElements = {
-      table: section ? section.querySelector('table') : null,
+      table: physicalTable,
       emptyState: null,
       controls: section ? section.querySelector('.controls-container') : null,
     };
 
-    if (!holdings || holdings.length === 0) {
+    const hasData = !!(holdings && holdings.length > 0);
+    if (physicalSubTitle && physicalSubTitle.classList.contains('sub-table-title')) {
+      physicalSubTitle.style.display = hasData ? '' : 'none';
+    }
+
+    if (!hasData) {
       this._toggleSectionVisibility(sectionElements, false);
       this._renderEmptyCta(tbody, 'physical_gold', 'physical gold', 8);
       return { invested: 0, current: 0, pl: 0, plPct: 0 };
@@ -1180,7 +1182,7 @@ class TableRenderer {
     let totalPhysicalGoldInvested = 0;
     let totalPhysicalGoldCurrent = 0;
     let totalPhysicalGoldPL = 0;
-    
+
     this._toggleSectionVisibility(sectionElements, true);
     
     holdings.forEach((holding) => {
