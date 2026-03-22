@@ -413,9 +413,7 @@ class TestBuildExposureData(unittest.TestCase):
 
         # Mock the company classifier — pass through CDN sector (low confidence).
         mock_classifier = MagicMock()
-        mock_classifier.classify_batch.side_effect = lambda names, labels=None: {
-            n: ("Unknown", 0.1) for n in names
-        }
+        mock_classifier.classify_batch.side_effect = lambda names, labels=None: {n: ("Unknown", 0.1) for n in names}
         p2 = patch("app.api.exposure.get_company_classifier", return_value=mock_classifier)
         self._mock_get_classifier = p2.start()
         self.addCleanup(p2.stop)
@@ -774,9 +772,7 @@ class TestBuildExposureData(unittest.TestCase):
         from app.api.nse_equity import NSEEquityInfo
 
         mock_classifier = MagicMock()
-        mock_classifier.classify_batch.side_effect = lambda names, labels=None: {
-            n: ("Banking", 0.95) for n in names
-        }
+        mock_classifier.classify_batch.side_effect = lambda names, labels=None: {n: ("Banking", 0.95) for n in names}
         self._mock_get_classifier.return_value = mock_classifier
 
         mock_nse_cache.get.return_value = NSEEquityInfo(
