@@ -704,21 +704,6 @@
         localStorage.setItem('theme', dark ? 'dark' : '');
     };
 
-    // ── Theme-aware clock ───────────────────────────
-    function tickClock() {
-        var now = new Date();
-        var months = ['Jan','Feb','Mar','Apr','May','Jun',
-                      'Jul','Aug','Sep','Oct','Nov','Dec'];
-        var hh = String(now.getHours()).padStart(2, '0');
-        var mm = String(now.getMinutes()).padStart(2, '0');
-        var ss = String(now.getSeconds()).padStart(2, '0');
-        document.getElementById('clock').textContent =
-            now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear() +
-            ' · ' + hh + ':' + mm + ':' + ss;
-    }
-    tickClock();
-    setInterval(tickClock, 1000);
-
     // ── Countdown ───────────────────────────────────
     function startCountdown() {
         clearInterval(countdownTimer);
