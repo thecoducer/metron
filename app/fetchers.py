@@ -36,7 +36,7 @@ from .services import get_authenticated_accounts, state_manager, zerodha_client
 # ===================================================================
 
 
-def get_google_creds_dict(user: dict[str, Any]) -> dict | None:
+def get_google_creds_dict(user: dict[str, Any] | None) -> dict | None:
     """Return decrypted Google OAuth credentials for *user*.
 
     Checks the user dict first (populated at OAuth callback) and falls
@@ -162,7 +162,7 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
                 for idx, row in enumerate(raw[1:], start=2):
                     if is_blank_row(row):
                         break
-                    entry = {"row_number": idx}
+                    entry: dict[str, Any] = {"row_number": idx}
                     for fi, fname in enumerate(fields):
                         entry[fname] = row[fi] if fi < len(row) else ""
                     # Default empty/missing source to "manual"
@@ -335,8 +335,12 @@ def _wait_for_symbols(google_id: str) -> list:
     return []
 
 
-def _start_ltp_fetch_thread(google_id: str, symbols: list | None, force: bool, prefix: str = "ManualLTP") -> None:
+def _start_ltp_fetch_thread(
+    google_id: str | None, symbols: list | None, force: bool, prefix: str = "ManualLTP"
+) -> None:
     """Fire a non-blocking background LTP fetch thread."""
+    if not google_id:
+        return
     threading.Thread(
         target=_bg_fetch_and_broadcast_ltps,
         args=(google_id, symbols, force),
@@ -595,3 +599,107 @@ def run_background_fetch(
         name="MarketIndicesFetch",
         daemon=True,
     ).start()
+
+
+# ===================================================================
+# Per-user sheets cache helpers (moved from routes.py)
+# ===================================================================
+
+
+def _fetch_user_sheets_data(user) -> tuple:
+    """Return (physical_gold, fixed_deposits) from cache.
+
+    Returns whatever is available now (may be ``(None, None)`` when
+    the background sheets fetch hasn't completed yet).
+    """
+    google_id = user.get("google_id", "")
+    cached = user_sheets_cache.get(google_id)
+    if cached:
+        return cached.physical_gold, cached.fixed_deposits
+    return None, None
+
+
+def _fetch_manual_entries(user, sheet_type: str) -> list:
+    """Fetch manual entries from the sheets cache, returning a list of dicts."""
+    google_id = user.get("google_id", "")
+    cached = user_sheets_cache.get_manual(google_id, sheet_type)
+    return cached if cached is not None else []
+
+
+def _validate_nse_symbol(symbol: str) -> dict | None:
+    """Validate a symbol and return its quote (with ISIN when available).
+
+    Tries NSE India first — returns LTP + ISIN in one call.
+    Falls back to Yahoo Finance if NSE is unreachable (no ISIN in that case).
+    Returns None when the symbol does not exist on the exchange.
+    """
+    client = MarketDataClient()
+    try:
+        data = client.fetch_nse_quote(symbol)
+        if data and data.get("ltp"):
+            return data
+    except Exception:
+        logger.warning("NSE validation failed for %s, trying Yahoo Finance", symbol)
+
+    try:
+        data = client.fetch_stock_quote(symbol)
+        if data and data.get("ltp"):
+            return data
+    except Exception:
+        logger.warning("Symbol validation failed for %s", symbol)
+    return None
+
+
+def _fetch_uncached_manual_ltps(user, new_symbol: str = "") -> None:
+    """Fetch LTPs for all uncached manual stock/ETF symbols after a CRUD add.
+
+    Collects symbols from both stocks and etfs sheets, adds the newly-added
+    symbol, then batch-fetches any that aren't already in the LTP cache.
+    """
+    try:
+        all_symbols: set[str] = set()
+        for sheet_type in ("stocks", "etfs"):
+            for entry in _fetch_manual_entries(user, sheet_type) or []:
+                sym = (entry.get("symbol") or "").upper()
+                if sym:
+                    all_symbols.add(sym)
+        if new_symbol:
+            all_symbols.add(new_symbol)
+
+        to_fetch = [s for s in all_symbols if not manual_ltp_cache.get(s) and not manual_ltp_cache.is_negative(s)]
+        if not to_fetch:
+            return
+
+        fetched = MarketDataClient().fetch_stock_quotes(to_fetch)
+        if fetched:
+            manual_ltp_cache.put_batch(fetched)
+        missed = [s for s in to_fetch if s not in (fetched or {})]
+        if missed:
+            manual_ltp_cache.put_negative_batch(missed)
+    except Exception:
+        logger.warning("Failed to fetch LTPs after CRUD add for %s", new_symbol)
+
+
+def _get_sheets_client() -> tuple:
+    """Return an authenticated GoogleSheetsClient for the current user.
+
+    Returns:
+        (client, spreadsheet_id, error_message) tuple.
+        On failure, client and spreadsheet_id are None and error_message describes the issue.
+    """
+    from .api.google_auth import credentials_from_dict
+    from .api.google_sheets_client import GoogleSheetsClient
+    from .utils import _current_user, _get_google_creds_dict
+
+    user = _current_user()
+    if not user:
+        return None, None, "User not authenticated"
+    creds_dict = _get_google_creds_dict(user)
+    if not creds_dict:
+        return None, None, "Google credentials not available"
+    creds = credentials_from_dict(creds_dict)
+    client = GoogleSheetsClient(user_credentials=creds)
+    spreadsheet_id = user.get("spreadsheet_id")
+    if not spreadsheet_id:
+        return None, None, "No spreadsheet linked"
+    return client, spreadsheet_id, None

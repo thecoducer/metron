@@ -10,6 +10,7 @@ Credential resolution order:
 import json
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from google.api_core import exceptions as gcp_exceptions
@@ -26,9 +27,7 @@ from .utils import (
 
 _firestore_client = None
 
-_LOCAL_CREDENTIALS_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "config", "firebase-credentials.json"
-)
+_LOCAL_CREDENTIALS_PATH = Path(__file__).resolve().parent.parent / "config" / "firebase-credentials.json"
 _USERS = "users"
 
 
@@ -98,15 +97,15 @@ def _user_ref(google_id: str):
 
 def _get_user_data(google_id: str) -> dict:
     """Read a user document from Firestore, returning an empty dict if not found."""
-    doc = _user_ref(google_id).get()
-    return doc.to_dict() if doc.exists else {}
+    doc = _user_ref(google_id).get()  # type: ignore[union-attr]
+    return doc.to_dict() if doc.exists else {}  # type: ignore[union-attr]
 
 
 def get_user(google_id: str) -> dict[str, Any] | None:
     """Return the user dict, or None if not found."""
     try:
-        doc = _user_ref(google_id).get()
-        return doc.to_dict() if doc.exists else None
+        doc = _user_ref(google_id).get()  # type: ignore[union-attr]
+        return doc.to_dict() if doc.exists else None  # type: ignore[union-attr]
     except gcp_exceptions.GoogleAPICallError:
         logger.exception("Firestore read failed for user %s", google_id[:8])
         raise
@@ -139,8 +138,8 @@ def upsert_user(
         "last_login": now,
     }
 
-    doc = ref.get()
-    if doc.exists:
+    doc = ref.get()  # type: ignore[union-attr]
+    if doc.exists:  # type: ignore[union-attr]
         if spreadsheet_id:
             data["spreadsheet_id"] = spreadsheet_id
         ref.update(data)
@@ -150,7 +149,7 @@ def upsert_user(
         ref.set(data)
         logger.info("Created user record")
 
-    return ref.get().to_dict()
+    return ref.get().to_dict()  # type: ignore[union-attr]
 
 
 def update_spreadsheet_id(google_id: str, spreadsheet_id: str) -> None:

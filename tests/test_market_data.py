@@ -568,6 +568,7 @@ class TestFetchNseQuote(unittest.TestCase):
         client = self._make_client_with_session(session)
 
         result = client.fetch_nse_quote("INFY")
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(result["isin"], "INE009A01021")
 
 

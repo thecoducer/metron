@@ -392,6 +392,9 @@ async function metronFetch(url, options = {}) {
   return resp;
 }
 
+// Expose on window for non-module scripts (e.g. exposure.js)
+window.Formatter = Formatter;
+window.Calculator = Calculator;
 window.metronFetch = metronFetch;
 
 export { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, metronFetch };

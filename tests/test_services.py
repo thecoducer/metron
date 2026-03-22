@@ -95,6 +95,7 @@ class TestEnsureUserLoaded(unittest.TestCase):
     def test_empty_google_id_noop(self):
         """Should not raise or do anything with empty string."""
         ensure_user_loaded("")
+        # pyrefly: ignore [bad-argument-type]
         ensure_user_loaded(None)
 
     def test_force_reloads(self):
@@ -129,6 +130,7 @@ class TestGetUserAccounts(unittest.TestCase):
 
     def test_returns_empty_for_no_google_id(self):
         self.assertEqual(get_user_accounts(""), [])
+        # pyrefly: ignore [bad-argument-type]
         self.assertEqual(get_user_accounts(None), [])
 
     @patch("app.services.session_manager")

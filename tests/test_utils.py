@@ -242,6 +242,7 @@ class TestSessionManager(unittest.TestCase):
     def test_load_user_empty_noop(self):
         """load_user with empty string should not raise."""
         self.sm.load_user("")
+        # pyrefly: ignore [bad-argument-type]
         self.sm.load_user(None)
 
     def test_decrypt_without_pin_raises(self):

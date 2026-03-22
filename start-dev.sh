@@ -90,6 +90,63 @@ check_port_available() {
     print_success "Development port $dev_port is available"
 }
 
+run_linters() {
+    print_step "Running linters"
+
+    local failed=0
+
+    print_info "Checking Python (ruff)..."
+    if ! uv run ruff check . 2>&1; then
+        print_error "ruff found issues — fix with: uv run ruff check . --fix"
+        failed=1
+    else
+        print_success "ruff: OK"
+    fi
+
+    print_info "Checking Python types (pyrefly)..."
+    if ! uv run pyrefly check 2>&1; then
+        print_error "pyrefly found type errors — fix with: uv run pyrefly check"
+        failed=1
+    else
+        print_success "pyrefly: OK"
+    fi
+
+    print_info "Checking HTML templates (djlint)..."
+    if ! uv run djlint app/templates/ --check 2>&1; then
+        print_error "djlint found issues — fix with: uv run djlint app/templates/ --reformat"
+        failed=1
+    else
+        print_success "djlint: OK"
+    fi
+
+    if command -v npx &> /dev/null; then
+        print_info "Checking JavaScript (eslint)..."
+        if ! npx --no-install eslint app/static/js/ 2>&1; then
+            print_error "eslint found issues — fix with: npx eslint app/static/js/ --fix"
+            failed=1
+        else
+            print_success "eslint: OK"
+        fi
+
+        print_info "Checking CSS (stylelint)..."
+        if ! npx --no-install stylelint "app/static/css/**/*.css" 2>&1; then
+            print_error "stylelint found issues — fix with: npx stylelint app/static/css/**/*.css --fix"
+            failed=1
+        else
+            print_success "stylelint: OK"
+        fi
+    else
+        print_info "npx not found — skipping JS/CSS linting"
+    fi
+
+    if [[ $failed -eq 1 ]]; then
+        print_error "Linting errors found. Fix them before starting the server."
+        return 1
+    fi
+
+    print_success "All linters passed"
+}
+
 start_server() {
     print_step "Starting development server"
     if [ ! -f "$SCRIPT_DIR/main.py" ]; then
@@ -119,6 +176,7 @@ main() {
     check_uv_installed || exit 1
     load_env_file
     install_dependencies || exit 1
+    run_linters || exit 1
     start_server
 }
 

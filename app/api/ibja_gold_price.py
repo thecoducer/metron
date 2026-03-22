@@ -2,6 +2,8 @@
 Gold price fetching service from IBJA rates.
 """
 
+from typing import Any
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -21,7 +23,7 @@ class GoldPriceService:
         """Initialize the gold price service."""
         self.headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
 
-    def fetch_gold_prices(self) -> dict[str, any] | None:
+    def fetch_gold_prices(self) -> dict[str, Any] | None:
         """Fetch latest available gold prices for different purities.
 
         Returns:
@@ -35,7 +37,7 @@ class GoldPriceService:
             ErrorHandler.log_error(wrapped_error, context="fetch_gold_prices")
             return None
 
-    def _fetch_gold_prices_impl(self) -> dict[str, any] | None:
+    def _fetch_gold_prices_impl(self) -> dict[str, Any] | None:
         """Internal implementation of gold price fetching."""
         logger.info("Fetching gold prices from %s", self.BASE_URL)
 

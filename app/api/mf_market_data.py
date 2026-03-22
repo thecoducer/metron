@@ -149,12 +149,13 @@ def fetch_and_cache_market_data() -> bool:
     """
     logger.info("MF market data fetch started (url=%s)", MF_API_URL)
     t0 = time.monotonic()
+    data: list[dict] = []
 
     for attempt in range(1, MF_API_MAX_RETRIES + 1):
         try:
             response = requests.get(MF_API_URL, timeout=MF_API_TIMEOUT)
             response.raise_for_status()
-            data: list[dict] = response.json()
+            data = response.json()
             logger.info("MF API responded: %d raw entries in %.1fs", len(data), time.monotonic() - t0)
             break
         except Exception as exc:

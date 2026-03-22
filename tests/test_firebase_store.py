@@ -115,6 +115,7 @@ class TestDb(unittest.TestCase):
             mock_init.assert_called_once()
 
     def test_returns_cached_client(self):
+        # pyrefly: ignore [bad-assignment]
         fs._firestore_client = "cached"
         result = fs._db()
         self.assertEqual(result, "cached")
@@ -128,6 +129,7 @@ class TestUserCRUD(unittest.TestCase):
         doc = _mock_doc(exists=True, data={"email": "a@b.com", "google_id": "g1"})
         mock_ref_fn.return_value = _mock_ref(doc)
         result = fs.get_user("g1")
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(result["email"], "a@b.com")
 
     @patch("app.firebase_store._user_ref")

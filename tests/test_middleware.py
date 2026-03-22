@@ -39,6 +39,7 @@ def _inject_user(client, user=None):
     # Also store a PIN in server memory so pin_required decorator passes
     from app.services import session_manager
 
+    # pyrefly: ignore [bad-argument-type]
     session_manager.set_pin(u["google_id"], "test01")
 
 

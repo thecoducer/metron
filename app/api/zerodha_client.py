@@ -96,7 +96,8 @@ class ZerodhaAPIClient:
             return [], [], [], None
 
         n = len(accounts_config)
-        results = [None] * n  # Each slot: (stocks, mfs, sips, error)
+        _ResultSlot = tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], str | None]
+        results: list[_ResultSlot | None] = [None] * n  # Each slot: (stocks, mfs, sips, error)
         t0 = time.monotonic()
 
         def _fetch_one(idx: int, account_config: dict[str, Any]):
@@ -122,7 +123,10 @@ class ZerodhaAPIClient:
         first_error = None
         error_count = 0
 
-        for stocks, mfs, sips, err in results:
+        for result_slot in results:
+            if result_slot is None:
+                continue
+            stocks, mfs, sips, err = result_slot
             all_stock_holdings.append(stocks)
             all_mf_holdings.append(mfs)
             all_sips.append(sips)

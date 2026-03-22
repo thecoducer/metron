@@ -66,11 +66,11 @@ class PortfolioCacheManager:
         self,
         google_id: str,
         *,
-        stocks: list = None,
-        etfs: list = None,
-        mf_holdings: list = None,
-        sips: list = None,
-        connected_accounts: set = None,
+        stocks: list | None = None,
+        etfs: list | None = None,
+        mf_holdings: list | None = None,
+        sips: list | None = None,
+        connected_accounts: set | None = None,
     ) -> None:
         """Update one or more portfolio data fields for *google_id*."""
         with self._lock:
@@ -153,7 +153,7 @@ class UserSheetsCache:
         with self._lock:
             return self._store.get(google_id)
 
-    def put(self, google_id: str, *, physical_gold: list = None, fixed_deposits: list = None) -> None:
+    def put(self, google_id: str, *, physical_gold: list | None = None, fixed_deposits: list | None = None) -> None:
         """Cache one or more sheet data types for *google_id*."""
         with self._lock:
             entry = self._store.get(google_id)
@@ -216,9 +216,9 @@ class UserSheetsCache:
         self,
         google_id: str,
         *,
-        physical_gold: list = None,
-        fixed_deposits: list = None,
-        manual: dict[str, list] = None,
+        physical_gold: list | None = None,
+        fixed_deposits: list | None = None,
+        manual: dict[str, list] | None = None,
     ) -> None:
         """Cache gold, FDs, and all manual sheet types in one call."""
         with self._lock:

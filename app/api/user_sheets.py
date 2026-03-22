@@ -7,8 +7,19 @@ with the exact sheet/column layout that ``PhysicalGoldService`` and
 mutual funds, SIPs, and ETFs.
 """
 
+from typing import TypedDict
+
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build as google_build
+
+
+class SheetConfig(TypedDict):
+    """Configuration for a Google Sheets tab."""
+
+    sheet_name: str
+    headers: list[str]
+    fields: list[str]
+
 
 from ..logging_config import logger
 
@@ -97,7 +108,7 @@ DATE_FIELDS: frozenset[str] = frozenset(
 )
 
 # Unified registry used by the CRUD API (sheet_type → config)
-SHEET_CONFIGS = {
+SHEET_CONFIGS: dict[str, SheetConfig] = {
     "stocks": {
         "sheet_name": STOCKS_SHEET_NAME,
         "headers": STOCKS_HEADERS,

@@ -26,7 +26,7 @@ class SIPService(BaseDataService):
         """
         try:
             # Fetch all SIPs (passing None to get all SIPs)
-            sips = kite.mf_sips() or []
+            sips: list[dict[str, Any]] = kite.mf_sips() or []  # type: ignore[assignment]
             return sips
         except (ReadTimeout, ConnectionError) as e:
             logger.warning("Kite API timeout while fetching SIPs: %s", str(e))

@@ -16,9 +16,9 @@ Performance optimisations
 """
 
 import json
-import os
 import re
 import threading
+from pathlib import Path
 
 import numpy as np
 
@@ -32,14 +32,14 @@ _DATE_SUFFIX_RE = re.compile(r"\s*\(\d{1,2}/\d{1,2}/\d{4}\)\s*")
 # Paths
 # ---------------------------------------------------------------------------
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_CACHE_PATH = os.path.join(_PROJECT_ROOT, "data", "classification_cache.json")
-_SECTOR_LABELS_PATH = os.path.join(_PROJECT_ROOT, "data", "sector_labels.json")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_CACHE_PATH = _PROJECT_ROOT / "data" / "classification_cache.json"
+_SECTOR_LABELS_PATH = _PROJECT_ROOT / "data" / "sector_labels.json"
 
 
 def _load_disk_cache() -> dict[str, tuple[str, float]]:
     """Load the persistent classification cache from disk."""
-    if not os.path.exists(_CACHE_PATH):
+    if not _CACHE_PATH.exists():
         return {}
     try:
         with open(_CACHE_PATH) as f:
@@ -64,19 +64,19 @@ def _save_disk_cache(cache: dict[str, tuple[str, float]]) -> None:
     threading.Thread(
         target=_write_cache_file,
         args=(snapshot,),
-        daemon=True,
+        daemon=False,
     ).start()
 
 
 def _write_cache_file(serialisable: dict[str, list]) -> None:
     """Write the cache JSON to disk (runs on a background thread)."""
     with _save_lock:
-        os.makedirs(os.path.dirname(_CACHE_PATH), exist_ok=True)
+        _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         try:
-            tmp = _CACHE_PATH + ".tmp"
+            tmp = _CACHE_PATH.with_name(_CACHE_PATH.name + ".tmp")
             with open(tmp, "w") as f:
                 json.dump(serialisable, f, indent=1, sort_keys=True)
-            os.replace(tmp, _CACHE_PATH)
+            tmp.replace(_CACHE_PATH)
             logger.debug(
                 "Classification cache written: %d entries",
                 len(serialisable),
@@ -95,7 +95,7 @@ _sector_labels_lock = threading.Lock()
 
 def _load_sector_labels() -> list[str]:
     """Load sector labels from disk."""
-    if not os.path.exists(_SECTOR_LABELS_PATH):
+    if not _SECTOR_LABELS_PATH.exists():
         return []
     try:
         with open(_SECTOR_LABELS_PATH) as f:
@@ -112,19 +112,19 @@ def _save_sector_labels(labels: list[str]) -> None:
     threading.Thread(
         target=_write_sector_labels_file,
         args=(snapshot,),
-        daemon=True,
+        daemon=False,
     ).start()
 
 
 def _write_sector_labels_file(labels: list[str]) -> None:
     """Write sector labels JSON to disk (background thread)."""
     with _sector_labels_lock:
-        os.makedirs(os.path.dirname(_SECTOR_LABELS_PATH), exist_ok=True)
+        _SECTOR_LABELS_PATH.parent.mkdir(parents=True, exist_ok=True)
         try:
-            tmp = _SECTOR_LABELS_PATH + ".tmp"
+            tmp = _SECTOR_LABELS_PATH.with_name(_SECTOR_LABELS_PATH.name + ".tmp")
             with open(tmp, "w") as f:
                 json.dump(labels, f, indent=1)
-            os.replace(tmp, _SECTOR_LABELS_PATH)
+            tmp.replace(_SECTOR_LABELS_PATH)
             logger.debug("Sector labels written: %d entries", len(labels))
         except OSError as exc:
             logger.warning("Failed to save sector labels: %s", exc)
@@ -190,7 +190,7 @@ def _narrow_labels(
     if len(all_labels) <= top_k:
         return {name: all_labels for name in company_names}
 
-    name_embeddings = model.encode(
+    name_embeddings = model.encode(  # type: ignore[union-attr]
         company_names,
         normalize_embeddings=True,
         show_progress_bar=False,
@@ -238,7 +238,7 @@ class CompanyClassifier:
             "Sector labels loaded: %d entries from disk",
             len(labels),
         )
-        model_path = os.path.join(_PROJECT_ROOT, BART_MNLI_MODEL_PATH)
+        model_path = _PROJECT_ROOT / BART_MNLI_MODEL_PATH
         if load_model:
             logger.info("Loading BART-MNLI model from %s …", model_path)
             self._pipeline = pipeline(
@@ -248,7 +248,7 @@ class CompanyClassifier:
             )
             logger.info("BART-MNLI model loaded (local, cpu-only)")
         else:
-            self._pipeline = None
+            self._pipeline = None  # type: ignore[assignment]
 
         # SentenceTransformer for label narrowing (loaded lazily).
         self._st_model: object | None = None
@@ -311,8 +311,8 @@ class CompanyClassifier:
         narrowed = _narrow_labels([clean], all_labels, label_embs, st_model)[clean]
 
         result = self._pipeline(clean, narrowed)
-        best_label: str = result["labels"][0]
-        best_score: float = result["scores"][0]
+        best_label: str = result["labels"][0]  # type: ignore[index]
+        best_score: float = result["scores"][0]  # type: ignore[index]
 
         self._cache[company_name] = (best_label, best_score)
         return best_label, best_score
@@ -358,28 +358,18 @@ class CompanyClassifier:
                     # Strip date suffixes for cleaner model input.
                     clean_names = [_DATE_SUFFIX_RE.sub("", n).strip() for n in need_model]
 
-                    # Narrow to top-K labels per company, then
-                    # group by label set to batch efficiently.
-                    st_model, label_embs = self._get_label_embeddings(all_labels)
-                    per_name_labels = _narrow_labels(
-                        clean_names,
-                        all_labels,
-                        label_embs,
-                        st_model,
-                    )
+                    # Batch classify all uncached names in one pipeline call.
+                    raw = self._pipeline(clean_names, all_labels)
 
-                    # Classify each company with its narrowed
-                    # label set.  Per-name classification is needed
-                    # since each company gets different candidates.
-                    for orig, clean in zip(need_model, clean_names):
-                        narrowed = per_name_labels[clean]
-                        res = self._pipeline(clean, narrowed)
-                        best_label: str = res["labels"][0]
-                        best_score: float = res["scores"][0]
-                        self._cache[orig] = (
-                            best_label,
-                            best_score,
-                        )
+                    # HuggingFace returns a dict for a single sequence,
+                    # a list of dicts for multiple sequences.
+                    if isinstance(raw, dict):
+                        raw = [raw]
+
+                    for orig, res in zip(need_model, raw):  # type: ignore[arg-type]
+                        best_label: str = res["labels"][0]  # type: ignore[index]
+                        best_score: float = res["scores"][0]  # type: ignore[index]
+                        self._cache[orig] = (best_label, best_score)
                         results[orig] = (best_label, best_score)
                         model_classified += 1
             else:

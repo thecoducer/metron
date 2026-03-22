@@ -34,8 +34,8 @@ class HoldingsService(BaseDataService):
             Exception: On other API errors
         """
         try:
-            stock_holdings = kite.holdings() or []
-            mf_holdings = kite.mf_holdings() or []
+            stock_holdings: list[dict[str, Any]] = kite.holdings() or []  # type: ignore[assignment]
+            mf_holdings: list[dict[str, Any]] = kite.mf_holdings() or []  # type: ignore[assignment]
             self._add_nav_dates(mf_holdings, kite)
             self._normalise_mf_fields(mf_holdings)
             return stock_holdings, mf_holdings
@@ -90,19 +90,19 @@ class HoldingsService(BaseDataService):
                 mf["isin"] = str(mf.get("tradingsymbol") or "").strip().upper()
             mf.pop("tradingsymbol", None)
 
-    def add_account_info(self, holdings: list[dict[str, Any]], account_name: str) -> None:
+    def add_account_info(self, items: list[dict[str, Any]], account_name: str) -> None:
         """Add account name and calculate invested amount for holdings.
 
         T1 quantity (unsettled shares) is added to the main quantity for accurate totals.
         Invested amount is calculated as: (quantity + t1_quantity) * average_price
 
         Args:
-            holdings: List of holdings to enrich
+            items: List of holdings to enrich
             account_name: Name of the account
         """
-        super().add_account_info(holdings, account_name)
+        super().add_account_info(items, account_name)
 
-        for holding in holdings:
+        for holding in items:
             # Include T1 (unsettled) quantity in total quantity
             base_quantity = holding.get("quantity", 0)
             t1_quantity = holding.get("t1_quantity", 0)

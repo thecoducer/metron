@@ -1,11 +1,12 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Error</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
+    <head>
+        <meta charset="utf-8">
+        <title>Error</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+              rel="stylesheet">
+        <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Poppins', sans-serif;
@@ -66,17 +67,15 @@
     .error-card p { color: #c4b8a8; }
     .error-detail { background: #2d2a26; color: #a89888; }
   }
-</style>
-</head>
-<body>
-<div class="error-card">
-  <div class="error-icon">⚠️</div>
-  <h1>{{ error_title or "Something went wrong" }}</h1>
-  <p>{{ error_message or "An unexpected error occurred. Please try again." }}</p>
-  {% if error_detail %}
-  <div class="error-detail">{{ error_detail }}</div>
-  {% endif %}
-  <a href="/" class="back-btn">Back to Home</a>
-</div>
-</body>
+        </style>
+    </head>
+    <body>
+        <div class="error-card">
+            <div class="error-icon">⚠️</div>
+            <h1>{{ error_title or "Something went wrong" }}</h1>
+            <p>{{ error_message or "An unexpected error occurred. Please try again." }}</p>
+            {% if error_detail %}<div class="error-detail">{{ error_detail }}</div>{% endif %}
+            <a href="/" class="back-btn">Back to Home</a>
+        </div>
+    </body>
 </html>

@@ -1,194 +1,302 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Nifty 50 Stocks</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/styles.css">
-<link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
-<link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Metron">
-<link rel="preload" href="/static/js/nifty50.js" as="script">
-<link rel="modulepreload" href="/static/js/index-ticker.js">
-</head>
-<body>
-<script>
+    <head>
+        <meta charset="utf-8">
+        <title>Nifty 50 Stocks</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="/static/css/styles.css">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <link rel="manifest" href="/static/manifest.json">
+        <meta name="theme-color" content="#0f172a">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style"
+              content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Metron">
+        <link rel="preload" href="/static/js/nifty50.js" as="script">
+        <link rel="modulepreload" href="/static/js/index-ticker.js">
+    </head>
+    <body>
+        <script>
   // Apply saved theme immediately (before first paint) to prevent flash
   (function() {
     var t = localStorage.getItem('theme');
     if (t === 'dark') document.body.classList.add('dark-theme');
   })();
-</script>
-<div class="container">
-<header>
-<nav class="nav-hamburger">
-<button class="hamburger-btn" id="hamburgerBtn" aria-label="Navigation menu" aria-expanded="false">
-<svg class="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-</button>
-</nav>
-<div class="header-brand">
-<a href="/" class="brand-mark" aria-label="Metron home">
-<span class="brand-logo"></span>
-<span class="brand-name">Metron</span>
-</a>
-</div>
-<div class="controls">
-{% if user %}
-<div class="user-profile" id="userProfile">
-    <button class="user-avatar-btn" id="userAvatarBtn" title="{{ user.name or user.email }}">
-        {% if user.picture %}
-        <img src="{{ user.picture }}" alt="" class="user-avatar-img" referrerpolicy="no-referrer">
-        {% else %}
-        <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
-        {% endif %}
-        <span class="avatar-gear-badge" aria-hidden="true">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </span>
-    </button>
-    <div class="user-dropdown" id="userDropdown">
-        <div class="user-dropdown-header">
-            <div class="user-dropdown-avatar">
-                {% if user.picture %}
-                <img src="{{ user.picture }}" alt="" referrerpolicy="no-referrer">
-                {% else %}
-                <span>{{ (user.name or user.email)[0]|upper }}</span>
-                {% endif %}
+        </script>
+        <div class="container">
+            <header>
+                <nav class="nav-hamburger">
+                    <button class="hamburger-btn"
+                            id="hamburgerBtn"
+                            aria-label="Navigation menu"
+                            aria-expanded="false">
+                        <svg class="hamburger-icon"
+                             width="20"
+                             height="20"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                </nav>
+                <div class="header-brand">
+                    <a href="/" class="brand-mark" aria-label="Metron home">
+                        <span class="brand-logo"></span>
+                        <span class="brand-name">Metron</span>
+                    </a>
+                </div>
+                <div class="controls">
+                    {% if user %}
+                        <div class="user-profile" id="userProfile">
+                            <button class="user-avatar-btn"
+                                    id="userAvatarBtn"
+                                    title="{{ user.name or user.email }}">
+                                {% if user.picture %}
+                                    <img src="{{ user.picture }}"
+                                         alt=""
+                                         class="user-avatar-img"
+                                         referrerpolicy="no-referrer"
+                                         width="40"
+                                         height="40">
+                                {% else %}
+                                    <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
+                                {% endif %}
+                                <span class="avatar-gear-badge" aria-hidden="true">
+                                    <svg width="10"
+                                         height="10"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                    </svg>
+                                </span>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <div class="user-dropdown-header">
+                                    <div class="user-dropdown-avatar">
+                                        {% if user.picture %}
+                                            <img src="{{ user.picture }}"
+                                                 alt=""
+                                                 referrerpolicy="no-referrer"
+                                                 width="40"
+                                                 height="40">
+                                        {% else %}
+                                            <span>{{ (user.name or user.email)[0]|upper }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-dropdown-info">
+                                        <strong>{{ user.name or 'User' }}</strong>
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                </div>
+                                <div class="user-dropdown-section">
+                                    <div class="user-dropdown-section-label">Preferences</div>
+                                    <button class="user-dropdown-toggle-btn"
+                                            id="theme_toggle_btn"
+                                            onclick="toggleTheme()"
+                                            title="Toggle theme">
+                                        <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
+                                            <span class="theme-icon-sun"></span>
+                                            <span class="theme-icon-moon"></span>
+                                        </span>
+                                        <span>Theme</span>
+                                        <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-section user-dropdown-section--logout">
+                                    <button class="user-dropdown-item user-dropdown-logout"
+                                            onclick="handleLogout()">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </header>
+            <div class="overview-tickers market-tickers-row">
+                <div class="index-tickers" id="indexTickers">
+                    <!-- Ticker items rendered dynamically by IndexTicker -->
+                </div>
             </div>
-            <div class="user-dropdown-info">
-                <strong>{{ user.name or 'User' }}</strong>
-                <span>{{ user.email }}</span>
+            <div class="page-title-bar">
+                <h1 id="header-title">Nifty 50</h1>
+                <div class="page-title-right">
+                    <button class="refresh-btn" id="refresh_btn" onclick="triggerRefresh()">
+                        <svg class="refresh-icon"
+                             width="15"
+                             height="15"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                        </svg>
+                        <span class="refresh-label">Refresh</span>
+                    </button>
+                    <div id="status_tag">
+                        <span class="status-dot"></span>
+                        <span id="status_text">loading...</span>
+                    </div>
+                </div>
             </div>
+            <div class="section-wrapper" id="nifty50-section">
+                <div class="section-header">
+                    <div class="nifty50-controls">
+                        <div class="pagination-controls">
+                            <label for="nifty50_page_size">Show:</label>
+                            <select id="nifty50_page_size"
+                                    onchange="window.changeNifty50PageSize(this.value)">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50" selected>50</option>
+                                <option value="100">All</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-scroll-wrapper">
+                    <table id="nifty50Table" aria-label="Nifty 50 table">
+                        <thead>
+                            <tr>
+                                <th data-sort-asc="symbol_asc"
+                                    data-sort-desc="symbol_desc"
+                                    data-sort-default="asc">Symbol</th>
+                                <th data-sort-asc="name_asc"
+                                    data-sort-desc="name_desc"
+                                    data-sort-default="asc">Company</th>
+                                <th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th>
+                                <th data-sort-asc="change_asc" data-sort-desc="change_desc">Change</th>
+                                <th data-sort-asc="open_asc" data-sort-desc="open_desc">Open</th>
+                                <th data-sort-asc="high_asc" data-sort-desc="high_desc">High</th>
+                                <th data-sort-asc="low_asc" data-sort-desc="low_desc">Low</th>
+                                <th data-sort-asc="close_asc" data-sort-desc="close_desc">Prev Close</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nifty50_tbody">
+                            <tr class="loading-placeholder" id="nifty50_table_loading">
+                                <td colspan="8">
+                                    <span class="loading-dots">Loading data</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination-info" id="nifty50_pagination_info"></div>
+                <div class="pagination-buttons" id="nifty50_pagination_buttons"></div>
+            </div>
+            <div class="footer-note">Data sources: NSE, Yahoo Finance</div>
+            <footer class="site-footer-dashboard">
+                <div class="footer-legal-links">
+                    <a href="/privacy">Privacy Policy</a>
+                    <span class="footer-dot"></span>
+                    <a href="/terms">Terms &amp; Conditions</a>
+                    <span class="footer-dot"></span>
+                    <a href="/contact">Contact Us</a>
+                </div>
+                <div class="made-with-love">
+                    <p>
+                        Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
+                    </p>
+                </div>
+            </footer>
         </div>
-
-        <div class="user-dropdown-section">
-            <div class="user-dropdown-section-label">Preferences</div>
-            <button class="user-dropdown-toggle-btn" id="theme_toggle_btn" onclick="toggleTheme()" title="Toggle theme">
-                <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
-                    <span class="theme-icon-sun"></span>
-                    <span class="theme-icon-moon"></span>
-                </span>
-                <span>Theme</span>
-                <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
-            </button>
-        </div>
-
-        <div class="user-dropdown-section user-dropdown-section--logout">
-            <button class="user-dropdown-item user-dropdown-logout" onclick="handleLogout()">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span>Sign Out</span>
-            </button>
-        </div>
-    </div>
-</div>
-{% endif %}
-</div>
-</header>
-
-<div class="overview-tickers market-tickers-row">
-    <div class="index-tickers" id="indexTickers">
-        <!-- Ticker items rendered dynamically by IndexTicker -->
-    </div>
-</div>
-
-<div class="page-title-bar">
-<h1 id="header-title">Nifty 50</h1>
-<div class="page-title-right">
-    <button class="refresh-btn" id="refresh_btn" onclick="triggerRefresh()">
-        <svg class="refresh-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        <span class="refresh-label">Refresh</span>
-    </button>
-    <div id="status_tag" class="">
-        <span class="status-dot"></span>
-        <span id="status_text">loading...</span>
-    </div>
-</div>
-</div>
-
-<div class="section-wrapper" id="nifty50-section">
-<div class="section-header">
-<div class="nifty50-controls">
-<div class="pagination-controls">
-<label for="nifty50_page_size">Show:</label>
-<select id="nifty50_page_size" onchange="window.changeNifty50PageSize(this.value)">
-<option value="10">10</option>
-<option value="25">25</option>
-<option value="50" selected>50</option>
-<option value="100">All</option>
-</select>
-</div>
-</div>
-</div>
-<div class="table-scroll-wrapper">
-<table id="nifty50Table" aria-label="Nifty 50 table">
-<thead>
-<tr>
-<th data-sort-asc="symbol_asc" data-sort-desc="symbol_desc" data-sort-default="asc">Symbol</th><th data-sort-asc="name_asc" data-sort-desc="name_desc" data-sort-default="asc">Company</th><th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th><th data-sort-asc="change_asc" data-sort-desc="change_desc">Change</th><th data-sort-asc="open_asc" data-sort-desc="open_desc">Open</th><th data-sort-asc="high_asc" data-sort-desc="high_desc">High</th><th data-sort-asc="low_asc" data-sort-desc="low_desc">Low</th><th data-sort-asc="close_asc" data-sort-desc="close_desc">Prev Close</th>
-</tr>
-</thead>
-<tbody id="nifty50_tbody">
-<tr class="loading-placeholder" id="nifty50_table_loading"><td colspan="8"><span class="loading-dots">Loading data</span></td></tr>
-</tbody>
-</table>
-</div>
-<div class="pagination-info" id="nifty50_pagination_info"></div>
-<div class="pagination-buttons" id="nifty50_pagination_buttons"></div>
-</div>
-
-<div class="footer-note">
-Data sources: NSE, Yahoo Finance
-</div>
-<footer class="site-footer-dashboard">
-  <div class="footer-legal-links">
-    <a href="/privacy">Privacy Policy</a>
-    <span class="footer-dot"></span>
-    <a href="/terms">Terms &amp; Conditions</a>
-    <span class="footer-dot"></span>
-    <a href="/contact">Contact Us</a>
-  </div>
-  <div class="made-with-love">
-    <p>Made with <span class="heart">&hearts;</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a></p>
-  </div>
-</footer>
-</div>
-
-<script src="/static/js/nav.js"></script>
-<script type="module" src="/static/js/nifty50.js"></script>
-<link rel="stylesheet" href="/static/css/pwa-install.css">
-<script src="/static/js/pwa-install.js"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
-<!-- Nav Drawer -->
-<div class="drawer-backdrop" id="navDrawerBackdrop"></div>
-<aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
-  <div class="drawer-header">
-    <h2 class="drawer-title">Menu</h2>
-    <button class="drawer-close" id="navDrawerClose" title="Close">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="drawer-body">
-    <nav class="nav-drawer-links">
-      <a href="/" class="nav-drawer-link">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>Portfolio</span>
-      </a>
-      <a href="/exposure" class="nav-drawer-link">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M2 12h20"/><path d="M12 2c-2.76 4.48-2.76 13.52 0 20"/></svg>
-        <span>What You Actually Own</span>
-      </a>
-      <a href="/nifty50" class="nav-drawer-link active">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-        <span>Nifty 50</span>
-      </a>
-    </nav>
-  </div>
-</aside>
-</body>
+        <script src="/static/js/nav.js"></script>
+        <script type="module" src="/static/js/nifty50.js"></script>
+        <link rel="stylesheet" href="/static/css/pwa-install.css">
+        <script src="/static/js/pwa-install.js"></script>
+        <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
+        <!-- Nav Drawer -->
+        <div class="drawer-backdrop" id="navDrawerBackdrop"></div>
+        <aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
+            <div class="drawer-header">
+                <h2 class="drawer-title">Menu</h2>
+                <button class="drawer-close" id="navDrawerClose" title="Close">
+                    <svg width="20"
+                         height="20"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="drawer-body">
+                <nav class="nav-drawer-links">
+                    <a href="/" class="nav-drawer-link">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        <span>Portfolio</span>
+                    </a>
+                    <a href="/exposure" class="nav-drawer-link">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a10 10 0 0 1 0 20" />
+                            <path d="M2 12h20" />
+                            <path d="M12 2c-2.76 4.48-2.76 13.52 0 20" />
+                        </svg>
+                        <span>What You Actually Own</span>
+                    </a>
+                    <a href="/nifty50" class="nav-drawer-link active">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+                        </svg>
+                        <span>Nifty 50</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+    </body>
 </html>

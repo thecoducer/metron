@@ -99,7 +99,7 @@ def _mf_to_row(mf: dict) -> list[str]:
 def _sip_to_row(sip: dict) -> list[str]:
     """Convert a broker SIP to a sheet row."""
     return [
-        sip.get("tradingsymbol", sip.get("fund", "")),
+        sip.get("tradingsymbol") or sip.get("fund", ""),
         sip.get("fund", ""),
         _format_num(sip.get("instalment_amount", 0)),
         sip.get("frequency", ""),

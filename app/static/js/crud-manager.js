@@ -235,7 +235,7 @@ class CrudManager {
   // ── Drawer form ───────────────────────────────────────────────
 
   _showDrawerForm(schema, schemaKey, rowNumber, values) {
-    const isEdit = rowNumber != null;
+    const isEdit = rowNumber !== null;
 
     let fieldsHtml = '';
     for (const f of schema.fields) {
@@ -378,7 +378,7 @@ class CrudManager {
     const req = f.required ? '<span class="crud-req">*</span>' : '';
     const showWhenAttr = f.showWhen ? ` data-show-when="${f.showWhen}"` : '';
     const hideStyle = f.showWhen ? ' style="display:none"' : '';
-    let input = '';
+    let input;
 
     if (f.suggestApi) {
       input = `<input type="text" class="crud-field-input" name="${f.key}" value="${this._esc(String(value || ''))}" placeholder="${this._esc(f.placeholder || 'Search…')}" autocomplete="off" data-suggest-api="${f.suggestApi}" ${f.required ? 'required' : ''}>`;

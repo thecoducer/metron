@@ -56,6 +56,7 @@ class TestEnrichHoldingsWithPrices(unittest.TestCase):
 
     def test_no_prices_data(self):
         holdings = [{"purity": "999", "weight_gms": 10.0, "bought_ibja_rate_per_gm": 5000.0}]
+        # pyrefly: ignore [bad-argument-type]
         result = enrich_holdings_with_prices(holdings, None)
         self.assertEqual(result[0]["latest_ibja_price_per_gm"], None)
         self.assertEqual(result[0]["pl"], 0)

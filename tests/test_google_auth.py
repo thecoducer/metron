@@ -98,6 +98,7 @@ class TestCredentialsFromDict(unittest.TestCase):
         data = {"token": "t"}
         creds = credentials_from_dict(data)
         self.assertEqual(creds.token_uri, "https://oauth2.googleapis.com/token")
+        # pyrefly: ignore [no-matching-overload]
         self.assertEqual(list(creds.scopes), USER_SCOPES)
 
 

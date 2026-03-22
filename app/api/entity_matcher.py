@@ -16,9 +16,9 @@ on CPU) — the smallest and fastest SentenceTransformer model, well
 suited for short entity-name strings.
 """
 
-import os
 import re
 import threading
+from pathlib import Path
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -49,9 +49,8 @@ def _preprocess_for_embedding(name: str) -> str:
     'Tata Consultancy Services'
     """
     name = _DATE_SUFFIX_RE.sub(" ", name)
-    # name = _LEGAL_SUFFIX_RE.sub("", name)
+    name = _LEGAL_SUFFIX_RE.sub("", name)
     return _WHITESPACE_RE.sub(" ", name).strip()
-    # return name
 
 
 # ---------------------------------------------------------------------------
@@ -76,10 +75,10 @@ class EntityMatcher:
         self.threshold = threshold
         # Resolve model path relative to project root (two levels up from
         # this file: app/api/entity_matcher.py → project root).
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        model_path = os.path.join(project_root, SENTENCE_TRANSFORMER_MODEL_PATH)
+        project_root = Path(__file__).resolve().parent.parent.parent
+        model_path = project_root / SENTENCE_TRANSFORMER_MODEL_PATH
         logger.info("Loading SentenceTransformer model from %s …", model_path)
-        self.model = SentenceTransformer(model_path, local_files_only=True, device="cpu")
+        self.model = SentenceTransformer(str(model_path), local_files_only=True, device="cpu")
         logger.info("SentenceTransformer model loaded (local, cpu-only)")
 
     # ---- public API -------------------------------------------------------

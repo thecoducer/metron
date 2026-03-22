@@ -529,6 +529,7 @@ class TestGoogleSheetsClientEdges(unittest.TestCase):
     def test_fetch_sheet_data_error_logged_and_raised(self):
         """Lines 79-81: fetch_sheet_data catches, logs, and re-raises."""
         client = self._make_authed_client()
+        # pyrefly: ignore [missing-attribute]
         client.service.spreadsheets().values().get().execute.side_effect = RuntimeError("boom")
         with self.assertRaises(RuntimeError):
             client.fetch_sheet_data("sid", "Sheet1!A:Z", max_retries=0)
@@ -536,6 +537,7 @@ class TestGoogleSheetsClientEdges(unittest.TestCase):
     def test_batch_fetch_error_logged_and_raised(self):
         """Lines 130-132: batch_fetch_sheet_data catches, logs, and re-raises."""
         client = self._make_authed_client()
+        # pyrefly: ignore [missing-attribute]
         client.service.spreadsheets().values().batchGet().execute.side_effect = RuntimeError("batch boom")
         with self.assertRaises(RuntimeError):
             client.batch_fetch_sheet_data("sid", ["Sheet1!A:Z"], max_retries=0)

@@ -90,6 +90,7 @@ class TestIntegration(unittest.TestCase):
         mock_kite._mock_mf_instruments = []
 
         # Fetch holdings
+        # pyrefly: ignore [bad-argument-type]
         stocks, mfs = self.holdings_service.fetch_holdings(mock_kite)
 
         # Verify fetch
@@ -185,6 +186,7 @@ class TestIntegration(unittest.TestCase):
 
         # Should raise exception
         with self.assertRaises(Exception) as context:
+            # pyrefly: ignore [bad-argument-type]
             self.holdings_service.fetch_holdings(mock_kite)
 
         self.assertIn("API Error", str(context.exception))
@@ -217,6 +219,7 @@ class TestIntegration(unittest.TestCase):
         ]
 
         # Fetch holdings
+        # pyrefly: ignore [bad-argument-type]
         stocks, mfs = self.holdings_service.fetch_holdings(mock_kite)
 
         # Verify MF holdings
@@ -365,9 +368,13 @@ class TestSortFunctionality(unittest.TestCase):
     def test_stock_pl_calculation(self):
         """Test P/L calculation for stocks"""
         holding = self.stock_holdings[0]
+        # pyrefly: ignore [unsupported-operation]
         invested = holding["quantity"] * holding["average_price"]
+        # pyrefly: ignore [unsupported-operation]
         current = holding["quantity"] * holding["last_price"]
+        # pyrefly: ignore [unsupported-operation]
         pl = current - invested
+        # pyrefly: ignore [unsupported-operation]
         pl_pct = (pl / invested) * 100
 
         self.assertEqual(invested, 25000)
@@ -378,9 +385,13 @@ class TestSortFunctionality(unittest.TestCase):
     def test_mf_pl_calculation(self):
         """Test P/L calculation for mutual funds"""
         holding = self.mf_holdings[0]
+        # pyrefly: ignore [unsupported-operation]
         invested = holding["quantity"] * holding["average_price"]
+        # pyrefly: ignore [unsupported-operation]
         current = holding["quantity"] * holding["last_price"]
+        # pyrefly: ignore [unsupported-operation]
         pl = current - invested
+        # pyrefly: ignore [unsupported-operation]
         pl_pct = (pl / invested) * 100
 
         self.assertEqual(invested, 2500)
@@ -391,7 +402,9 @@ class TestSortFunctionality(unittest.TestCase):
     def test_day_change_calculation(self):
         """Test day's change calculation for stocks"""
         holding = self.stock_holdings[0]
+        # pyrefly: ignore [unsupported-operation]
         day_change = (holding["last_price"] - holding["close_price"]) * holding["quantity"]
+        # pyrefly: ignore [unsupported-operation]
         day_change_pct = ((holding["last_price"] - holding["close_price"]) / holding["close_price"]) * 100
 
         self.assertEqual(day_change, 200)
@@ -467,8 +480,11 @@ class TestSortFunctionality(unittest.TestCase):
         """Test that negative P/L is handled correctly"""
         # MF2 has negative P/L (95 < 100)
         holding = self.mf_holdings[1]
+        # pyrefly: ignore [unsupported-operation]
         invested = holding["quantity"] * holding["average_price"]
+        # pyrefly: ignore [unsupported-operation]
         current = holding["quantity"] * holding["last_price"]
+        # pyrefly: ignore [unsupported-operation]
         pl = current - invested
 
         self.assertLess(pl, 0, "Should have negative P/L")
@@ -514,6 +530,7 @@ class TestSortFunctionality(unittest.TestCase):
 
         # All symbols should be uppercase in test data
         for symbol in symbols:
+            # pyrefly: ignore [missing-attribute]
             self.assertEqual(symbol, symbol.upper())
 
     def test_fund_name_sorting_readiness(self):
@@ -557,6 +574,7 @@ class TestSortFunctionality(unittest.TestCase):
 
         # All have same P/L%
         for holding in same_pl_holdings:
+            # pyrefly: ignore [unsupported-operation]
             pl_pct = ((holding["last_price"] - holding["average_price"]) / holding["average_price"]) * 100
             self.assertAlmostEqual(pl_pct, 10.0)
 
@@ -642,14 +660,20 @@ class TestGoldSeparation(unittest.TestCase):
 
         for holding in holdings:
             symbol = holding["tradingsymbol"]
+            # pyrefly: ignore [missing-attribute]
             is_gold = symbol == "GOLDBEES" or symbol.startswith("SGB")
+            # pyrefly: ignore [unsupported-operation]
             current = holding["last_price"] * holding["quantity"]
 
             if is_gold:
+                # pyrefly: ignore [unsupported-operation]
                 gold_invested += holding["invested"]
+                # pyrefly: ignore [unsupported-operation]
                 gold_current += current
             else:
+                # pyrefly: ignore [unsupported-operation]
                 stock_invested += holding["invested"]
+                # pyrefly: ignore [unsupported-operation]
                 stock_current += current
 
         # Assertions

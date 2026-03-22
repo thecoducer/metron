@@ -656,10 +656,10 @@ class PortfolioApp {
 
   _hasDataReady(status) {
     // Data is ready if any tracked state has been updated at least once
-    return status.portfolio_last_updated != null ||
-           status.sheets_last_updated != null ||
-           status.physical_gold_last_updated != null ||
-           status.fixed_deposits_last_updated != null;
+    return status.portfolio_last_updated !== null ||
+           status.sheets_last_updated !== null ||
+           status.physical_gold_last_updated !== null ||
+           status.fixed_deposits_last_updated !== null;
   }
 
   /**

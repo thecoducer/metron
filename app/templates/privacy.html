@@ -1,193 +1,266 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Privacy Policy — Metron</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Privacy Policy - Metron">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/public-pages.css">
-<link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
-<link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0f172a">
-</head>
-<body>
-<script>
+    <head>
+        <meta charset="utf-8">
+        <title>Privacy Policy — Metron</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta name="description" content="Privacy Policy - Metron">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="/static/css/public-pages.css">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <link rel="manifest" href="/static/manifest.json">
+        <meta name="theme-color" content="#0f172a">
+    </head>
+    <body>
+        <script>
   (function(){var t=localStorage.getItem('theme');if(t==='dark')document.body.classList.add('dark-theme')})();
-</script>
-
-<div class="bg-grid"></div>
-<div class="bg-glow"></div>
-
-<div class="page">
-
-  <!-- Nav -->
-  <nav class="nav">
-    <a href="/" class="nav-brand">
-      <span class="nav-logo"></span>
-      <span class="nav-name">Metron</span>
-    </a>
-    <div class="nav-actions">
-      <button class="theme-toggle" onclick="(function(){var b=document.body,d=b.classList.toggle('dark-theme');localStorage.setItem('theme',d?'dark':'light')}())" aria-label="Toggle theme">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a href="/" class="nav-cta">
-        Dashboard
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-  </nav>
-
-  <!-- Content -->
-  <main class="content">
-    <div class="page-header">
-      <h1>Privacy Policy</h1>
-      <p class="subtitle">Last updated: 20 March 2026</p>
-    </div>
-
-    <div class="highlight-box">
-      <p><span class="icon">🛡️</span> Metron is privacy-first. We do not collect, store, or sell any of your personal financial data. Your portfolio information stays in your own Google Drive.</p>
-    </div>
-
-    <section class="legal-section">
-      <h2>1. Overview</h2>
-      <p>Metron ("we", "us", "our") is an open-source investment portfolio dashboard designed for Indian investors. This Privacy Policy explains how we handle information when you use our service at metron.thecoducer.com (the "Service").</p>
-      <p>We are committed to protecting your privacy. Our architecture is designed so that your financial data never resides on our servers beyond transient in-memory caches that are cleared on each session.</p>
-    </section>
-
-    <section class="legal-section">
-      <h2>2. Information We Do Not Collect</h2>
-      <p>Metron is built on a privacy-first architecture. We explicitly do <strong>not</strong> collect or store:</p>
-      <ul>
-        <li>Your stock holdings, mutual fund investments, or portfolio values</li>
-        <li>Your bank account details or fixed deposit information</li>
-        <li>Your physical gold holdings or purchase history</li>
-        <li>Your SIP details or investment amounts</li>
-        <li>Your brokerage account credentials (API keys are encrypted and stored in Firestore with access restricted to your account only)</li>
-        <li>Analytics data, tracking pixels, or advertising identifiers</li>
-        <li>Cookies for tracking purposes (we only use a single session cookie required for authentication)</li>
-      </ul>
-    </section>
-
-    <section class="legal-section">
-      <h2>3. Information We Access</h2>
-      <p>To provide the Service, we access the following information temporarily and in-memory only:</p>
-      <ul>
-        <li><strong>Google Account Profile:</strong> Your name, email address, and profile picture — used solely to identify your session and display your name in the UI.</li>
-        <li><strong>Google Drive (limited scope):</strong> We create and read a single Google Sheet in your Drive that stores your manually entered investment data. We never access any other files in your Drive.</li>
-        <li><strong>Broker API Data:</strong> If you connect a broker account, we fetch your holdings and positions through their official API using your API key. This data is held only in transient server memory and is never written to any database.</li>
-      </ul>
-    </section>
-
-    <section class="legal-section">
-      <h2>4. Where Your Data Lives</h2>
-      <p>Your investment data is stored in a Google Sheet auto-created in <strong>your own Google Drive</strong>. You have full ownership and control:</p>
-      <ul>
-        <li>You can view, edit, or delete the spreadsheet at any time</li>
-        <li>The app developer has no access to your Google Drive or spreadsheet</li>
-        <li>Revoking the app's Google access immediately removes all access</li>
-      </ul>
-      <p>Broker session tokens are stored in Firebase Firestore, encrypted and scoped to your Google account. They are short-lived and expire automatically.</p>
-    </section>
-
-    <section class="legal-section">
-      <h2>5. Google OAuth Scopes</h2>
-      <p>When you sign in, we request the following Google OAuth scopes:</p>
-      <ul>
-        <li><strong>openid</strong> — To verify your identity</li>
-        <li><strong>email</strong> — To identify your account</li>
-        <li><strong>profile</strong> — To display your name and photo</li>
-        <li><strong>drive.file</strong> — To create and manage a single spreadsheet in your Drive (this scope only allows access to files created by the app — not your entire Drive)</li>
-      </ul>
-    </section>
-
-    <section class="legal-section">
-      <h2>6. Third-Party Services</h2>
-      <p>Metron interacts with the following third-party services:</p>
-      <ul>
-        <li><strong>Google APIs:</strong> For authentication and Google Sheets data storage</li>
-        <li><strong>Firebase / Firestore:</strong> For secure session management and encrypted credential storage</li>
-        <li><strong>Broker APIs (e.g., Zerodha KiteConnect):</strong> To fetch your live holdings and positions</li>
-        <li><strong>IBJA:</strong> To fetch live gold spot prices (no personal data is sent)</li>
-        <li><strong>NSE India:</strong> To fetch market data (no personal data is sent)</li>
-      </ul>
-      <p>We do not share any of your personal information with these services beyond what is required for the Service to function.</p>
-    </section>
-
-    <section class="legal-section">
-      <h2>7. Cookies</h2>
-      <p>We use a single session cookie (<code>__session</code>) strictly for authentication purposes. This cookie:</p>
-      <ul>
-        <li>Contains only your encrypted session identifier</li>
-        <li>Is marked HttpOnly (not accessible to JavaScript)</li>
-        <li>Is marked Secure (transmitted only over HTTPS)</li>
-        <li>Uses the SameSite=Lax attribute for CSRF protection</li>
-        <li>Does not track you across websites</li>
-      </ul>
-      <p>We do not use any analytics cookies, advertising cookies, or tracking pixels.</p>
-    </section>
-
-    <section class="legal-section">
-      <h2>8. Data Security</h2>
-      <p>We take security seriously:</p>
-      <ul>
-        <li>All traffic is served over HTTPS/TLS</li>
-        <li>The application is hosted on Google Cloud Run with automatic security patches</li>
-        <li>Broker API secrets are encrypted at rest in Firestore</li>
-        <li>Session tokens are short-lived and expire automatically</li>
-        <li>The entire source code is open-source and available for security audits on <a href="https://github.com/thecoducer/metron" target="_blank" rel="noopener">GitHub</a></li>
-      </ul>
-    </section>
-
-    <section class="legal-section">
-      <h2>9. Your Rights</h2>
-      <p>You have full control over your data:</p>
-      <ul>
-        <li><strong>Access:</strong> All your data is in your Google Drive — you can view it anytime</li>
-        <li><strong>Delete:</strong> Delete the Metron spreadsheet from your Drive to remove all stored data</li>
-        <li><strong>Revoke:</strong> Remove Metron's access from your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account permissions</a> page</li>
-        <li><strong>Portability:</strong> Your data is in a standard Google Sheet format — export it anytime</li>
-      </ul>
-    </section>
-
-    <section class="legal-section">
-      <h2>10. Children's Privacy</h2>
-      <p>Metron is not intended for use by individuals under the age of 18. We do not knowingly collect information from children.</p>
-    </section>
-
-    <section class="legal-section">
-      <h2>11. Changes to This Policy</h2>
-      <p>We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated "Last updated" date. Since Metron is open-source, all changes are also visible in the project's Git history.</p>
-    </section>
-
-    <section class="legal-section">
-      <h2>12. Contact</h2>
-      <p>If you have any questions or concerns about this Privacy Policy, please reach out via our <a href="/contact">Contact</a> page or open an issue on <a href="https://github.com/thecoducer/metron/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-links">
-        <a href="/privacy">Privacy Policy</a>
-        <span class="footer-separator"></span>
-        <a href="/terms">Terms &amp; Conditions</a>
-        <span class="footer-separator"></span>
-        <a href="/contact">Contact Us</a>
-      </div>
-      <div class="made-with-love">
-        <p>Made with <span class="heart">&hearts;</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a></p>
-      </div>
-    </div>
-  </footer>
-
-</div>
-
-</body>
+        </script>
+        <div class="bg-grid"></div>
+        <div class="bg-glow"></div>
+        <div class="page">
+            <!-- Nav -->
+            <nav class="nav">
+                <a href="/" class="nav-brand">
+                    <span class="nav-logo"></span>
+                    <span class="nav-name">Metron</span>
+                </a>
+                <div class="nav-actions">
+                    <button class="theme-toggle"
+                            onclick="(function(){var b=document.body,d=b.classList.toggle('dark-theme');localStorage.setItem('theme',d?'dark':'light')}())"
+                            aria-label="Toggle theme">
+                        <svg class="sun"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                        </svg>
+                        <svg class="moon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
+                    </button>
+                    <a href="/" class="nav-cta">
+                        Dashboard
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M5 12h14" />
+                            <path d="M12 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            </nav>
+            <!-- Content -->
+            <main class="content">
+                <div class="page-header">
+                    <h1>Privacy Policy</h1>
+                    <p class="subtitle">Last updated: 20 March 2026</p>
+                </div>
+                <div class="highlight-box">
+                    <p>
+                        <span class="icon">🛡️</span> Metron is privacy-first. We do not collect, store, or sell any of your personal financial data. Your portfolio information stays in your own Google Drive.
+                    </p>
+                </div>
+                <section class="legal-section">
+                    <h2>1. Overview</h2>
+                    <p>
+                        Metron ("we", "us", "our") is an open-source investment portfolio dashboard designed for Indian investors. This Privacy Policy explains how we handle information when you use our service at metron.thecoducer.com (the "Service").
+                    </p>
+                    <p>
+                        We are committed to protecting your privacy. Our architecture is designed so that your financial data never resides on our servers beyond transient in-memory caches that are cleared on each session.
+                    </p>
+                </section>
+                <section class="legal-section">
+                    <h2>2. Information We Do Not Collect</h2>
+                    <p>
+                        Metron is built on a privacy-first architecture. We explicitly do <strong>not</strong> collect or store:
+                    </p>
+                    <ul>
+                        <li>Your stock holdings, mutual fund investments, or portfolio values</li>
+                        <li>Your bank account details or fixed deposit information</li>
+                        <li>Your physical gold holdings or purchase history</li>
+                        <li>Your SIP details or investment amounts</li>
+                        <li>
+                            Your brokerage account credentials (API keys are encrypted and stored in Firestore with access restricted to your account only)
+                        </li>
+                        <li>Analytics data, tracking pixels, or advertising identifiers</li>
+                        <li>Cookies for tracking purposes (we only use a single session cookie required for authentication)</li>
+                    </ul>
+                </section>
+                <section class="legal-section">
+                    <h2>3. Information We Access</h2>
+                    <p>To provide the Service, we access the following information temporarily and in-memory only:</p>
+                    <ul>
+                        <li>
+                            <strong>Google Account Profile:</strong> Your name, email address, and profile picture — used solely to identify your session and display your name in the UI.
+                        </li>
+                        <li>
+                            <strong>Google Drive (limited scope):</strong> We create and read a single Google Sheet in your Drive that stores your manually entered investment data. We never access any other files in your Drive.
+                        </li>
+                        <li>
+                            <strong>Broker API Data:</strong> If you connect a broker account, we fetch your holdings and positions through their official API using your API key. This data is held only in transient server memory and is never written to any database.
+                        </li>
+                    </ul>
+                </section>
+                <section class="legal-section">
+                    <h2>4. Where Your Data Lives</h2>
+                    <p>
+                        Your investment data is stored in a Google Sheet auto-created in <strong>your own Google Drive</strong>. You have full ownership and control:
+                    </p>
+                    <ul>
+                        <li>You can view, edit, or delete the spreadsheet at any time</li>
+                        <li>The app developer has no access to your Google Drive or spreadsheet</li>
+                        <li>Revoking the app's Google access immediately removes all access</li>
+                    </ul>
+                    <p>
+                        Broker session tokens are stored in Firebase Firestore, encrypted and scoped to your Google account. They are short-lived and expire automatically.
+                    </p>
+                </section>
+                <section class="legal-section">
+                    <h2>5. Google OAuth Scopes</h2>
+                    <p>When you sign in, we request the following Google OAuth scopes:</p>
+                    <ul>
+                        <li>
+                            <strong>openid</strong> — To verify your identity
+                        </li>
+                        <li>
+                            <strong>email</strong> — To identify your account
+                        </li>
+                        <li>
+                            <strong>profile</strong> — To display your name and photo
+                        </li>
+                        <li>
+                            <strong>drive.file</strong> — To create and manage a single spreadsheet in your Drive (this scope only allows access to files created by the app — not your entire Drive)
+                        </li>
+                    </ul>
+                </section>
+                <section class="legal-section">
+                    <h2>6. Third-Party Services</h2>
+                    <p>Metron interacts with the following third-party services:</p>
+                    <ul>
+                        <li>
+                            <strong>Google APIs:</strong> For authentication and Google Sheets data storage
+                        </li>
+                        <li>
+                            <strong>Firebase / Firestore:</strong> For secure session management and encrypted credential storage
+                        </li>
+                        <li>
+                            <strong>Broker APIs (e.g., Zerodha KiteConnect):</strong> To fetch your live holdings and positions
+                        </li>
+                        <li>
+                            <strong>IBJA:</strong> To fetch live gold spot prices (no personal data is sent)
+                        </li>
+                        <li>
+                            <strong>NSE India:</strong> To fetch market data (no personal data is sent)
+                        </li>
+                    </ul>
+                    <p>
+                        We do not share any of your personal information with these services beyond what is required for the Service to function.
+                    </p>
+                </section>
+                <section class="legal-section">
+                    <h2>7. Cookies</h2>
+                    <p>
+                        We use a single session cookie (<code>__session</code>) strictly for authentication purposes. This cookie:
+                    </p>
+                    <ul>
+                        <li>Contains only your encrypted session identifier</li>
+                        <li>Is marked HttpOnly (not accessible to JavaScript)</li>
+                        <li>Is marked Secure (transmitted only over HTTPS)</li>
+                        <li>Uses the SameSite=Lax attribute for CSRF protection</li>
+                        <li>Does not track you across websites</li>
+                    </ul>
+                    <p>We do not use any analytics cookies, advertising cookies, or tracking pixels.</p>
+                </section>
+                <section class="legal-section">
+                    <h2>8. Data Security</h2>
+                    <p>We take security seriously:</p>
+                    <ul>
+                        <li>All traffic is served over HTTPS/TLS</li>
+                        <li>The application is hosted on Google Cloud Run with automatic security patches</li>
+                        <li>Broker API secrets are encrypted at rest in Firestore</li>
+                        <li>Session tokens are short-lived and expire automatically</li>
+                        <li>
+                            The entire source code is open-source and available for security audits on <a href="https://github.com/thecoducer/metron"
+    target="_blank"
+    rel="noopener">GitHub</a>
+                        </li>
+                    </ul>
+                </section>
+                <section class="legal-section">
+                    <h2>9. Your Rights</h2>
+                    <p>You have full control over your data:</p>
+                    <ul>
+                        <li>
+                            <strong>Access:</strong> All your data is in your Google Drive — you can view it anytime
+                        </li>
+                        <li>
+                            <strong>Delete:</strong> Delete the Metron spreadsheet from your Drive to remove all stored data
+                        </li>
+                        <li>
+                            <strong>Revoke:</strong> Remove Metron's access from your <a href="https://myaccount.google.com/permissions"
+    target="_blank"
+    rel="noopener">Google Account permissions</a> page
+                        </li>
+                        <li>
+                            <strong>Portability:</strong> Your data is in a standard Google Sheet format — export it anytime
+                        </li>
+                    </ul>
+                </section>
+                <section class="legal-section">
+                    <h2>10. Children's Privacy</h2>
+                    <p>
+                        Metron is not intended for use by individuals under the age of 18. We do not knowingly collect information from children.
+                    </p>
+                </section>
+                <section class="legal-section">
+                    <h2>11. Changes to This Policy</h2>
+                    <p>
+                        We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated "Last updated" date. Since Metron is open-source, all changes are also visible in the project's Git history.
+                    </p>
+                </section>
+                <section class="legal-section">
+                    <h2>12. Contact</h2>
+                    <p>
+                        If you have any questions or concerns about this Privacy Policy, please reach out via our <a href="/contact">Contact</a> page or open an issue on <a href="https://github.com/thecoducer/metron/issues"
+    target="_blank"
+    rel="noopener">GitHub</a>.
+                    </p>
+                </section>
+            </main>
+            <!-- Footer -->
+            <footer class="site-footer">
+                <div class="footer-inner">
+                    <div class="footer-links">
+                        <a href="/privacy">Privacy Policy</a>
+                        <span class="footer-separator"></span>
+                        <a href="/terms">Terms &amp; Conditions</a>
+                        <span class="footer-separator"></span>
+                        <a href="/contact">Contact Us</a>
+                    </div>
+                    <div class="made-with-love">
+                        <p>
+                            Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
+                        </p>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </body>
 </html>

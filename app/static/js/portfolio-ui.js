@@ -63,7 +63,7 @@ function renderDrawerAccounts(names, sessionValidity, loginUrls) {
   listEl.innerHTML = names.map(name => {
     const isValid = sessionValidity[name] === true;
     const loginUrl = loginUrls[name] || '';
-    let statusHtml = '';
+    let statusHtml;
     if (!isValid && loginUrl) {
       statusHtml = '<a class="drawer-account-login" href="' + escapeHtml(loginUrl) + '" target="_blank" rel="noopener" title="Session expired \u2013 click to log in">Login</a>';
     } else if (!isValid) {

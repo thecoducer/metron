@@ -33,6 +33,7 @@ def _inject_user(client, user=None):
     # Also store a PIN in server memory so pin_required decorator passes
     from app.services import session_manager
 
+    # pyrefly: ignore [bad-argument-type]
     session_manager.set_pin(u["google_id"], "test01")
 
 
@@ -88,7 +89,7 @@ class TestUIServerRoutes(unittest.TestCase):
 
     def test_stocks_data_endpoint_authenticated(self):
         """Authenticated user gets their own stocks."""
-        with patch("app.routes.portfolio_cache") as mock_pcache:
+        with patch("app.cache.portfolio_cache") as mock_pcache:
             mock_data = UserPortfolioData(
                 stocks=[
                     {"tradingsymbol": "INFY", "quantity": 10},
@@ -113,7 +114,7 @@ class TestUIServerRoutes(unittest.TestCase):
 
     def test_mf_holdings_data_endpoint(self):
         """Authenticated user gets their MF holdings."""
-        with patch("app.routes.portfolio_cache") as mock_pcache:
+        with patch("app.cache.portfolio_cache") as mock_pcache:
             mock_data = UserPortfolioData(
                 mf_holdings=[
                     {"tradingsymbol": "MF2", "fund": "Fund B"},
@@ -133,7 +134,7 @@ class TestUIServerRoutes(unittest.TestCase):
 
     def test_sips_data_endpoint(self):
         """Authenticated user gets their SIPs."""
-        with patch("app.routes.portfolio_cache") as mock_pcache:
+        with patch("app.cache.portfolio_cache") as mock_pcache:
             mock_data = UserPortfolioData(
                 sips=[
                     {"tradingsymbol": "SIP2", "status": "inactive"},
@@ -930,9 +931,9 @@ class TestRouteHelpers(unittest.TestCase):
             self.assertIsNone(client)
             self.assertIsNotNone(err)
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=([{"a": 1}], None))
-    @patch("app.routes.enrich_holdings_with_prices", return_value=[{"a": 1}])
-    @patch("app.routes.market_cache")
+    @patch("app.fetchers._fetch_user_sheets_data", return_value=([{"a": 1}], None))
+    @patch("app.api.physical_gold.enrich_holdings_with_prices", return_value=[{"a": 1}])
+    @patch("app.cache.market_cache")
     def test_build_gold_data(self, mock_mc, mock_enrich, mock_fetch):
         from app.routes import _build_gold_data
 
@@ -940,29 +941,29 @@ class TestRouteHelpers(unittest.TestCase):
         result = _build_gold_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=(None, None))
+    @patch("app.fetchers._fetch_user_sheets_data", return_value=(None, None))
     def test_build_gold_data_none(self, mock_fetch):
         from app.routes import _build_gold_data
 
         result = _build_gold_data({"google_id": "g1"})
         self.assertEqual(result, [])
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=(None, [{"deposited_on": "2024-01-01"}]))
+    @patch("app.fetchers._fetch_user_sheets_data", return_value=(None, [{"deposited_on": "2024-01-01"}]))
     def test_build_fd_data(self, mock_fetch):
         from app.routes import _build_fd_data
 
         result = _build_fd_data({"google_id": "g1"})
         self.assertEqual(len(result), 1)
 
-    @patch("app.routes._fetch_user_sheets_data", return_value=(None, None))
+    @patch("app.fetchers._fetch_user_sheets_data", return_value=(None, None))
     def test_build_fd_data_none(self, mock_fetch):
         from app.routes import _build_fd_data
 
         result = _build_fd_data({"google_id": "g1"})
         self.assertEqual(result, [])
 
-    @patch("app.routes._fetch_manual_entries", return_value=[])
-    @patch("app.routes.portfolio_cache")
+    @patch("app.fetchers._fetch_manual_entries", return_value=[])
+    @patch("app.cache.portfolio_cache")
     def test_build_mf_data(self, mock_pc, mock_manual):
         from app.cache import UserPortfolioData
         from app.routes import _build_mf_data
@@ -974,7 +975,7 @@ class TestRouteHelpers(unittest.TestCase):
         self.assertEqual(len(result), 1)
 
     @patch(
-        "app.routes._fetch_manual_entries",
+        "app.fetchers._fetch_manual_entries",
         return_value=[
             {
                 "fund": "B",
@@ -990,7 +991,7 @@ class TestRouteHelpers(unittest.TestCase):
             }
         ],
     )
-    @patch("app.routes.portfolio_cache")
+    @patch("app.cache.portfolio_cache")
     def test_build_sips_data_with_manual(self, mock_pc, mock_manual):
         from app.cache import UserPortfolioData
         from app.routes import _build_sips_data
@@ -1000,9 +1001,9 @@ class TestRouteHelpers(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["fund"], "B")
 
-    @patch("app.routes._enrich_manual_entries_with_ltp")
-    @patch("app.routes._fetch_manual_entries")
-    @patch("app.routes.portfolio_cache")
+    @patch("app.services._enrich_manual_entries_with_ltp")
+    @patch("app.fetchers._fetch_manual_entries")
+    @patch("app.cache.portfolio_cache")
     def test_build_stocks_data_with_manual(self, mock_pc, mock_manual, mock_enrich):
         from app.cache import UserPortfolioData
         from app.routes import _build_stocks_data
@@ -1016,9 +1017,9 @@ class TestRouteHelpers(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["tradingsymbol"], "INFY")
 
-    @patch("app.routes._enrich_manual_entries_with_ltp")
-    @patch("app.routes._fetch_manual_entries")
-    @patch("app.routes.portfolio_cache")
+    @patch("app.services._enrich_manual_entries_with_ltp")
+    @patch("app.fetchers._fetch_manual_entries")
+    @patch("app.cache.portfolio_cache")
     def test_build_stocks_data_broker_offline_uses_sheet_fallback(self, mock_pc, mock_manual, mock_enrich):
         """When no accounts connected, cached broker stocks are ignored and
         zerodha-sourced sheet entries serve as fallback."""
@@ -1051,9 +1052,9 @@ class TestRouteHelpers(unittest.TestCase):
         self.assertIn("INFY", symbols)
         self.assertEqual(result[0]["source"], "zerodha")
 
-    @patch("app.routes._enrich_manual_entries_with_ltp")
-    @patch("app.routes._fetch_manual_entries")
-    @patch("app.routes.portfolio_cache")
+    @patch("app.services._enrich_manual_entries_with_ltp")
+    @patch("app.fetchers._fetch_manual_entries")
+    @patch("app.cache.portfolio_cache")
     def test_build_stocks_data_broker_online_skips_sheet_zerodha(self, mock_pc, mock_manual, mock_enrich):
         """When account is connected, zerodha-sourced sheet rows for that
         account are skipped and live broker data is used instead."""
@@ -1083,8 +1084,8 @@ class TestRouteHelpers(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["quantity"], 10)
 
-    @patch("app.routes._fetch_manual_entries", return_value=[])
-    @patch("app.routes.portfolio_cache")
+    @patch("app.fetchers._fetch_manual_entries", return_value=[])
+    @patch("app.cache.portfolio_cache")
     def test_build_mf_data_broker_offline_uses_sheet_fallback(self, mock_pc, mock_manual):
         """When no accounts connected, cached broker MF data is ignored."""
         from app.cache import UserPortfolioData
@@ -1097,8 +1098,8 @@ class TestRouteHelpers(unittest.TestCase):
         result = _build_mf_data({"google_id": "g1"})
         self.assertEqual(len(result), 0)
 
-    @patch("app.routes._fetch_manual_entries", return_value=[])
-    @patch("app.routes.portfolio_cache")
+    @patch("app.fetchers._fetch_manual_entries", return_value=[])
+    @patch("app.cache.portfolio_cache")
     def test_build_sips_data_broker_offline_uses_sheet_fallback(self, mock_pc, mock_manual):
         """When no accounts connected, cached broker SIP data is ignored."""
         from app.cache import UserPortfolioData
@@ -1111,7 +1112,7 @@ class TestRouteHelpers(unittest.TestCase):
         result = _build_sips_data({"google_id": "g1"})
         self.assertEqual(len(result), 0)
 
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.cache.manual_ltp_cache")
     def test_enrich_manual_entries_with_ltp(self, mock_cache):
         from app.routes import _enrich_manual_entries_with_ltp
 
@@ -1120,7 +1121,7 @@ class TestRouteHelpers(unittest.TestCase):
         _enrich_manual_entries_with_ltp(entries)
         self.assertEqual(entries[0]["last_price"], 1600)
 
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.cache.manual_ltp_cache")
     def test_enrich_manual_entries_no_ltp(self, mock_cache):
         from app.routes import _enrich_manual_entries_with_ltp
 
@@ -1134,7 +1135,7 @@ class TestRouteHelpers(unittest.TestCase):
 
         _enrich_manual_entries_with_ltp([])  # should not raise
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_validate_nse_symbol_valid_via_nse(self, mock_client_cls):
         """NSE quote succeeds — returns data with ISIN, Yahoo Finance not called."""
         from app.routes import _validate_nse_symbol
@@ -1149,7 +1150,7 @@ class TestRouteHelpers(unittest.TestCase):
         mock_client_cls.return_value.fetch_nse_quote.assert_called_once_with("INFY")
         mock_client_cls.return_value.fetch_stock_quote.assert_not_called()
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_validate_nse_symbol_falls_back_to_yahoo(self, mock_client_cls):
         """NSE returns None — Yahoo Finance fallback is used."""
         from app.routes import _validate_nse_symbol
@@ -1160,7 +1161,7 @@ class TestRouteHelpers(unittest.TestCase):
         self.assertIsNotNone(result)
         mock_client_cls.return_value.fetch_stock_quote.assert_called_once_with("INFY")
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_validate_nse_symbol_invalid(self, mock_client_cls):
         """Both NSE and Yahoo Finance return no LTP — symbol is invalid."""
         from app.routes import _validate_nse_symbol
@@ -1170,7 +1171,7 @@ class TestRouteHelpers(unittest.TestCase):
         result = _validate_nse_symbol("FAKE")
         self.assertIsNone(result)
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_validate_nse_symbol_both_fail(self, mock_client_cls):
         """Both NSE and Yahoo Finance raise exceptions — returns None."""
         from app.routes import _validate_nse_symbol
@@ -1193,7 +1194,7 @@ class TestRouteHelpers(unittest.TestCase):
         result = _build_data_for_type({"google_id": "g1"}, "unknown")
         self.assertEqual(result, {})
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     def test_refresh_single_sheet_cache_gold(self, mock_usc):
         from app.routes import _refresh_single_sheet_cache
 
@@ -1204,7 +1205,7 @@ class TestRouteHelpers(unittest.TestCase):
             _refresh_single_sheet_cache(mock_client, "sid", "g1", "physical_gold")
         mock_usc.put.assert_called_once()
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     def test_refresh_single_sheet_cache_fd(self, mock_usc):
         from app.routes import _refresh_single_sheet_cache
 
@@ -1218,7 +1219,7 @@ class TestRouteHelpers(unittest.TestCase):
             _refresh_single_sheet_cache(mock_client, "sid", "g1", "fixed_deposits")
         mock_usc.put.assert_called_once()
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     def test_refresh_single_sheet_cache_manual(self, mock_usc):
         from app.routes import _refresh_single_sheet_cache
 
@@ -1230,7 +1231,7 @@ class TestRouteHelpers(unittest.TestCase):
         _refresh_single_sheet_cache(mock_client, "sid", "g1", "stocks")
         mock_usc.put_manual.assert_called_once()
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     def test_refresh_single_sheet_cache_error(self, mock_usc):
         from app.routes import _refresh_single_sheet_cache
 
@@ -1255,7 +1256,7 @@ class TestRouteHelpers(unittest.TestCase):
 
         _prefetch_all_user_sheets({"google_id": "g1", "spreadsheet_id": "sid"})
 
-    @patch("app.routes._get_google_creds_dict", return_value=None)
+    @patch("app.fetchers.get_google_creds_dict", return_value=None)
     def test_fetch_manual_entries_no_creds(self, mock_creds):
         from app.routes import _fetch_manual_entries
 
@@ -1290,9 +1291,9 @@ class TestRouteHelpers(unittest.TestCase):
         resp = client.get("/healthz")
         self.assertEqual(resp.status_code, 200)
 
-    @patch("app.routes.manual_ltp_cache")
-    @patch("app.api.market_data.MarketDataClient")
-    @patch("app.routes._fetch_manual_entries", return_value=[{"symbol": "INFY"}])
+    @patch("app.fetchers.manual_ltp_cache")
+    @patch("app.fetchers.MarketDataClient")
+    @patch("app.fetchers._fetch_manual_entries", return_value=[{"symbol": "INFY"}])
     def test_fetch_uncached_manual_ltps(self, mock_manual, mock_client_cls, mock_cache):
         from app.routes import _fetch_uncached_manual_ltps
 
@@ -1453,7 +1454,7 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         result = _get_google_creds_dict(user)
         self.assertEqual(result, {"token": "stored"})
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.fetchers.user_sheets_cache")
     def test_fetch_user_sheets_data_cached(self, mock_usc):
         from app.routes import _fetch_user_sheets_data
 
@@ -1463,7 +1464,7 @@ class TestRoutePrefetchAndBatchFetch(unittest.TestCase):
         gold, fds = _fetch_user_sheets_data(user)
         self.assertEqual(gold, [{"g": 1}])
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.fetchers.user_sheets_cache")
     def test_fetch_user_sheets_data_no_cache(self, mock_usc):
         from app.routes import _fetch_user_sheets_data
 
@@ -1736,7 +1737,7 @@ class TestFetchManualEntries(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.fetchers.user_sheets_cache")
     def test_fetch_manual_entries_unknown_type(self, mock_usc):
         from app.routes import _fetch_manual_entries
 
@@ -1744,7 +1745,7 @@ class TestFetchManualEntries(unittest.TestCase):
         result = _fetch_manual_entries({"google_id": "g1"}, "nonexistent")
         self.assertEqual(result, [])
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.fetchers.user_sheets_cache")
     def test_fetch_manual_entries_no_cache(self, mock_usc):
         from app.routes import _fetch_manual_entries
 
@@ -1752,7 +1753,7 @@ class TestFetchManualEntries(unittest.TestCase):
         result = _fetch_manual_entries({"google_id": "g1", "spreadsheet_id": "sid"}, "stocks")
         self.assertEqual(result, [])
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.fetchers.user_sheets_cache")
     def test_fetch_manual_entries_cached(self, mock_usc):
         from app.routes import _fetch_manual_entries
 
@@ -1762,7 +1763,7 @@ class TestFetchManualEntries(unittest.TestCase):
 
 
 class TestEnrichManualEntriesWithLtp(unittest.TestCase):
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.cache.manual_ltp_cache")
     def test_enrich_with_cached_ltp(self, mock_cache):
         from app.routes import _enrich_manual_entries_with_ltp
 
@@ -1771,7 +1772,7 @@ class TestEnrichManualEntriesWithLtp(unittest.TestCase):
         _enrich_manual_entries_with_ltp(entries)
         self.assertEqual(entries[0]["last_price"], 1500)
 
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.cache.manual_ltp_cache")
     def test_enrich_no_symbols(self, mock_cache):
         from app.routes import _enrich_manual_entries_with_ltp
 
@@ -1779,7 +1780,7 @@ class TestEnrichManualEntriesWithLtp(unittest.TestCase):
         _enrich_manual_entries_with_ltp(entries)
         self.assertEqual(entries[0]["last_price"], 0)
 
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.cache.manual_ltp_cache")
     def test_enrich_all_uncached(self, mock_cache):
         from app.routes import _enrich_manual_entries_with_ltp
 
@@ -1790,7 +1791,7 @@ class TestEnrichManualEntriesWithLtp(unittest.TestCase):
 
 
 class TestRefreshSingleSheetCache(unittest.TestCase):
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     @patch("app.api.google_sheets_client.PhysicalGoldService")
     def test_refresh_physical_gold(self, mock_gold_svc, mock_usc):
         from app.routes import _refresh_single_sheet_cache
@@ -1801,7 +1802,7 @@ class TestRefreshSingleSheetCache(unittest.TestCase):
         _refresh_single_sheet_cache(mock_client, "sid", "g1234567", "physical_gold")
         mock_usc.put.assert_called_once()
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     @patch("app.api.google_sheets_client.FixedDepositsService")
     @patch("app.api.fixed_deposits.calculate_current_value", return_value=[])
     def test_refresh_fixed_deposits(self, mock_calc, mock_fd_svc, mock_usc):
@@ -1813,7 +1814,7 @@ class TestRefreshSingleSheetCache(unittest.TestCase):
         _refresh_single_sheet_cache(mock_client, "sid", "g1234567", "fixed_deposits")
         mock_usc.put.assert_called_once()
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     def test_refresh_manual_type(self, mock_usc):
         from app.routes import _refresh_single_sheet_cache
 
@@ -1825,7 +1826,7 @@ class TestRefreshSingleSheetCache(unittest.TestCase):
         _refresh_single_sheet_cache(mock_client, "sid", "g1234567", "stocks")
         mock_usc.put_manual.assert_called_once()
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     def test_refresh_exception(self, mock_usc):
         from app.routes import _refresh_single_sheet_cache
 
@@ -1842,7 +1843,7 @@ class TestRefreshSingleSheetCache(unittest.TestCase):
 
 
 class TestBuildDataForType(unittest.TestCase):
-    @patch("app.routes._build_stocks_data", return_value=[{"s": 1}])
+    @patch("app.services._build_stocks_data", return_value=[{"s": 1}])
     def test_build_data_for_stocks(self, mock_build):
         from app.routes import _build_data_for_type
 
@@ -1855,7 +1856,7 @@ class TestBuildDataForType(unittest.TestCase):
         result = _build_data_for_type({"google_id": "g1"}, "nonexistent")
         self.assertEqual(result, {})
 
-    @patch("app.routes._build_stocks_data", side_effect=Exception("boom"))
+    @patch("app.services._build_stocks_data", side_effect=Exception("boom"))
     def test_build_data_exception(self, mock_build):
         from app.routes import _build_data_for_type
 
@@ -2147,19 +2148,21 @@ class TestSheetsDeleteRoute(unittest.TestCase):
 
 
 class TestValidateNseSymbol(unittest.TestCase):
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_valid_symbol_via_nse(self, mock_mdc):
         from app.routes import _validate_nse_symbol
 
         mock_inst = mock_mdc.return_value
         mock_inst.fetch_nse_quote.return_value = {"ltp": 1500, "isin": "INE009A01021"}
         result = _validate_nse_symbol("INFY")
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(result["ltp"], 1500)
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(result["isin"], "INE009A01021")
         mock_inst.fetch_nse_quote.assert_called_once_with("INFY")
         mock_inst.fetch_stock_quote.assert_not_called()
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_falls_back_to_yahoo_when_nse_returns_none(self, mock_mdc):
         from app.routes import _validate_nse_symbol
 
@@ -2167,10 +2170,11 @@ class TestValidateNseSymbol(unittest.TestCase):
         mock_inst.fetch_nse_quote.return_value = None
         mock_inst.fetch_stock_quote.return_value = {"ltp": 1500}
         result = _validate_nse_symbol("INFY")
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(result["ltp"], 1500)
         mock_inst.fetch_stock_quote.assert_called_once_with("INFY")
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_invalid_symbol(self, mock_mdc):
         from app.routes import _validate_nse_symbol
 
@@ -2180,7 +2184,7 @@ class TestValidateNseSymbol(unittest.TestCase):
         result = _validate_nse_symbol("FAKE")
         self.assertIsNone(result)
 
-    @patch("app.api.market_data.MarketDataClient")
+    @patch("app.fetchers.MarketDataClient")
     def test_both_sources_fail(self, mock_mdc):
         from app.routes import _validate_nse_symbol
 
@@ -2192,9 +2196,9 @@ class TestValidateNseSymbol(unittest.TestCase):
 
 
 class TestFetchUncachedManualLtps(unittest.TestCase):
-    @patch("app.api.market_data.MarketDataClient")
-    @patch("app.routes.manual_ltp_cache")
-    @patch("app.routes._fetch_manual_entries", return_value=[{"symbol": "INFY"}])
+    @patch("app.fetchers.MarketDataClient")
+    @patch("app.fetchers.manual_ltp_cache")
+    @patch("app.fetchers._fetch_manual_entries", return_value=[{"symbol": "INFY"}])
     def test_fetch_and_cache(self, mock_entries, mock_cache, mock_mdc):
         from app.routes import _fetch_uncached_manual_ltps
 
@@ -2204,8 +2208,8 @@ class TestFetchUncachedManualLtps(unittest.TestCase):
         _fetch_uncached_manual_ltps({"google_id": "g1", "spreadsheet_id": "sid"}, "TCS")
         mock_cache.put_batch.assert_called()
 
-    @patch("app.routes.manual_ltp_cache")
-    @patch("app.routes._fetch_manual_entries", return_value=[])
+    @patch("app.fetchers.manual_ltp_cache")
+    @patch("app.fetchers._fetch_manual_entries", return_value=[])
     def test_nothing_to_fetch(self, mock_entries, mock_cache):
         from app.routes import _fetch_uncached_manual_ltps
 
@@ -2296,7 +2300,7 @@ class TestPortfolioPageEdgeCases(unittest.TestCase):
 class TestFetchUserSheetsDataCacheMiss(unittest.TestCase):
     """Cache miss returns None, None."""
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.fetchers.user_sheets_cache")
     def test_cache_miss_returns_none(self, mock_usc):
         from app.routes import _fetch_user_sheets_data
 
@@ -2395,6 +2399,7 @@ class TestBackgroundSheetCreation(unittest.TestCase):
         self.assertEqual(resp.status_code, 302)
         # Now call the captured function to cover lines 438-443
         self.assertIn("target", captured)
+        # pyrefly: ignore [not-callable]
         captured["target"](*captured["args"])
         mock_create_sheet.assert_called_once()
         mock_update_sid.assert_called_once()
@@ -2427,15 +2432,16 @@ class TestBackgroundSheetCreation(unittest.TestCase):
 
         self.assertEqual(resp.status_code, 302)
         # Execute the captured bg function — exception is caught internally
+        # pyrefly: ignore [not-callable]
         captured["target"](*captured["args"])
 
 
 class TestFetchUncachedLTPsException(unittest.TestCase):
     """Lines 920-921: _fetch_uncached_manual_ltps exception path."""
 
-    @patch("app.routes.manual_ltp_cache")
-    @patch("app.api.market_data.MarketDataClient", side_effect=Exception("network"))
-    @patch("app.routes._fetch_manual_entries", return_value=[{"symbol": "INFY"}])
+    @patch("app.fetchers.manual_ltp_cache")
+    @patch("app.fetchers.MarketDataClient", side_effect=Exception("network"))
+    @patch("app.fetchers._fetch_manual_entries", return_value=[{"symbol": "INFY"}])
     def test_exception_caught(self, mock_entries, mock_client_cls, mock_cache):
         from app.routes import _fetch_uncached_manual_ltps
 
@@ -2448,9 +2454,9 @@ class TestFetchUncachedLTPsException(unittest.TestCase):
 class TestFetchUncachedLTPsNegativeBatch(unittest.TestCase):
     """Cover negative batch path in _fetch_uncached_manual_ltps."""
 
-    @patch("app.routes.manual_ltp_cache")
-    @patch("app.api.market_data.MarketDataClient")
-    @patch("app.routes._fetch_manual_entries", return_value=[{"symbol": "MISS"}])
+    @patch("app.fetchers.manual_ltp_cache")
+    @patch("app.fetchers.MarketDataClient")
+    @patch("app.fetchers._fetch_manual_entries", return_value=[{"symbol": "MISS"}])
     def test_missed_symbols_negative_cached(self, mock_entries, mock_client_cls, mock_cache):
         from app.routes import _fetch_uncached_manual_ltps
 
@@ -2465,7 +2471,7 @@ class TestBuildMfDataWithManual(unittest.TestCase):
     """Lines 955-957: _build_mf_data loop body with manual entries."""
 
     @patch(
-        "app.routes._fetch_manual_entries",
+        "app.fetchers._fetch_manual_entries",
         return_value=[
             {
                 "isin": "INF846K01DP8",
@@ -2477,7 +2483,7 @@ class TestBuildMfDataWithManual(unittest.TestCase):
             }
         ],
     )
-    @patch("app.routes.portfolio_cache")
+    @patch("app.cache.portfolio_cache")
     def test_manual_entries_merged(self, mock_pc, mock_manual):
         from app.cache import UserPortfolioData
         from app.routes import _build_mf_data
@@ -2542,7 +2548,7 @@ class TestGetSheetsClientNoSpreadsheet(unittest.TestCase):
 class TestRefreshSingleSheetCacheBlankRow(unittest.TestCase):
     """Line 1438: break on blank row in _refresh_single_sheet_cache manual path."""
 
-    @patch("app.routes.user_sheets_cache")
+    @patch("app.cache.user_sheets_cache")
     def test_manual_blank_row_break(self, mock_usc):
         from app.routes import _refresh_single_sheet_cache
 
@@ -2562,7 +2568,7 @@ class TestRefreshSingleSheetCacheBlankRow(unittest.TestCase):
 class TestBuildDataForTypeSuccess(unittest.TestCase):
     """Line 1465: builder(user) success path in _build_data_for_type."""
 
-    @patch("app.routes._build_mf_data", return_value=[{"fund": "A"}])
+    @patch("app.services._build_mf_data", return_value=[{"fund": "A"}])
     def test_mf_builder_success(self, mock_build):
         from app.routes import _build_data_for_type
 
@@ -2570,14 +2576,14 @@ class TestBuildDataForTypeSuccess(unittest.TestCase):
         self.assertIn("mfHoldings", result)
         self.assertEqual(result["mfHoldings"], [{"fund": "A"}])
 
-    @patch("app.routes._build_gold_data", return_value=[{"g": 1}])
+    @patch("app.services._build_gold_data", return_value=[{"g": 1}])
     def test_gold_builder_success(self, mock_build):
         from app.routes import _build_data_for_type
 
         result = _build_data_for_type({"google_id": "g1"}, "physical_gold")
         self.assertIn("physicalGold", result)
 
-    @patch("app.routes._build_fd_data", side_effect=Exception("fail"))
+    @patch("app.services._build_fd_data", side_effect=Exception("fail"))
     def test_builder_exception(self, mock_build):
         from app.routes import _build_data_for_type
 

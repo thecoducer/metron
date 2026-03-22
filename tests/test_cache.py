@@ -172,7 +172,9 @@ class TestUserSheetsCache(unittest.TestCase):
         usc = UserSheetsCache()
         usc.put("user1", physical_gold=[{"u1": True}])
         usc.put("user2", physical_gold=[{"u2": True}])
+        # pyrefly: ignore [missing-attribute]
         self.assertEqual(usc.get("user1").physical_gold, [{"u1": True}])
+        # pyrefly: ignore [missing-attribute]
         self.assertEqual(usc.get("user2").physical_gold, [{"u2": True}])
 
     def test_lru_eviction_by_maxsize(self):
@@ -254,6 +256,7 @@ class TestManualLTPCache(unittest.TestCase):
     def test_put_and_get(self):
         self.cache.put("INFY", {"ltp": 1500, "change": 10})
         result = self.cache.get("INFY")
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(result["ltp"], 1500)
 
     def test_put_removes_negative_cache(self):
@@ -268,7 +271,9 @@ class TestManualLTPCache(unittest.TestCase):
             "TCS": {"ltp": 3500},
         }
         self.cache.put_batch(data)
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(self.cache.get("INFY")["ltp"], 1500)
+        # pyrefly: ignore [unsupported-operation]
         self.assertEqual(self.cache.get("TCS")["ltp"], 3500)
 
     def test_put_batch_removes_negatives(self):

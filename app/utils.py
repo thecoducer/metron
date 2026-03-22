@@ -9,6 +9,7 @@ import threading
 import time
 from base64 import urlsafe_b64encode
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -286,8 +287,10 @@ class SessionManager:
         except Exception as e:
             logger.exception("Error saving sessions to Firestore: %s", e)
 
-    def is_valid(self, google_id: str, account_name: str) -> bool:
+    def is_valid(self, google_id: str | None, account_name: str) -> bool:
         """Return True if the session for *account_name* exists and has not expired."""
+        if not google_id:
+            return False
         sess = self._sessions_for(google_id).get(account_name)
         return bool(sess and datetime.now(UTC) < sess["expiry"])
 
@@ -300,7 +303,7 @@ class SessionManager:
             "expiry": datetime.now(UTC) + timedelta(hours=hours, minutes=minutes),
         }
 
-    def get_token(self, google_id: str, account_name: str) -> str:
+    def get_token(self, google_id: str, account_name: str) -> str | None:
         """Return the stored access token for *account_name*, or None."""
         return self._sessions_for(google_id).get(account_name, {}).get("access_token")
 
@@ -312,7 +315,7 @@ class SessionManager:
             logger.info("Invalidated session for %s/%s", google_id[:8], account_name)
             self.save(google_id)
 
-    def get_validity(self, google_id: str, all_accounts: list[str] = None) -> dict[str, bool]:
+    def get_validity(self, google_id: str, all_accounts: list[str] | None = None) -> dict[str, bool]:
         """Return a dict mapping account names to their session validity."""
         names = all_accounts or list(self._sessions_for(google_id))
         return {name: self.is_valid(google_id, name) for name in names}
@@ -337,7 +340,7 @@ class StateManager:
             setattr(self, f"{st}_state", None)
             setattr(self, f"{st}_last_updated", None)
         self._user_state: LRUCache[str, dict[str, Any]] = LRUCache(maxsize=maxsize)
-        self.last_error: str = None
+        self.last_error: str | None = None
 
     def _get_user_state(self, google_id: str) -> dict[str, Any]:
         """Return the mutable per-user state dict, creating it if absent."""
@@ -360,7 +363,7 @@ class StateManager:
 
     # Per-user portfolio state
 
-    def set_portfolio_updating(self, google_id: str = None, error: str = None):
+    def set_portfolio_updating(self, google_id: str | None = None, error: str | None = None):
         """Mark portfolio fetch as in-progress for *google_id*."""
         if google_id:
             us = self._get_user_state(google_id)
@@ -368,7 +371,7 @@ class StateManager:
             if error:
                 us["last_error"] = error
 
-    def set_portfolio_updated(self, google_id: str = None, error: str = None):
+    def set_portfolio_updated(self, google_id: str | None = None, error: str | None = None):
         """Mark portfolio fetch as complete, optionally recording an error."""
         if google_id:
             us = self._get_user_state(google_id)
@@ -394,13 +397,13 @@ class StateManager:
 
     # Per-user manual LTP state
 
-    def set_manual_ltp_updating(self, google_id: str) -> None:
+    def set_manual_ltp_updating(self, google_id: str | None) -> None:
         """Mark manual LTP fetch as in-progress."""
         if google_id:
             us = self._get_user_state(google_id)
             us["manual_ltp_state"] = STATE_UPDATING
 
-    def set_manual_ltp_updated(self, google_id: str) -> None:
+    def set_manual_ltp_updated(self, google_id: str | None) -> None:
         """Mark manual LTP fetch as complete."""
         if google_id:
             us = self._get_user_state(google_id)
@@ -423,7 +426,7 @@ class StateManager:
             us = self._get_user_state(google_id)
             us["sheets_state"] = STATE_UPDATING
 
-    def set_sheets_updated(self, google_id: str, error: str = None) -> None:
+    def set_sheets_updated(self, google_id: str, error: str | None = None) -> None:
         """Mark sheets prefetch as complete, optionally recording an error."""
         if google_id:
             us = self._get_user_state(google_id)
@@ -454,13 +457,13 @@ class StateManager:
 
     # Global state (dynamic set_<type>_updating / set_<type>_updated)
 
-    def _set_updating(self, state_type: str, error: str = None):
+    def _set_updating(self, state_type: str, error: str | None = None):
         """Set a global state type to 'updating'."""
         setattr(self, f"{state_type}_state", STATE_UPDATING)
         if error:
             self.last_error = error
 
-    def _set_updated(self, state_type: str, error: str = None, clear_global_error: bool = False):
+    def _set_updated(self, state_type: str, error: str | None = None, clear_global_error: bool = False):
         """Set a global state type to 'updated' or 'error'."""
         if error:
             self.last_error = error
@@ -483,7 +486,7 @@ class StateManager:
                 return lambda error=None, _st=st: self._set_updated(_st, error)
         raise AttributeError(f"'{type(self).__name__}' has no attribute '{name}'")
 
-    def is_any_running(self, google_id: str = None) -> bool:
+    def is_any_running(self, google_id: str | None = None) -> bool:
         """Return True if any global or per-user fetch is in progress."""
         if any(getattr(self, f"{st}_state", None) == STATE_UPDATING for st in self.GLOBAL_STATE_TYPES):
             return True
@@ -491,14 +494,14 @@ class StateManager:
             return self._get_user_state(google_id).get("portfolio_state") == STATE_UPDATING
         return False
 
-    def clear_error(self, google_id: str = None):
+    def clear_error(self, google_id: str | None = None):
         """Clear the last error for the given user and globally."""
         self.last_error = None
         if google_id:
             self._get_user_state(google_id)["last_error"] = None
 
 
-def format_timestamp(ts: float) -> str:
+def format_timestamp(ts: float | None) -> str | None:
     """Convert an epoch timestamp to an ISO 8601 UTC string, or None."""
     if ts is None:
         return None
@@ -686,3 +689,128 @@ def parse_date(raw):
 
 # Singleton instance
 pin_rate_limiter = PinRateLimiter()
+
+
+# ---------------------------------------------------------------------------
+# Health metrics
+# ---------------------------------------------------------------------------
+
+_BYTES_PER_MB = 1024 * 1024
+_REAUTH_MESSAGE = "Google session expired. Please sign in again."
+
+
+def _collect_process_metrics() -> dict[str, Any]:
+    """Collect process-level health metrics for the /healthz endpoint."""
+    import psutil
+
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+
+    return {
+        "memory": {
+            "rss_mb": round(mem_info.rss / _BYTES_PER_MB, 1),
+        },
+        "cpu_percent": round(process.cpu_percent(interval=None), 1),
+        "uptime_seconds": round(time.time() - process.create_time()),
+        "threads": process.num_threads(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Google Sheets error helpers
+# ---------------------------------------------------------------------------
+
+
+def _is_google_auth_error(exc: Exception) -> bool:
+    """Return True if *exc* is a Google credential refresh / auth failure."""
+    name = type(exc).__name__
+    return "RefreshError" in name or "InvalidGrantError" in name
+
+
+def _sheets_error_response(exc: Exception, action: str, sheet_type: str) -> tuple:
+    """Return an appropriate Flask error response for Google Sheets exceptions."""
+    from flask import jsonify
+
+    if _is_google_auth_error(exc):
+        logger.warning("Auth error %s %s: %s", action, sheet_type, exc)
+        return jsonify({"error": _REAUTH_MESSAGE}), 401
+    logger.exception("Error %s %s", action, sheet_type)
+    return jsonify({"error": str(exc)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Flask app factory
+# ---------------------------------------------------------------------------
+
+
+def _create_flask_app(name: str, enable_static: bool = False):
+    """Create and configure a Flask app with templates and optional static files."""
+    from flask import Flask
+
+    app = Flask(name)
+    base_dir = Path(__file__).resolve().parent
+    app.template_folder = str(base_dir / "templates")
+    if enable_static:
+        app.static_folder = str(base_dir / "static")
+        app.config["JSON_SORT_KEYS"] = False
+        app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
+    return app
+
+
+# ---------------------------------------------------------------------------
+# JSON response helpers
+# ---------------------------------------------------------------------------
+
+
+def _json_response(data: list[dict[str, Any]], sort_key: str | None = None):
+    """JSON response with no-cache headers and optional sorting."""
+    from flask import jsonify
+
+    sorted_data = sorted(data, key=lambda x: x.get(sort_key, "")) if sort_key else data
+    resp = jsonify(sorted_data)
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+def _exposure_json_response(data: dict):
+    """JSON response for exposure endpoints with no-cache headers."""
+    from flask import jsonify
+
+    resp = jsonify(data)
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+# ---------------------------------------------------------------------------
+# Session helpers
+# ---------------------------------------------------------------------------
+
+
+def _current_user() -> dict[str, Any] | None:
+    """Return the authenticated user dict from the session, or None."""
+    from flask import session
+
+    return session.get("user")
+
+
+def _get_google_creds_dict(user: dict[str, Any] | None = None) -> dict | None:
+    """Return decrypted Google OAuth credentials for the current/given user."""
+    from .fetchers import get_google_creds_dict
+
+    if user is None:
+        user = _current_user()
+    return get_google_creds_dict(user) if user else None
+
+
+# ---------------------------------------------------------------------------
+# Date normalisation helper
+# ---------------------------------------------------------------------------
+
+
+def _normalize_date_values(fields: list[str], values: list) -> None:
+    """Reformat any date field in *values* to MM/DD/YYYY before saving to sheets."""
+    from .api.user_sheets import DATE_FIELDS
+
+    for i, field in enumerate(fields):
+        if field in DATE_FIELDS and i < len(values) and values[i]:
+            values[i] = format_date_for_sheet(values[i])

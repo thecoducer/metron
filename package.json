@@ -1,0 +1,33 @@
+{
+  "name": "portfolio_tracker",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "lint": "eslint app/static/js/ && stylelint \"app/static/css/**/*.css\"",
+    "lint:js": "eslint app/static/js/",
+    "lint:css": "stylelint \"app/static/css/**/*.css\"",
+    "lint:fix": "eslint app/static/js/ --fix && stylelint \"app/static/css/**/*.css\" --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thecoducer/metron.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/thecoducer/metron/issues"
+  },
+  "homepage": "https://github.com/thecoducer/metron#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
+    "stylelint": "^17.5.0",
+    "stylelint-config-standard": "^40.0.0"
+  }
+}

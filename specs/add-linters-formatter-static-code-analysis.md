@@ -8,8 +8,8 @@
 ## Wants
 
 - Delete the bart-large-mnli-onnx model and its related codes, since its no longer used.
-- Add linters for all languages used in this project, like python, javascript, html, css and others
-- Add static code analyser that will analyse both frontend and backend code
+- Add best linters for all languages used in this project, like python, javascript, html, css and others
+- Add best and free static code analyser that will analyse both frontend and backend code
 - Add them to the package manager and to our start scripts so that we always ensure we are running linted, properly formatted code
 - Take outputs from the linters and static code analyser tools and work on it to fix the issues. Remove all dead code, unused variables and imports.
 - Must not break any backend or frontend functionality or feature

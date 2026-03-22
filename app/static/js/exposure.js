@@ -1,3 +1,4 @@
+/* global RefreshUI */
 (function() {
   'use strict';
 

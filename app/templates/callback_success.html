@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Authentication Successful</title>
-    <style>
+<html lang="en">
+    <head>
+        <title>Authentication Successful</title>
+        <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
@@ -32,15 +32,15 @@
             font-size: 14px;
             margin: 0;
         }
-    </style>
-</head>
-<body>
-    <div class="message">
-        <div class="checkmark">✓</div>
-        <h1>Authentication Successful</h1>
-        <p>You can close this tab now.</p>
-    </div>
-    <script>
+        </style>
+    </head>
+    <body>
+        <div class="message">
+            <div class="checkmark">✓</div>
+            <h1>Authentication Successful</h1>
+            <p>You can close this tab now.</p>
+        </div>
+        <script>
         (function() {
             // Notify the main app tab that Zerodha login succeeded
             try {
@@ -56,6 +56,6 @@
                 window.close();
             }, 500);
         })();
-    </script>
-</body>
+        </script>
+    </body>
 </html>

@@ -1,886 +1,1507 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Metron</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/styles.css">
-<link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
-<link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Metron">
-<link rel="modulepreload" href="/static/js/app.js">
-<link rel="modulepreload" href="/static/js/crud-manager.js">
-</head>
-<body{% if not pin_verified %} style=\"overflow:hidden\"{% endif %}>
-<script>
+    <head>
+        <meta charset="utf-8">
+        <title>Metron</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="/static/css/styles.css">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <link rel="manifest" href="/static/manifest.json">
+        <meta name="theme-color" content="#0f172a">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style"
+              content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Metron">
+        <link rel="modulepreload" href="/static/js/app.js">
+        <link rel="modulepreload" href="/static/js/crud-manager.js">
+    </head>
+    <body{% if not pin_verified %} style=\"overflow:hidden\"{% endif %}>
+        <script>
   // Apply saved theme immediately (before first paint) to prevent flash
   (function() {
     var t = localStorage.getItem('theme');
     if (t === 'dark') document.body.classList.add('dark-theme');
   })();
-</script>
-<div class="container"{% if not pin_verified %} style="visibility:hidden"{% endif %}>
-<header>
-<nav class="nav-hamburger">
-<button class="hamburger-btn" id="hamburgerBtn" aria-label="Navigation menu" aria-expanded="false">
-<svg class="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-</button>
-</nav>
-<div class="header-brand">
-<a href="/" class="brand-mark" aria-label="Metron home">
-<span class="brand-logo"></span>
-<span class="brand-name">Metron</span>
-</a>
-</div>
-<div class="controls">
-{% if user %}
-<div class="user-profile" id="userProfile">
-    <button class="user-avatar-btn" id="userAvatarBtn" title="{{ user.name or user.email }}">
-        {% if user.picture %}
-        <img src="{{ user.picture }}" alt="" class="user-avatar-img" referrerpolicy="no-referrer">
-        {% else %}
-        <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
-        {% endif %}
-        <span class="avatar-gear-badge" aria-hidden="true">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </span>
-    </button>
-    <div class="user-dropdown" id="userDropdown">
-        <div class="user-dropdown-header">
-            <div class="user-dropdown-avatar">
-                {% if user.picture %}
-                <img src="{{ user.picture }}" alt="" referrerpolicy="no-referrer">
-                {% else %}
-                <span>{{ (user.name or user.email)[0]|upper }}</span>
+        </script>
+        <div class="container"
+             {% if not pin_verified %}style="visibility:hidden"{% endif %}>
+            <header>
+                <nav class="nav-hamburger">
+                    <button class="hamburger-btn"
+                            id="hamburgerBtn"
+                            aria-label="Navigation menu"
+                            aria-expanded="false">
+                        <svg class="hamburger-icon"
+                             width="20"
+                             height="20"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                </nav>
+                <div class="header-brand">
+                    <a href="/" class="brand-mark" aria-label="Metron home">
+                        <span class="brand-logo"></span>
+                        <span class="brand-name">Metron</span>
+                    </a>
+                </div>
+                <div class="controls">
+                    {% if user %}
+                        <div class="user-profile" id="userProfile">
+                            <button class="user-avatar-btn"
+                                    id="userAvatarBtn"
+                                    title="{{ user.name or user.email }}">
+                                {% if user.picture %}
+                                    <img src="{{ user.picture }}"
+                                         alt=""
+                                         class="user-avatar-img"
+                                         referrerpolicy="no-referrer"
+                                         width="40"
+                                         height="40">
+                                {% else %}
+                                    <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
+                                {% endif %}
+                                <span class="avatar-gear-badge" aria-hidden="true">
+                                    <svg width="10"
+                                         height="10"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                    </svg>
+                                </span>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <div class="user-dropdown-header">
+                                    <div class="user-dropdown-avatar">
+                                        {% if user.picture %}
+                                            <img src="{{ user.picture }}"
+                                                 alt=""
+                                                 referrerpolicy="no-referrer"
+                                                 width="40"
+                                                 height="40">
+                                        {% else %}
+                                            <span>{{ (user.name or user.email)[0]|upper }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-dropdown-info">
+                                        <strong>{{ user.name or 'User' }}</strong>
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                </div>
+                                <div class="user-dropdown-section">
+                                    <div class="user-dropdown-section-label">Preferences</div>
+                                    <button class="user-dropdown-toggle-btn"
+                                            id="compact_toggle_btn"
+                                            onclick="toggleCompactFormat()"
+                                            title="Toggle number format">
+                                        <svg class="dropdown-icon"
+                                             id="compact_toggle_icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" />
+                                        </svg>
+                                        <span>Short Numbers</span>
+                                        <span class="toggle-switch" id="compact_toggle_label"><span class="toggle-knob"></span></span>
+                                    </button>
+                                    <button class="user-dropdown-toggle-btn"
+                                            id="privacy_toggle_btn"
+                                            onclick="togglePrivacy()"
+                                            title="Toggle privacy mode">
+                                        <svg class="dropdown-icon"
+                                             id="privacy_toggle_icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                            <circle cx="12" cy="12" r="3" />
+                                        </svg>
+                                        <span>Privacy Mode</span>
+                                        <span class="toggle-switch" id="privacy_toggle_label"><span class="toggle-knob"></span></span>
+                                    </button>
+                                    <button class="user-dropdown-toggle-btn"
+                                            id="theme_toggle_btn"
+                                            onclick="toggleTheme()"
+                                            title="Toggle theme">
+                                        <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
+                                            <span class="theme-icon-sun"></span>
+                                            <span class="theme-icon-moon"></span>
+                                        </span>
+                                        <span>Theme</span>
+                                        <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-section">
+                                    <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}"
+                                       target="_blank"
+                                       class="user-dropdown-item">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+                                        </svg>
+                                        <span>My Data</span>
+                                        <svg class="dropdown-external-icon"
+                                             width="12"
+                                             height="12"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                            <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                                        </svg>
+                                    </a>
+                                    <button class="user-dropdown-item" onclick="openSettingsDrawer()">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="3" />
+                                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                        </svg>
+                                        <span>Settings</span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-section">
+                                    <button class="user-dropdown-item user-dropdown-tour"
+                                            id="startTourBtn"
+                                            onclick="startAppTour()">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
+                                        </svg>
+                                        <span>Take a Tour</span>
+                                        <span class="tour-badge" id="tourBadge">NEW</span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-section user-dropdown-section--logout">
+                                    <button class="user-dropdown-item user-dropdown-logout"
+                                            onclick="handleLogout()">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </header>
+            {% if user %}
+                <!-- Connect broker nudge (shown when no accounts linked) -->
+                <div class="connect-nudge" id="connectNudge" style="display:none">
+                    <div class="connect-nudge-inner">
+                        <div class="connect-nudge-icon-wrap">
+                            <svg width="20"
+                                 height="20"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                        </div>
+                        <div class="connect-nudge-body">
+                            <div class="connect-nudge-title">Connect your broker to get started</div>
+                            <div class="connect-nudge-desc">
+                                Link your broker account to automatically sync your holdings, P&amp;L, and mutual funds.
+                            </div>
+                        </div>
+                        <button class="connect-nudge-cta" onclick="openSettingsDrawer()">
+                            <svg width="14"
+                                 height="14"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2.5"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                            </svg>
+                            <span>Open Settings</span>
+                        </button>
+                        <button class="connect-nudge-dismiss"
+                                id="connectNudgeDismiss"
+                                title="Dismiss"
+                                aria-label="Dismiss">
+                            <svg width="16"
+                                 height="16"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M18 6L6 18" />
+                                <path d="M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+            <!-- Broker out-of-sync banner (hidden by default, shown via JS when accounts expire) -->
+            <div class="login-banner"
+                 id="loginBanner"
+                 style="display:none"
+                 onclick="openSettingsDrawer()"
+                 role="button"
+                 tabindex="0">
+                <div class="login-banner-inner">
+                    <div class="login-banner-pulse"></div>
+                    <svg class="login-banner-icon"
+                         width="18"
+                         height="18"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path d="M23 4v6h-6" />
+                        <path d="M1 20v-6h6" />
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                    </svg>
+                    <span class="login-banner-title">Broker accounts out of sync</span>
+                    <span class="login-banner-cta">Settings
+                        <svg width="14"
+                             height="14"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M5 12h14" />
+                            <path d="M12 5l7 7-7 7" />
+                        </svg>
+                    </span>
+                </div>
+            </div>
+            <div class="overview-tickers market-tickers-row">
+                <div class="index-tickers" id="indexTickers">
+                    <!-- Ticker items rendered dynamically by IndexTicker -->
+                </div>
+            </div>
+            <div class="portfolio-overview" id="combined_summary">
+                <div class="overview-top-row">
+                    <div class="overview-label">Total Net Worth</div>
+                    <div class="overview-top-right">
+                        <button class="refresh-btn" id="refresh_btn" onclick="triggerRefresh()">
+                            <svg class="refresh-icon"
+                                 width="15"
+                                 height="15"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                            </svg>
+                            <span class="refresh-label">Refresh</span>
+                        </button>
+                        <div id="status_tag" class="updating">
+                            <span class="status-dot"></span>
+                            <span id="status_text">loading…</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="overview-metrics">
+                    <div class="overview-primary">
+                        <div class="overview-stat">
+                            <span class="overview-stat-label">Current</span>
+                            <span class="overview-current" id="combined_current_value">0.00</span>
+                        </div>
+                        <div class="overview-stat">
+                            <span class="overview-stat-label">Invested</span>
+                            <span class="overview-invested" id="combined_total_invested">0.00</span>
+                        </div>
+                    </div>
+                    <div class="overview-pl-group">
+                        <span class="overview-stat-label">Returns</span>
+                        <div class="overview-pl-values">
+                            <span class="overview-pl" id="combined_total_pl">0.00</span>
+                            <span class="overview-pct" id="combined_total_pl_pct">0.00%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="portfolio-allocation" id="data-container-summary">
+                <div class="snap-grid">
+                    <div class="snap-card"
+                         data-section="stocks-section"
+                         style="--card-color:#e11d48">
+                        <div class="snap-card-header">
+                            <span class="snap-card-name">Stocks</span>
+                            <span class="snap-card-alloc" data-snap-pct="stocks"></span>
+                        </div>
+                        <div class="snap-card-current" id="snap_stocks_current">--</div>
+                        <div class="snap-card-row">
+                            <span class="snap-card-label">Inv.</span>
+                            <span class="snap-card-invested" id="snap_stocks_invested">--</span>
+                        </div>
+                        <div class="snap-card-row snap-card-pl-row">
+                            <span class="snap-card-pl" id="snap_stocks_pl">--</span>
+                            <span class="snap-card-pct" id="snap_stocks_pct">--</span>
+                        </div>
+                    </div>
+                    <div class="snap-card"
+                         data-section="mf-section"
+                         style="--card-color:#0284c7">
+                        <div class="snap-card-header">
+                            <span class="snap-card-name">Mutual Funds</span>
+                            <span class="snap-card-alloc" data-snap-pct="mf"></span>
+                        </div>
+                        <div class="snap-card-current" id="snap_mf_current">--</div>
+                        <div class="snap-card-row">
+                            <span class="snap-card-label">Inv.</span>
+                            <span class="snap-card-invested" id="snap_mf_invested">--</span>
+                        </div>
+                        <div class="snap-card-row snap-card-pl-row">
+                            <span class="snap-card-pl" id="snap_mf_pl">--</span>
+                            <span class="snap-card-pct" id="snap_mf_pct">--</span>
+                        </div>
+                    </div>
+                    <div class="snap-card"
+                         data-section="etf-section"
+                         style="--card-color:#7c3aed">
+                        <div class="snap-card-header">
+                            <span class="snap-card-name">ETFs</span>
+                            <span class="snap-card-alloc" data-snap-pct="etf"></span>
+                        </div>
+                        <div class="snap-card-current" id="snap_etf_current">--</div>
+                        <div class="snap-card-row">
+                            <span class="snap-card-label">Inv.</span>
+                            <span class="snap-card-invested" id="snap_etf_invested">--</span>
+                        </div>
+                        <div class="snap-card-row snap-card-pl-row">
+                            <span class="snap-card-pl" id="snap_etf_pl">--</span>
+                            <span class="snap-card-pct" id="snap_etf_pct">--</span>
+                        </div>
+                    </div>
+                    <div class="snap-card"
+                         data-section="physical-gold-section"
+                         style="--card-color:#b45309">
+                        <div class="snap-card-header">
+                            <span class="snap-card-name">Gold</span>
+                            <span class="snap-card-alloc" data-snap-pct="gold"></span>
+                        </div>
+                        <div class="snap-card-current" id="snap_gold_current">--</div>
+                        <div class="snap-card-row">
+                            <span class="snap-card-label">Inv.</span>
+                            <span class="snap-card-invested" id="snap_gold_invested">--</span>
+                        </div>
+                        <div class="snap-card-row snap-card-pl-row">
+                            <span class="snap-card-pl" id="snap_gold_pl">--</span>
+                            <span class="snap-card-pct" id="snap_gold_pct">--</span>
+                        </div>
+                    </div>
+                    <div class="snap-card"
+                         data-section="silver-aggregate-section"
+                         style="--card-color:#64748b">
+                        <div class="snap-card-header">
+                            <span class="snap-card-name">Silver</span>
+                            <span class="snap-card-alloc" data-snap-pct="silver"></span>
+                        </div>
+                        <div class="snap-card-current" id="snap_silver_current">--</div>
+                        <div class="snap-card-row">
+                            <span class="snap-card-label">Inv.</span>
+                            <span class="snap-card-invested" id="snap_silver_invested">--</span>
+                        </div>
+                        <div class="snap-card-row snap-card-pl-row">
+                            <span class="snap-card-pl" id="snap_silver_pl">--</span>
+                            <span class="snap-card-pct" id="snap_silver_pct">--</span>
+                        </div>
+                    </div>
+                    {% if fixed_deposits_enabled %}
+                        <div class="snap-card"
+                             data-section="fixed-deposits-section"
+                             style="--card-color:#0f766e">
+                            <div class="snap-card-header">
+                                <span class="snap-card-name">Fixed Deposits</span>
+                                <span class="snap-card-alloc" data-snap-pct="fd"></span>
+                            </div>
+                            <div class="snap-card-current" id="snap_fd_current">--</div>
+                            <div class="snap-card-row">
+                                <span class="snap-card-label">Inv.</span>
+                                <span class="snap-card-invested" id="snap_fd_invested">--</span>
+                            </div>
+                            <div class="snap-card-row snap-card-pl-row">
+                                <span class="snap-card-pl" id="snap_fd_pl">--</span>
+                                <span class="snap-card-pct" id="snap_fd_pct">--</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div id="data-container-sections">
+                <div class="section-wrapper" id="stocks-section">
+                    <div class="section-header">
+                        <h2>
+                            Stocks
+                            <button class="section-info-btn"
+                                    data-info="stocks"
+                                    title="About this table"
+                                    aria-label="About stocks table"></button>
+                        </h2>
+                        <div class="controls-container">
+                            <button class="crud-add-btn"
+                                    onclick="window.crudAdd('stocks')"
+                                    title="Add stock manually">
+                                <svg width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2.5"
+                                     stroke-linecap="round">
+                                    <path d="M12 5v14" />
+                                    <path d="M5 12h14" />
+                                </svg>
+                                <span>Add</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="section-summary"
+                         id="stocks_summary"
+                         style="--section-accent:#e11d48">
+                        <div class="section-summary-metrics">
+                            <span class="section-summary-badge" id="stocks_allocation_pct"></span>
+                            <div class="section-summary-value" id="current_value">0.00</div>
+                            <div class="section-summary-invested">
+                                <span id="total_invested">0.00</span>
+                            </div>
+                            <div class="section-summary-pl">
+                                <span id="total_pl">0.00</span>
+                                <span class="section-summary-pct" id="total_pl_pct">0.00%</span>
+                            </div>
+                        </div>
+                        <div class="section-summary-accent"></div>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table id="stocksTable" aria-label="Holdings table">
+                            <thead>
+                                <tr>
+                                    <th data-sort-asc="symbol_asc"
+                                        data-sort-desc="symbol_desc"
+                                        data-sort-default="asc">Symbol</th>
+                                    <th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th>
+                                    <th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th>
+                                    <th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th>
+                                    <th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th>
+                                    <th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th>
+                                    <th data-sort-asc="pl_asc"
+                                        data-sort-desc="pl_desc"
+                                        data-sort-asc2="pl_pct_asc"
+                                        data-sort-desc2="pl_pct_desc">P/L</th>
+                                    <th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th>
+                                    <th data-sort-asc="exchange_asc"
+                                        data-sort-desc="exchange_desc"
+                                        data-sort-default="asc">EX</th>
+                                    <th data-sort-asc="account_asc"
+                                        data-sort-desc="account_desc"
+                                        data-sort-default="asc">Account</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section-wrapper" id="mf-section">
+                    <div class="section-header">
+                        <h2>
+                            Mutual Funds
+                            <button class="section-info-btn"
+                                    data-info="mutual_funds"
+                                    title="About this table"
+                                    aria-label="About mutual funds table"></button>
+                        </h2>
+                        <div class="controls-container">
+                            <button class="crud-add-btn"
+                                    onclick="window.crudAdd('mutual_funds')"
+                                    title="Add mutual fund manually">
+                                <svg width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2.5"
+                                     stroke-linecap="round">
+                                    <path d="M12 5v14" />
+                                    <path d="M5 12h14" />
+                                </svg>
+                                <span>Add</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="section-summary"
+                         id="mf_summary"
+                         style="--section-accent:#0284c7">
+                        <div class="section-summary-metrics">
+                            <span class="section-summary-badge" id="mf_allocation_pct"></span>
+                            <div class="section-summary-value" id="mf_current_value">0.00</div>
+                            <div class="section-summary-invested">
+                                <span id="mf_total_invested">0.00</span>
+                            </div>
+                            <div class="section-summary-pl">
+                                <span id="mf_total_pl">0.00</span>
+                                <span class="section-summary-pct" id="mf_total_pl_pct">0.00%</span>
+                            </div>
+                        </div>
+                        <div class="section-summary-accent"></div>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table id="mfTable" aria-label="MF Holdings table">
+                            <thead>
+                                <tr>
+                                    <th data-sort-asc="name_asc"
+                                        data-sort-desc="name_desc"
+                                        data-sort-default="asc">Fund</th>
+                                    <th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th>
+                                    <th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th>
+                                    <th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th>
+                                    <th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th>
+                                    <th data-sort-asc="nav_asc" data-sort-desc="nav_desc">NAV</th>
+                                    <th data-sort-asc="pl_asc"
+                                        data-sort-desc="pl_desc"
+                                        data-sort-asc2="pl_pct_asc"
+                                        data-sort-desc2="pl_pct_desc">P/L</th>
+                                    <th data-sort-asc="account_asc"
+                                        data-sort-desc="account_desc"
+                                        data-sort-default="asc">Account</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mf_tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section-wrapper" id="etf-section">
+                    <div class="section-header">
+                        <h2>
+                            ETFs
+                            <button class="section-info-btn"
+                                    data-info="etfs"
+                                    title="About this table"
+                                    aria-label="About ETFs table"></button>
+                        </h2>
+                        <div class="controls-container">
+                            <button class="crud-add-btn"
+                                    onclick="window.crudAdd('etfs')"
+                                    title="Add ETF manually">
+                                <svg width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2.5"
+                                     stroke-linecap="round">
+                                    <path d="M12 5v14" />
+                                    <path d="M5 12h14" />
+                                </svg>
+                                <span>Add</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="section-summary"
+                         id="etf_summary"
+                         style="--section-accent:#7c3aed">
+                        <div class="section-summary-metrics">
+                            <span class="section-summary-badge" id="etf_allocation_pct"></span>
+                            <div class="section-summary-value" id="etf_current_value">0.00</div>
+                            <div class="section-summary-invested">
+                                <span id="etf_total_invested">0.00</span>
+                            </div>
+                            <div class="section-summary-pl">
+                                <span id="etf_total_pl">0.00</span>
+                                <span class="section-summary-pct" id="etf_total_pl_pct">0.00%</span>
+                            </div>
+                        </div>
+                        <div class="section-summary-accent"></div>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table id="etfTable" aria-label="ETF Holdings table">
+                            <thead>
+                                <tr>
+                                    <th data-sort-asc="symbol_asc"
+                                        data-sort-desc="symbol_desc"
+                                        data-sort-default="asc">Symbol</th>
+                                    <th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th>
+                                    <th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th>
+                                    <th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th>
+                                    <th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th>
+                                    <th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th>
+                                    <th data-sort-asc="pl_asc"
+                                        data-sort-desc="pl_desc"
+                                        data-sort-asc2="pl_pct_asc"
+                                        data-sort-desc2="pl_pct_desc">P/L</th>
+                                    <th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th>
+                                    <th data-sort-asc="exchange_asc"
+                                        data-sort-desc="exchange_desc"
+                                        data-sort-default="asc">EX</th>
+                                    <th data-sort-asc="account_asc"
+                                        data-sort-desc="account_desc"
+                                        data-sort-default="asc">Account</th>
+                                </tr>
+                            </thead>
+                            <tbody id="etf_tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Gold Section (ETFs + Physical + SGBs) -->
+                <div class="section-wrapper" id="physical-gold-section">
+                    <div class="section-header">
+                        <h2>
+                            Gold
+                            <button class="section-info-btn"
+                                    data-info="gold"
+                                    title="About this section"
+                                    aria-label="About gold section"></button>
+                        </h2>
+                        {% if physical_gold_enabled %}
+                            <div class="controls-container">
+                                <button class="crud-add-btn"
+                                        onclick="window.crudAdd('physical_gold')"
+                                        title="Add physical gold">
+                                    <svg width="16"
+                                         height="16"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round">
+                                        <path d="M12 5v14" />
+                                        <path d="M5 12h14" />
+                                    </svg>
+                                    <span>Add</span>
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <!-- Gold Rhythm Strip -->
+                    <div class="gold-rhythm" id="gold_summary">
+                        <div class="gold-rhythm-main">
+                            <span class="section-summary-badge" id="gold_allocation_pct"></span>
+                            <div class="gold-rhythm-amount">
+                                <span class="gold-rhythm-value" id="gold_current_value">0.00</span>
+                            </div>
+                            <div class="gold-rhythm-secondary">
+                                <span class="gold-rhythm-invested" id="gold_total_invested">0.00</span>
+                            </div>
+                            <div class="gold-rhythm-pl">
+                                <span id="gold_total_pl">0.00</span>
+                                <span class="gold-rhythm-pct" id="gold_total_pl_pct">0.00%</span>
+                            </div>
+                        </div>
+                        <div class="gold-rhythm-segments" id="gold_breakdown_segments">
+                            <div class="gold-seg">
+                                <div class="gold-seg-header">
+                                    <span class="gold-seg-dot gold-seg-dot--physical"></span>
+                                    <span class="gold-seg-name">Physical</span>
+                                </div>
+                                <span class="gold-seg-amount" id="gold_physical_current_value">0.00</span>
+                                <span class="gold-seg-pl"><span id="gold_physical_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_physical_total_pl_pct">0.00%</span></span>
+                                <span id="gold_physical_total_invested" hidden>0.00</span>
+                            </div>
+                            <div class="gold-seg">
+                                <div class="gold-seg-header">
+                                    <span class="gold-seg-dot gold-seg-dot--etf"></span>
+                                    <span class="gold-seg-name">ETFs</span>
+                                </div>
+                                <span class="gold-seg-amount" id="gold_etf_current_value">0.00</span>
+                                <span class="gold-seg-pl"><span id="gold_etf_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_etf_total_pl_pct">0.00%</span></span>
+                                <span id="gold_etf_total_invested" hidden>0.00</span>
+                            </div>
+                            <div class="gold-seg">
+                                <div class="gold-seg-header">
+                                    <span class="gold-seg-dot gold-seg-dot--sgb"></span>
+                                    <span class="gold-seg-name">SGBs</span>
+                                </div>
+                                <span class="gold-seg-amount" id="gold_sgb_current_value">0.00</span>
+                                <span class="gold-seg-pl"><span id="gold_sgb_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_sgb_total_pl_pct">0.00%</span></span>
+                                <span id="gold_sgb_total_invested" hidden>0.00</span>
+                            </div>
+                        </div>
+                        <div class="gold-rhythm-bar" id="gold_proportion_bar"></div>
+                    </div>
+                    {% if physical_gold_enabled %}
+                        <h3 class="sub-table-title">Physical</h3>
+                        <div class="table-scroll-wrapper">
+                            <table id="physicalGoldTable" aria-label="Physical Gold table">
+                                <thead>
+                                    <tr>
+                                        <th data-sort-asc="date_asc" data-sort-desc="date_desc">Bought On</th>
+                                        <th data-sort-asc="type_asc"
+                                            data-sort-desc="type_desc"
+                                            data-sort-default="asc">Type</th>
+                                        <th data-sort-asc="outlet_asc"
+                                            data-sort-desc="outlet_desc"
+                                            data-sort-default="asc">Retail Outlet</th>
+                                        <th data-sort-asc="purity_asc"
+                                            data-sort-desc="purity_desc"
+                                            data-sort-default="asc">Purity</th>
+                                        <th data-sort-asc="weight_asc" data-sort-desc="weight_desc">Weight (gms)</th>
+                                        <th data-sort-asc="bought_rate_asc" data-sort-desc="bought_rate_desc">Bought IBJA Rate/gm</th>
+                                        <th data-sort-asc="latest_rate_asc" data-sort-desc="latest_rate_desc">Latest IBJA Rate/gm</th>
+                                        <th data-sort-asc="pl_asc"
+                                            data-sort-desc="pl_desc"
+                                            data-sort-asc2="pl_pct_asc"
+                                            data-sort-desc2="pl_pct_desc">P/L</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="physical_gold_table_body">
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                    <h3 class="sub-table-title">ETFs</h3>
+                    <div class="table-scroll-wrapper">
+                        <table id="goldETFTable" aria-label="Gold ETF Holdings table">
+                            <thead>
+                                <tr>
+                                    <th data-sort-asc="symbol_asc"
+                                        data-sort-desc="symbol_desc"
+                                        data-sort-default="asc">Symbol</th>
+                                    <th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th>
+                                    <th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th>
+                                    <th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th>
+                                    <th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th>
+                                    <th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th>
+                                    <th data-sort-asc="pl_asc"
+                                        data-sort-desc="pl_desc"
+                                        data-sort-asc2="pl_pct_asc"
+                                        data-sort-desc2="pl_pct_desc">P/L</th>
+                                    <th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th>
+                                    <th data-sort-asc="exchange_asc"
+                                        data-sort-desc="exchange_desc"
+                                        data-sort-default="asc">EX</th>
+                                    <th data-sort-asc="account_asc"
+                                        data-sort-desc="account_desc"
+                                        data-sort-default="asc">Account</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gold_etf_tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Silver Aggregate Section -->
+                <div class="section-wrapper" id="silver-aggregate-section">
+                    <div class="section-header">
+                        <h2>
+                            Silver <span class="section-subtitle">(ETFs)</span>
+                            <button class="section-info-btn"
+                                    data-info="silver"
+                                    title="About this section"
+                                    aria-label="About silver section"></button>
+                        </h2>
+                    </div>
+                    <div class="section-summary"
+                         id="silver_summary"
+                         style="--section-accent:#64748b">
+                        <div class="section-summary-metrics">
+                            <span class="section-summary-badge" id="silver_allocation_pct"></span>
+                            <div class="section-summary-value" id="silver_current_value">0.00</div>
+                            <div class="section-summary-invested">
+                                <span id="silver_total_invested">0.00</span>
+                            </div>
+                            <div class="section-summary-pl">
+                                <span id="silver_total_pl">0.00</span>
+                                <span class="section-summary-pct" id="silver_total_pl_pct">0.00%</span>
+                            </div>
+                        </div>
+                        <div class="section-summary-accent"></div>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table id="silverETFTable" aria-label="Silver ETF Holdings table">
+                            <thead>
+                                <tr>
+                                    <th data-sort-asc="symbol_asc"
+                                        data-sort-desc="symbol_desc"
+                                        data-sort-default="asc">Symbol</th>
+                                    <th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th>
+                                    <th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th>
+                                    <th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th>
+                                    <th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th>
+                                    <th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th>
+                                    <th data-sort-asc="pl_asc"
+                                        data-sort-desc="pl_desc"
+                                        data-sort-asc2="pl_pct_asc"
+                                        data-sort-desc2="pl_pct_desc">P/L</th>
+                                    <th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th>
+                                    <th data-sort-asc="exchange_asc"
+                                        data-sort-desc="exchange_desc"
+                                        data-sort-default="asc">EX</th>
+                                    <th data-sort-asc="account_asc"
+                                        data-sort-desc="account_desc"
+                                        data-sort-default="asc">Account</th>
+                                </tr>
+                            </thead>
+                            <tbody id="silver_etf_tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Fixed Deposits Section with Tabs -->
+                {% if fixed_deposits_enabled %}
+                    <div class="section-wrapper" id="fixed-deposits-section">
+                        <div class="section-header fd-section-header">
+                            <div class="fd-title-row">
+                                <h2>
+                                    Fixed Deposits
+                                    <button class="section-info-btn"
+                                            data-info="fixed_deposits"
+                                            title="About this table"
+                                            aria-label="About fixed deposits table"></button>
+                                </h2>
+                                <button class="crud-add-btn"
+                                        onclick="window.crudAdd('fixed_deposits')"
+                                        title="Add fixed deposit">
+                                    <svg width="16"
+                                         height="16"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round">
+                                        <path d="M12 5v14" />
+                                        <path d="M5 12h14" />
+                                    </svg>
+                                    <span>Add</span>
+                                </button>
+                            </div>
+                            <div class="controls-container fd-header-controls">
+                                <div class="fd-tabs">
+                                    <button class="fd-tab active"
+                                            data-tab="maturity"
+                                            onclick="window.switchFDTab('maturity')">By Maturity</button>
+                                    <button class="fd-tab" data-tab="bank" onclick="window.switchFDTab('bank')">By Bank</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section-summary"
+                             id="fd_summary"
+                             style="--section-accent:#0f766e">
+                            <div class="section-summary-metrics">
+                                <span class="section-summary-badge" id="fd_allocation_pct"></span>
+                                <div class="section-summary-value" id="fd_maturity_value">0.00</div>
+                                <div class="section-summary-invested">
+                                    <span id="fd_total_invested">0.00</span>
+                                </div>
+                                <div class="section-summary-pl">
+                                    <span id="fd_total_pl">0.00</span>
+                                    <span class="section-summary-pct" id="fd_total_pl_pct">0.00%</span>
+                                </div>
+                            </div>
+                            <div class="section-summary-accent"></div>
+                        </div>
+                        <!-- Tab Content: By Maturity (Detailed View) -->
+                        <div class="fd-tab-content active" id="fd-tab-maturity">
+                            <div class="table-scroll-wrapper">
+                                <table id="fixedDepositsTable" aria-label="Fixed Deposits table">
+                                    <thead>
+                                        <tr>
+                                            <th data-sort-asc="date_asc" data-sort-desc="date_desc">Deposited On</th>
+                                            <th data-sort-asc="reinvested_date_asc"
+                                                data-sort-desc="reinvested_date_desc">Reinvested On</th>
+                                            <th data-sort-asc="bank_asc"
+                                                data-sort-desc="bank_desc"
+                                                data-sort-default="asc">Bank</th>
+                                            <th data-sort-asc="amount_asc" data-sort-desc="amount_desc">Original Amt</th>
+                                            <th data-sort-asc="reinvested_amount_asc"
+                                                data-sort-desc="reinvested_amount_desc">Reinvested Amt</th>
+                                            <th data-sort-asc="roi_asc" data-sort-desc="roi_desc">ROI</th>
+                                            <th data-sort-asc="maturity_asc" data-sort-desc="maturity_desc">Maturity Date</th>
+                                            <th data-sort-asc="current_asc" data-sort-desc="current_desc">Current Value</th>
+                                            <th data-sort-asc="account_asc"
+                                                data-sort-desc="account_desc"
+                                                data-sort-default="asc">Account</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fixed_deposits_table_body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Tab Content: By Bank (Summary View) -->
+                        <div class="fd-tab-content" id="fd-tab-bank">
+                            <div class="table-scroll-wrapper">
+                                <table id="fdSummaryTable" aria-label="Fixed Deposits Summary table">
+                                    <thead>
+                                        <tr>
+                                            <th data-sort-asc="bank_asc"
+                                                data-sort-desc="bank_desc"
+                                                data-sort-default="asc">Bank</th>
+                                            <th data-sort-asc="account_asc"
+                                                data-sort-desc="account_desc"
+                                                data-sort-default="asc">Account</th>
+                                            <th data-sort-asc="deposited_asc" data-sort-desc="deposited_desc">Total Deposited</th>
+                                            <th data-sort-asc="current_asc" data-sort-desc="current_desc">Total Current Value</th>
+                                            <th data-sort-asc="returns_asc"
+                                                data-sort-desc="returns_desc"
+                                                data-sort-asc2="returns_pct_asc"
+                                                data-sort-desc2="returns_pct_desc">Total Returns</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fd_summary_table_body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 {% endif %}
-            </div>
-            <div class="user-dropdown-info">
-                <strong>{{ user.name or 'User' }}</strong>
-                <span>{{ user.email }}</span>
-            </div>
-        </div>
-
-        <div class="user-dropdown-section">
-            <div class="user-dropdown-section-label">Preferences</div>
-            <button class="user-dropdown-toggle-btn" id="compact_toggle_btn" onclick="toggleCompactFormat()" title="Toggle number format">
-                <svg class="dropdown-icon" id="compact_toggle_icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-                <span>Short Numbers</span>
-                <span class="toggle-switch" id="compact_toggle_label"><span class="toggle-knob"></span></span>
-            </button>
-            <button class="user-dropdown-toggle-btn" id="privacy_toggle_btn" onclick="togglePrivacy()" title="Toggle privacy mode">
-                <svg class="dropdown-icon" id="privacy_toggle_icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                <span>Privacy Mode</span>
-                <span class="toggle-switch" id="privacy_toggle_label"><span class="toggle-knob"></span></span>
-            </button>
-            <button class="user-dropdown-toggle-btn" id="theme_toggle_btn" onclick="toggleTheme()" title="Toggle theme">
-                <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
-                    <span class="theme-icon-sun"></span>
-                    <span class="theme-icon-moon"></span>
-                </span>
-                <span>Theme</span>
-                <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
-            </button>
-        </div>
-
-        <div class="user-dropdown-section">
-            <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}" target="_blank" class="user-dropdown-item">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                <span>My Data</span>
-                <svg class="dropdown-external-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </a>
-            <button class="user-dropdown-item" onclick="openSettingsDrawer()">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                <span>Settings</span>
-            </button>
-        </div>
-
-        <div class="user-dropdown-section">
-            <button class="user-dropdown-item user-dropdown-tour" id="startTourBtn" onclick="startAppTour()">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-                <span>Take a Tour</span>
-                <span class="tour-badge" id="tourBadge">NEW</span>
-            </button>
-        </div>
-
-        <div class="user-dropdown-section user-dropdown-section--logout">
-            <button class="user-dropdown-item user-dropdown-logout" onclick="handleLogout()">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span>Sign Out</span>
-            </button>
-        </div>
-    </div>
-</div>
-{% endif %}
-</div>
-</header>
-
-{% if user %}
-<!-- Connect broker nudge (shown when no accounts linked) -->
-<div class="connect-nudge" id="connectNudge" style="display:none">
-  <div class="connect-nudge-inner">
-    <div class="connect-nudge-icon-wrap">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-    </div>
-    <div class="connect-nudge-body">
-      <div class="connect-nudge-title">Connect your broker to get started</div>
-      <div class="connect-nudge-desc">Link your broker account to automatically sync your holdings, P&amp;L, and mutual funds.</div>
-    </div>
-    <button class="connect-nudge-cta" onclick="openSettingsDrawer()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span>Open Settings</span>
-    </button>
-    <button class="connect-nudge-dismiss" id="connectNudgeDismiss" title="Dismiss" aria-label="Dismiss">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-    </button>
-  </div>
-</div>
-{% endif %}
-
-<!-- Broker out-of-sync banner (hidden by default, shown via JS when accounts expire) -->
-<div class="login-banner" id="loginBanner" style="display:none" onclick="openSettingsDrawer()" role="button" tabindex="0">
-  <div class="login-banner-inner">
-    <div class="login-banner-pulse"></div>
-    <svg class="login-banner-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-    <span class="login-banner-title">Broker accounts out of sync</span>
-    <span class="login-banner-cta">Settings<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></span>
-  </div>
-</div>
-
-<div class="overview-tickers market-tickers-row">
-    <div class="index-tickers" id="indexTickers">
-        <!-- Ticker items rendered dynamically by IndexTicker -->
-    </div>
-</div>
-
-<div class="portfolio-overview" id="combined_summary">
-    <div class="overview-top-row">
-        <div class="overview-label">Total Net Worth</div>
-        <div class="overview-top-right">
-            <button class="refresh-btn" id="refresh_btn" onclick="triggerRefresh()">
-                <svg class="refresh-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                <span class="refresh-label">Refresh</span>
-            </button>
-            <div id="status_tag" class="updating">
-                <span class="status-dot"></span>
-                <span id="status_text">loading…</span>
-            </div>
-        </div>
-    </div>
-    <div class="overview-metrics">
-        <div class="overview-primary">
-            <div class="overview-stat">
-                <span class="overview-stat-label">Current</span>
-                <span class="overview-current" id="combined_current_value">0.00</span>
-            </div>
-            <div class="overview-stat">
-                <span class="overview-stat-label">Invested</span>
-                <span class="overview-invested" id="combined_total_invested">0.00</span>
-            </div>
-        </div>
-        <div class="overview-pl-group">
-            <span class="overview-stat-label">Returns</span>
-            <div class="overview-pl-values">
-                <span class="overview-pl" id="combined_total_pl">0.00</span>
-                <span class="overview-pct" id="combined_total_pl_pct">0.00%</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="portfolio-allocation" id="data-container-summary">
-  <div class="snap-grid">
-    <div class="snap-card" data-section="stocks-section" style="--card-color:#e11d48">
-      <div class="snap-card-header">
-        <span class="snap-card-name">Stocks</span>
-        <span class="snap-card-alloc" data-snap-pct="stocks"></span>
-      </div>
-      <div class="snap-card-current" id="snap_stocks_current">--</div>
-      <div class="snap-card-row">
-        <span class="snap-card-label">Inv.</span>
-        <span class="snap-card-invested" id="snap_stocks_invested">--</span>
-      </div>
-      <div class="snap-card-row snap-card-pl-row">
-        <span class="snap-card-pl" id="snap_stocks_pl">--</span>
-        <span class="snap-card-pct" id="snap_stocks_pct">--</span>
-      </div>
-    </div>
-    <div class="snap-card" data-section="mf-section" style="--card-color:#0284c7">
-      <div class="snap-card-header">
-        <span class="snap-card-name">Mutual Funds</span>
-        <span class="snap-card-alloc" data-snap-pct="mf"></span>
-      </div>
-      <div class="snap-card-current" id="snap_mf_current">--</div>
-      <div class="snap-card-row">
-        <span class="snap-card-label">Inv.</span>
-        <span class="snap-card-invested" id="snap_mf_invested">--</span>
-      </div>
-      <div class="snap-card-row snap-card-pl-row">
-        <span class="snap-card-pl" id="snap_mf_pl">--</span>
-        <span class="snap-card-pct" id="snap_mf_pct">--</span>
-      </div>
-    </div>
-    <div class="snap-card" data-section="etf-section" style="--card-color:#7c3aed">
-      <div class="snap-card-header">
-        <span class="snap-card-name">ETFs</span>
-        <span class="snap-card-alloc" data-snap-pct="etf"></span>
-      </div>
-      <div class="snap-card-current" id="snap_etf_current">--</div>
-      <div class="snap-card-row">
-        <span class="snap-card-label">Inv.</span>
-        <span class="snap-card-invested" id="snap_etf_invested">--</span>
-      </div>
-      <div class="snap-card-row snap-card-pl-row">
-        <span class="snap-card-pl" id="snap_etf_pl">--</span>
-        <span class="snap-card-pct" id="snap_etf_pct">--</span>
-      </div>
-    </div>
-    <div class="snap-card" data-section="physical-gold-section" style="--card-color:#b45309">
-      <div class="snap-card-header">
-        <span class="snap-card-name">Gold</span>
-        <span class="snap-card-alloc" data-snap-pct="gold"></span>
-      </div>
-      <div class="snap-card-current" id="snap_gold_current">--</div>
-      <div class="snap-card-row">
-        <span class="snap-card-label">Inv.</span>
-        <span class="snap-card-invested" id="snap_gold_invested">--</span>
-      </div>
-      <div class="snap-card-row snap-card-pl-row">
-        <span class="snap-card-pl" id="snap_gold_pl">--</span>
-        <span class="snap-card-pct" id="snap_gold_pct">--</span>
-      </div>
-    </div>
-    <div class="snap-card" data-section="silver-aggregate-section" style="--card-color:#64748b">
-      <div class="snap-card-header">
-        <span class="snap-card-name">Silver</span>
-        <span class="snap-card-alloc" data-snap-pct="silver"></span>
-      </div>
-      <div class="snap-card-current" id="snap_silver_current">--</div>
-      <div class="snap-card-row">
-        <span class="snap-card-label">Inv.</span>
-        <span class="snap-card-invested" id="snap_silver_invested">--</span>
-      </div>
-      <div class="snap-card-row snap-card-pl-row">
-        <span class="snap-card-pl" id="snap_silver_pl">--</span>
-        <span class="snap-card-pct" id="snap_silver_pct">--</span>
-      </div>
-    </div>
-    {% if fixed_deposits_enabled %}
-    <div class="snap-card" data-section="fixed-deposits-section" style="--card-color:#0f766e">
-      <div class="snap-card-header">
-        <span class="snap-card-name">Fixed Deposits</span>
-        <span class="snap-card-alloc" data-snap-pct="fd"></span>
-      </div>
-      <div class="snap-card-current" id="snap_fd_current">--</div>
-      <div class="snap-card-row">
-        <span class="snap-card-label">Inv.</span>
-        <span class="snap-card-invested" id="snap_fd_invested">--</span>
-      </div>
-      <div class="snap-card-row snap-card-pl-row">
-        <span class="snap-card-pl" id="snap_fd_pl">--</span>
-        <span class="snap-card-pct" id="snap_fd_pct">--</span>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-<div id="data-container-sections">
-<div class="section-wrapper" id="stocks-section">
-<div class="section-header">
-<h2>Stocks <button class="section-info-btn" data-info="stocks" title="About this table" aria-label="About stocks table"></button></h2>
-<div class="controls-container">
-<button class="crud-add-btn" onclick="window.crudAdd('stocks')" title="Add stock manually">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-<span>Add</span>
-</button>
-</div>
-</div>
-<div class="section-summary" id="stocks_summary" style="--section-accent:#e11d48">
-  <div class="section-summary-metrics">
-    <span class="section-summary-badge" id="stocks_allocation_pct"></span>
-    <div class="section-summary-value" id="current_value">0.00</div>
-    <div class="section-summary-invested"><span id="total_invested">0.00</span></div>
-    <div class="section-summary-pl">
-      <span id="total_pl">0.00</span>
-      <span class="section-summary-pct" id="total_pl_pct">0.00%</span>
-    </div>
-  </div>
-  <div class="section-summary-accent"></div>
-</div>
-<div class="table-scroll-wrapper">
-<table id="stocksTable" aria-label="Holdings table">
-<thead>
-<tr>
-<th data-sort-asc="symbol_asc" data-sort-desc="symbol_desc" data-sort-default="asc">Symbol</th><th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th><th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th><th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th><th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th><th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th><th data-sort-asc="pl_asc" data-sort-desc="pl_desc" data-sort-asc2="pl_pct_asc" data-sort-desc2="pl_pct_desc">P/L</th><th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th><th data-sort-asc="exchange_asc" data-sort-desc="exchange_desc" data-sort-default="asc">EX</th><th data-sort-asc="account_asc" data-sort-desc="account_desc" data-sort-default="asc">Account</th>
-</tr>
-</thead>
-<tbody id="tbody">
-</tbody>
-</table>
-</div>
-</div>
-
-<div class="section-wrapper" id="mf-section">
-<div class="section-header">
-<h2>Mutual Funds <button class="section-info-btn" data-info="mutual_funds" title="About this table" aria-label="About mutual funds table"></button></h2>
-<div class="controls-container">
-<button class="crud-add-btn" onclick="window.crudAdd('mutual_funds')" title="Add mutual fund manually">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-<span>Add</span>
-</button>
-</div>
-</div>
-<div class="section-summary" id="mf_summary" style="--section-accent:#0284c7">
-  <div class="section-summary-metrics">
-    <span class="section-summary-badge" id="mf_allocation_pct"></span>
-    <div class="section-summary-value" id="mf_current_value">0.00</div>
-    <div class="section-summary-invested"><span id="mf_total_invested">0.00</span></div>
-    <div class="section-summary-pl">
-      <span id="mf_total_pl">0.00</span>
-      <span class="section-summary-pct" id="mf_total_pl_pct">0.00%</span>
-    </div>
-  </div>
-  <div class="section-summary-accent"></div>
-</div>
-<div class="table-scroll-wrapper">
-<table id="mfTable" aria-label="MF Holdings table">
-<thead>
-<tr>
-<th data-sort-asc="name_asc" data-sort-desc="name_desc" data-sort-default="asc">Fund</th><th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th><th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th><th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th><th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th><th data-sort-asc="nav_asc" data-sort-desc="nav_desc">NAV</th><th data-sort-asc="pl_asc" data-sort-desc="pl_desc" data-sort-asc2="pl_pct_asc" data-sort-desc2="pl_pct_desc">P/L</th><th data-sort-asc="account_asc" data-sort-desc="account_desc" data-sort-default="asc">Account</th>
-</tr>
-</thead>
-<tbody id="mf_tbody">
-</tbody>
-</table>
-</div>
-</div>
-
-<div class="section-wrapper" id="etf-section">
-<div class="section-header">
-<h2>ETFs <button class="section-info-btn" data-info="etfs" title="About this table" aria-label="About ETFs table"></button></h2>
-<div class="controls-container">
-<button class="crud-add-btn" onclick="window.crudAdd('etfs')" title="Add ETF manually">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-<span>Add</span>
-</button>
-</div>
-</div>
-<div class="section-summary" id="etf_summary" style="--section-accent:#7c3aed">
-  <div class="section-summary-metrics">
-    <span class="section-summary-badge" id="etf_allocation_pct"></span>
-    <div class="section-summary-value" id="etf_current_value">0.00</div>
-    <div class="section-summary-invested"><span id="etf_total_invested">0.00</span></div>
-    <div class="section-summary-pl">
-      <span id="etf_total_pl">0.00</span>
-      <span class="section-summary-pct" id="etf_total_pl_pct">0.00%</span>
-    </div>
-  </div>
-  <div class="section-summary-accent"></div>
-</div>
-<div class="table-scroll-wrapper">
-<table id="etfTable" aria-label="ETF Holdings table">
-<thead>
-<tr>
-<th data-sort-asc="symbol_asc" data-sort-desc="symbol_desc" data-sort-default="asc">Symbol</th><th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th><th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th><th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th><th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th><th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th><th data-sort-asc="pl_asc" data-sort-desc="pl_desc" data-sort-asc2="pl_pct_asc" data-sort-desc2="pl_pct_desc">P/L</th><th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th><th data-sort-asc="exchange_asc" data-sort-desc="exchange_desc" data-sort-default="asc">EX</th><th data-sort-asc="account_asc" data-sort-desc="account_desc" data-sort-default="asc">Account</th>
-</tr>
-</thead>
-<tbody id="etf_tbody">
-</tbody>
-</table>
-</div>
-</div>
-
-
-
-<!-- Gold Section (ETFs + Physical + SGBs) -->
-<div class="section-wrapper" id="physical-gold-section">
-<div class="section-header">
-<h2>Gold <button class="section-info-btn" data-info="gold" title="About this section" aria-label="About gold section"></button></h2>
-{% if physical_gold_enabled %}
-<div class="controls-container">
-<button class="crud-add-btn" onclick="window.crudAdd('physical_gold')" title="Add physical gold">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-<span>Add</span>
-</button>
-</div>
-{% endif %}
-</div>
-
-<!-- Gold Rhythm Strip -->
-<div class="gold-rhythm" id="gold_summary">
-  <div class="gold-rhythm-main">
-    <span class="section-summary-badge" id="gold_allocation_pct"></span>
-    <div class="gold-rhythm-amount">
-      <span class="gold-rhythm-value" id="gold_current_value">0.00</span>
-    </div>
-    <div class="gold-rhythm-secondary">
-      <span class="gold-rhythm-invested" id="gold_total_invested">0.00</span>
-    </div>
-    <div class="gold-rhythm-pl">
-      <span id="gold_total_pl">0.00</span>
-      <span class="gold-rhythm-pct" id="gold_total_pl_pct">0.00%</span>
-    </div>
-  </div>
-  <div class="gold-rhythm-segments" id="gold_breakdown_segments">
-    <div class="gold-seg">
-      <div class="gold-seg-header">
-        <span class="gold-seg-dot gold-seg-dot--physical"></span>
-        <span class="gold-seg-name">Physical</span>
-      </div>
-      <span class="gold-seg-amount" id="gold_physical_current_value">0.00</span>
-      <span class="gold-seg-pl"><span id="gold_physical_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_physical_total_pl_pct">0.00%</span></span>
-      <span id="gold_physical_total_invested" hidden>0.00</span>
-    </div>
-    <div class="gold-seg">
-      <div class="gold-seg-header">
-        <span class="gold-seg-dot gold-seg-dot--etf"></span>
-        <span class="gold-seg-name">ETFs</span>
-      </div>
-      <span class="gold-seg-amount" id="gold_etf_current_value">0.00</span>
-      <span class="gold-seg-pl"><span id="gold_etf_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_etf_total_pl_pct">0.00%</span></span>
-      <span id="gold_etf_total_invested" hidden>0.00</span>
-    </div>
-    <div class="gold-seg">
-      <div class="gold-seg-header">
-        <span class="gold-seg-dot gold-seg-dot--sgb"></span>
-        <span class="gold-seg-name">SGBs</span>
-      </div>
-      <span class="gold-seg-amount" id="gold_sgb_current_value">0.00</span>
-      <span class="gold-seg-pl"><span id="gold_sgb_total_pl">0.00</span> <span class="gold-seg-pct" id="gold_sgb_total_pl_pct">0.00%</span></span>
-      <span id="gold_sgb_total_invested" hidden>0.00</span>
-    </div>
-  </div>
-  <div class="gold-rhythm-bar" id="gold_proportion_bar"></div>
-</div>
-
-{% if physical_gold_enabled %}
-<h3 class="sub-table-title">Physical</h3>
-<div class="table-scroll-wrapper">
-<table id="physicalGoldTable" aria-label="Physical Gold table">
-<thead>
-<tr>
-<th data-sort-asc="date_asc" data-sort-desc="date_desc">Bought On</th>
-<th data-sort-asc="type_asc" data-sort-desc="type_desc" data-sort-default="asc">Type</th>
-<th data-sort-asc="outlet_asc" data-sort-desc="outlet_desc" data-sort-default="asc">Retail Outlet</th>
-<th data-sort-asc="purity_asc" data-sort-desc="purity_desc" data-sort-default="asc">Purity</th>
-<th data-sort-asc="weight_asc" data-sort-desc="weight_desc">Weight (gms)</th>
-<th data-sort-asc="bought_rate_asc" data-sort-desc="bought_rate_desc">Bought IBJA Rate/gm</th>
-<th data-sort-asc="latest_rate_asc" data-sort-desc="latest_rate_desc">Latest IBJA Rate/gm</th>
-<th data-sort-asc="pl_asc" data-sort-desc="pl_desc" data-sort-asc2="pl_pct_asc" data-sort-desc2="pl_pct_desc">P/L</th>
-</tr>
-</thead>
-<tbody id="physical_gold_table_body">
-</tbody>
-</table>
-</div>
-{% endif %}
-<h3 class="sub-table-title">ETFs</h3>
-<div class="table-scroll-wrapper">
-<table id="goldETFTable" aria-label="Gold ETF Holdings table">
-<thead>
-<tr>
-<th data-sort-asc="symbol_asc" data-sort-desc="symbol_desc" data-sort-default="asc">Symbol</th><th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th><th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th><th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th><th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th><th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th><th data-sort-asc="pl_asc" data-sort-desc="pl_desc" data-sort-asc2="pl_pct_asc" data-sort-desc2="pl_pct_desc">P/L</th><th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th><th data-sort-asc="exchange_asc" data-sort-desc="exchange_desc" data-sort-default="asc">EX</th><th data-sort-asc="account_asc" data-sort-desc="account_desc" data-sort-default="asc">Account</th>
-</tr>
-</thead>
-<tbody id="gold_etf_tbody">
-</tbody>
-</table>
-</div>
-</div>
-
-<!-- Silver Aggregate Section -->
-<div class="section-wrapper" id="silver-aggregate-section">
-<div class="section-header">
-<h2>Silver <span class="section-subtitle">(ETFs)</span> <button class="section-info-btn" data-info="silver" title="About this section" aria-label="About silver section"></button></h2>
-</div>
-<div class="section-summary" id="silver_summary" style="--section-accent:#64748b">
-  <div class="section-summary-metrics">
-    <span class="section-summary-badge" id="silver_allocation_pct"></span>
-    <div class="section-summary-value" id="silver_current_value">0.00</div>
-    <div class="section-summary-invested"><span id="silver_total_invested">0.00</span></div>
-    <div class="section-summary-pl">
-      <span id="silver_total_pl">0.00</span>
-      <span class="section-summary-pct" id="silver_total_pl_pct">0.00%</span>
-    </div>
-  </div>
-  <div class="section-summary-accent"></div>
-</div>
-<div class="table-scroll-wrapper">
-<table id="silverETFTable" aria-label="Silver ETF Holdings table">
-<thead>
-<tr>
-<th data-sort-asc="symbol_asc" data-sort-desc="symbol_desc" data-sort-default="asc">Symbol</th><th data-sort-asc="qty_asc" data-sort-desc="qty_desc">Qty</th><th data-sort-asc="avg_asc" data-sort-desc="avg_desc">Avg Price</th><th data-sort-asc="invested_asc" data-sort-desc="invested_desc">Invested</th><th data-sort-asc="current_asc" data-sort-desc="current_desc">Current</th><th data-sort-asc="ltp_asc" data-sort-desc="ltp_desc">LTP</th><th data-sort-asc="pl_asc" data-sort-desc="pl_desc" data-sort-asc2="pl_pct_asc" data-sort-desc2="pl_pct_desc">P/L</th><th data-sort-asc="day_change_asc" data-sort-desc="day_change_desc">Day's Change</th><th data-sort-asc="exchange_asc" data-sort-desc="exchange_desc" data-sort-default="asc">EX</th><th data-sort-asc="account_asc" data-sort-desc="account_desc" data-sort-default="asc">Account</th>
-</tr>
-</thead>
-<tbody id="silver_etf_tbody">
-</tbody>
-</table>
-</div>
-</div>
-
-<!-- Fixed Deposits Section with Tabs -->
-{% if fixed_deposits_enabled %}
-<div class="section-wrapper" id="fixed-deposits-section">
-<div class="section-header fd-section-header">
-<div class="fd-title-row">
-<h2>Fixed Deposits <button class="section-info-btn" data-info="fixed_deposits" title="About this table" aria-label="About fixed deposits table"></button></h2>
-<button class="crud-add-btn" onclick="window.crudAdd('fixed_deposits')" title="Add fixed deposit">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-<span>Add</span>
-</button>
-</div>
-<div class="controls-container fd-header-controls">
-<div class="fd-tabs">
-<button class="fd-tab active" data-tab="maturity" onclick="window.switchFDTab('maturity')">
-By Maturity
-</button>
-<button class="fd-tab" data-tab="bank" onclick="window.switchFDTab('bank')">
-By Bank
-</button>
-</div>
-</div>
-</div>
-<div class="section-summary" id="fd_summary" style="--section-accent:#0f766e">
-  <div class="section-summary-metrics">
-    <span class="section-summary-badge" id="fd_allocation_pct"></span>
-    <div class="section-summary-value" id="fd_maturity_value">0.00</div>
-    <div class="section-summary-invested"><span id="fd_total_invested">0.00</span></div>
-    <div class="section-summary-pl">
-      <span id="fd_total_pl">0.00</span>
-      <span class="section-summary-pct" id="fd_total_pl_pct">0.00%</span>
-    </div>
-  </div>
-  <div class="section-summary-accent"></div>
-</div>
-
-<!-- Tab Content: By Maturity (Detailed View) -->
-<div class="fd-tab-content active" id="fd-tab-maturity">
-<div class="table-scroll-wrapper">
-<table id="fixedDepositsTable" aria-label="Fixed Deposits table">
-<thead>
-<tr>
-<th data-sort-asc="date_asc" data-sort-desc="date_desc">Deposited On</th>
-<th data-sort-asc="reinvested_date_asc" data-sort-desc="reinvested_date_desc">Reinvested On</th>
-<th data-sort-asc="bank_asc" data-sort-desc="bank_desc" data-sort-default="asc">Bank</th>
-<th data-sort-asc="amount_asc" data-sort-desc="amount_desc">Original Amt</th>
-<th data-sort-asc="reinvested_amount_asc" data-sort-desc="reinvested_amount_desc">Reinvested Amt</th>
-<th data-sort-asc="roi_asc" data-sort-desc="roi_desc">ROI</th>
-<th data-sort-asc="maturity_asc" data-sort-desc="maturity_desc">Maturity Date</th>
-<th data-sort-asc="current_asc" data-sort-desc="current_desc">Current Value</th>
-<th data-sort-asc="account_asc" data-sort-desc="account_desc" data-sort-default="asc">Account</th>
-</tr>
-</thead>
-<tbody id="fixed_deposits_table_body">
-</tbody>
-</table>
-</div>
-</div>
-
-<!-- Tab Content: By Bank (Summary View) -->
-<div class="fd-tab-content" id="fd-tab-bank">
-<div class="table-scroll-wrapper">
-<table id="fdSummaryTable" aria-label="Fixed Deposits Summary table">
-<thead>
-<tr>
-<th data-sort-asc="bank_asc" data-sort-desc="bank_desc" data-sort-default="asc">Bank</th>
-<th data-sort-asc="account_asc" data-sort-desc="account_desc" data-sort-default="asc">Account</th>
-<th data-sort-asc="deposited_asc" data-sort-desc="deposited_desc">Total Deposited</th>
-<th data-sort-asc="current_asc" data-sort-desc="current_desc">Total Current Value</th>
-<th data-sort-asc="returns_asc" data-sort-desc="returns_desc" data-sort-asc2="returns_pct_asc" data-sort-desc2="returns_pct_desc">Total Returns</th>
-</tr>
-</thead>
-<tbody id="fd_summary_table_body">
-</tbody>
-</table>
-</div>
-</div>
-
-</div>
-{% endif %}
-
-<div class="section-wrapper" id="sips-section">
-<div class="section-header">
-<h2>SIPs <button class="section-info-btn" data-info="sips" title="About this table" aria-label="About SIPs table"></button></h2>
-<div class="controls-container">
-<button class="crud-add-btn" onclick="window.crudAdd('sips')" title="Add SIP manually">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-<span>Add</span>
-</button>
-</div>
-</div>
-
-<!-- SIP Rhythm Summary -->
-<div class="sip-rhythm" id="sip_rhythm">
-  <div class="sip-rhythm-main">
-    <div class="sip-rhythm-amount">
-      <span class="sip-rhythm-value" id="sip_monthly_total">₹0</span>
-      <span class="sip-rhythm-label">/ month</span>
-    </div>
-    <div class="sip-rhythm-annual">
-      <span class="sip-rhythm-annual-value" id="sip_annual_total">₹0</span>
-      <span class="sip-rhythm-label">/ year</span>
-    </div>
-  </div>
-  <div class="sip-rhythm-frequencies" id="sip_freq_segments"></div>
-  <div class="sip-rhythm-bar" id="sip_proportion_bar"></div>
-</div>
-
-<div class="table-scroll-wrapper">
-<table aria-label="SIPs table">
-<thead>
-<tr>
-<th>Fund</th><th>Amount</th><th>Frequency</th><th>Installments</th><th>Status</th><th>Next Due</th><th>Account</th>
-</tr>
-</thead>
-<tbody id="sips_tbody">
-</tbody>
-</table>
-</div>
-</div>
-
-</div>
-
-<footer class="site-footer-dashboard">
-  <div class="footer-legal-links">
-    <a href="/privacy">Privacy Policy</a>
-    <span class="footer-dot"></span>
-    <a href="/terms">Terms &amp; Conditions</a>
-    <span class="footer-dot"></span>
-    <a href="/contact">Contact Us</a>
-  </div>
-  <div class="made-with-love">
-    <p>Made with <span class="heart">&hearts;</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a></p>
-  </div>
-</footer>
-</div>
-
-{% if user %}
-<!-- Settings Drawer -->
-<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeSettingsDrawer()"></div>
-<aside class="settings-drawer" id="settingsDrawer">
-  <div class="drawer-header">
-    <h2 class="drawer-title">Settings</h2>
-    <button class="drawer-close" onclick="closeSettingsDrawer()" title="Close">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="drawer-body">
-    <!-- Sync Broker Accounts -->
-    <section class="drawer-section">
-      <h3 class="drawer-section-title">Sync Broker Accounts</h3>
-      <div class="drawer-card">
-        <!-- Zerodha sub-box -->
-        <div class="drawer-broker-sub">
-          <div class="drawer-broker-header">
-            <span class="drawer-broker-name">Zerodha</span>
-          </div>
-        <p class="drawer-card-hint">
-          Connect your Kite Connect API accounts. Credentials are stored securely and never displayed.
-        </p>
-
-        <!-- Expandable setup guide -->
-        <div class="setup-guide" id="setupGuide">
-          <button type="button" class="setup-guide-toggle" id="setupGuideToggle" aria-expanded="false" aria-controls="setupGuideBody">
-            <div class="setup-guide-toggle-left">
-              <svg class="setup-guide-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span class="setup-guide-label">How to get API Key &amp; Secret</span>
-            </div>
-            <svg class="setup-guide-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="setup-guide-body" id="setupGuideBody">
-            <div class="setup-guide-inner">
-            <div class="setup-guide-steps">
-              <div class="setup-step">
-                <span class="setup-step-num">1</span>
-                <div class="setup-step-content">
-                  <div class="setup-step-title">Sign up on Zerodha Developer Portal</div>
-                  <p>Go to <a href="https://developers.kite.trade/" target="_blank" rel="noopener">developers.kite.trade</a> and <strong>sign up</strong> for a new account.</p>
-                  <p class="setup-step-muted">Important: The developer portal login is separate from your Zerodha Kite account. You must create a new account on the developer portal first, even if you already have a Zerodha trading account.</p>
-                  <p class="setup-step-muted">When prompted to choose a plan, select the <strong>Free</strong> plan.</p>
+                <div class="section-wrapper" id="sips-section">
+                    <div class="section-header">
+                        <h2>
+                            SIPs
+                            <button class="section-info-btn"
+                                    data-info="sips"
+                                    title="About this table"
+                                    aria-label="About SIPs table"></button>
+                        </h2>
+                        <div class="controls-container">
+                            <button class="crud-add-btn"
+                                    onclick="window.crudAdd('sips')"
+                                    title="Add SIP manually">
+                                <svg width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2.5"
+                                     stroke-linecap="round">
+                                    <path d="M12 5v14" />
+                                    <path d="M5 12h14" />
+                                </svg>
+                                <span>Add</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- SIP Rhythm Summary -->
+                    <div class="sip-rhythm" id="sip_rhythm">
+                        <div class="sip-rhythm-main">
+                            <div class="sip-rhythm-amount">
+                                <span class="sip-rhythm-value" id="sip_monthly_total">₹0</span>
+                                <span class="sip-rhythm-label">/ month</span>
+                            </div>
+                            <div class="sip-rhythm-annual">
+                                <span class="sip-rhythm-annual-value" id="sip_annual_total">₹0</span>
+                                <span class="sip-rhythm-label">/ year</span>
+                            </div>
+                        </div>
+                        <div class="sip-rhythm-frequencies" id="sip_freq_segments"></div>
+                        <div class="sip-rhythm-bar" id="sip_proportion_bar"></div>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table aria-label="SIPs table">
+                            <thead>
+                                <tr>
+                                    <th>Fund</th>
+                                    <th>Amount</th>
+                                    <th>Frequency</th>
+                                    <th>Installments</th>
+                                    <th>Status</th>
+                                    <th>Next Due</th>
+                                    <th>Account</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sips_tbody">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-              </div>
-              <div class="setup-step">
-                <span class="setup-step-num">2</span>
-                <div class="setup-step-content">
-                  <div class="setup-step-title">Create a new app</div>
-                  <p>Click <strong>Create new app</strong>. Fill in:</p>
-                  <ul class="setup-step-list">
-                    <li><strong>App name:</strong> anything (e.g. &ldquo;Metron&rdquo;)</li>
-                    <li><strong>Redirect URL (web app):</strong><br><code>https://metron.thecoducer.com/api/callback</code></li>
-                    <li><strong>Postback URL:</strong> leave blank</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="setup-step">
-                <span class="setup-step-num">3</span>
-                <div class="setup-step-content">
-                  <div class="setup-step-title">Copy your credentials</div>
-                  <p>After creation, copy the <strong>API Key</strong> and <strong>API Secret</strong> from the app details page.</p>
-                </div>
-              </div>
-              <div class="setup-step">
-                <span class="setup-step-num">4</span>
-                <div class="setup-step-content">
-                  <div class="setup-step-title">Paste them here</div>
-                  <p>Click <strong>Add Account</strong> below, enter a label, paste your key &amp; secret, and hit <strong>Save</strong>.</p>
-                </div>
-              </div>
-              <div class="setup-step">
-                <span class="setup-step-num">5</span>
-                <div class="setup-step-content">
-                  <div class="setup-step-title">Authorize &amp; sync</div>
-                  <p>Click <strong>Login</strong> next to the account &mdash; authorize on Zerodha&rsquo;s page and your portfolio loads automatically.</p>
-                </div>
-              </div>
             </div>
-            </div><!-- /setup-guide-inner -->
-          </div>
+            <footer class="site-footer-dashboard">
+                <div class="footer-legal-links">
+                    <a href="/privacy">Privacy Policy</a>
+                    <span class="footer-dot"></span>
+                    <a href="/terms">Terms &amp; Conditions</a>
+                    <span class="footer-dot"></span>
+                    <a href="/contact">Contact Us</a>
+                </div>
+                <div class="made-with-love">
+                    <p>
+                        Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
+                    </p>
+                </div>
+            </footer>
         </div>
-
-        <div id="drawerAccountsList" class="drawer-accounts-list">
-          <div class="drawer-accounts-loading">Loading…</div>
+        {% if user %}
+            <!-- Settings Drawer -->
+            <div class="drawer-backdrop"
+                 id="drawerBackdrop"
+                 onclick="closeSettingsDrawer()"></div>
+            <aside class="settings-drawer" id="settingsDrawer">
+                <div class="drawer-header">
+                    <h2 class="drawer-title">Settings</h2>
+                    <button class="drawer-close" onclick="closeSettingsDrawer()" title="Close">
+                        <svg width="20"
+                             height="20"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M18 6L6 18" />
+                            <path d="M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="drawer-body">
+                    <!-- Sync Broker Accounts -->
+                    <section class="drawer-section">
+                        <h3 class="drawer-section-title">Sync Broker Accounts</h3>
+                        <div class="drawer-card">
+                            <!-- Zerodha sub-box -->
+                            <div class="drawer-broker-sub">
+                                <div class="drawer-broker-header">
+                                    <span class="drawer-broker-name">Zerodha</span>
+                                </div>
+                                <p class="drawer-card-hint">
+                                    Connect your Kite Connect API accounts. Credentials are stored securely and never displayed.
+                                </p>
+                                <!-- Expandable setup guide -->
+                                <div class="setup-guide" id="setupGuide">
+                                    <button type="button"
+                                            class="setup-guide-toggle"
+                                            id="setupGuideToggle"
+                                            aria-expanded="false"
+                                            aria-controls="setupGuideBody">
+                                        <div class="setup-guide-toggle-left">
+                                            <svg class="setup-guide-icon"
+                                                 width="16"
+                                                 height="16"
+                                                 viewBox="0 0 24 24"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 stroke-width="2"
+                                                 stroke-linecap="round"
+                                                 stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                                            </svg>
+                                            <span class="setup-guide-label">How to get API Key &amp; Secret</span>
+                                        </div>
+                                        <svg class="setup-guide-chevron"
+                                             width="14"
+                                             height="14"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2.5"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9" />
+                                        </svg>
+                                    </button>
+                                    <div class="setup-guide-body" id="setupGuideBody">
+                                        <div class="setup-guide-inner">
+                                            <div class="setup-guide-steps">
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">1</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Sign up on Zerodha Developer Portal</div>
+                                                        <p>
+                                                            Go to <a href="https://developers.kite.trade/" target="_blank" rel="noopener">developers.kite.trade</a> and <strong>sign up</strong> for a new account.
+                                                        </p>
+                                                        <p class="setup-step-muted">
+                                                            Important: The developer portal login is separate from your Zerodha Kite account. You must create a new account on the developer portal first, even if you already have a Zerodha trading account.
+                                                        </p>
+                                                        <p class="setup-step-muted">
+                                                            When prompted to choose a plan, select the <strong>Free</strong> plan.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">2</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Create a new app</div>
+                                                        <p>
+                                                            Click <strong>Create new app</strong>. Fill in:
+                                                        </p>
+                                                        <ul class="setup-step-list">
+                                                            <li>
+                                                                <strong>App name:</strong> anything (e.g. "Metron")
+                                                            </li>
+                                                            <li>
+                                                                <strong>Redirect URL (web app):</strong>
+                                                                <br>
+                                                                <code>https://metron.thecoducer.com/api/callback</code>
+                                                            </li>
+                                                            <li>
+                                                                <strong>Postback URL:</strong> leave blank
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">3</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Copy your credentials</div>
+                                                        <p>
+                                                            After creation, copy the <strong>API Key</strong> and <strong>API Secret</strong> from the app details page.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">4</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Paste them here</div>
+                                                        <p>
+                                                            Click <strong>Add Account</strong> below, enter a label, paste your key &amp; secret, and hit <strong>Save</strong>.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">5</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Authorize &amp; sync</div>
+                                                        <p>
+                                                            Click <strong>Login</strong> next to the account — authorize on Zerodha's page and your portfolio loads automatically.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- /setup-guide-inner -->
+                                    </div>
+                                </div>
+                                <div id="drawerAccountsList" class="drawer-accounts-list">
+                                    <div class="drawer-accounts-loading">Loading…</div>
+                                </div>
+                                <button type="button"
+                                        class="drawer-btn-add"
+                                        id="drawerAddAccountBtn"
+                                        title="Add Zerodha account">
+                                    <svg width="16"
+                                         height="16"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round">
+                                        <path d="M12 5v14" />
+                                        <path d="M5 12h14" />
+                                    </svg>
+                                    <span>Add Account</span>
+                                </button>
+                                <div id="drawerAddAccountForm" class="drawer-add-form hidden">
+                                    <div class="drawer-field">
+                                        <label class="drawer-field-label" for="drawer_account_name">Account Name</label>
+                                        <input class="drawer-field-input"
+                                               type="text"
+                                               id="drawer_account_name"
+                                               placeholder="e.g. Personal, Family"
+                                               spellcheck="false"
+                                               autocomplete="off">
+                                    </div>
+                                    <div class="drawer-field">
+                                        <label class="drawer-field-label" for="drawer_api_key">API Key</label>
+                                        <input class="drawer-field-input"
+                                               type="text"
+                                               id="drawer_api_key"
+                                               placeholder="e.g. x1y2z3a4b5c6d7e8"
+                                               spellcheck="false"
+                                               autocomplete="off">
+                                    </div>
+                                    <div class="drawer-field">
+                                        <label class="drawer-field-label" for="drawer_api_secret">API Secret</label>
+                                        <input class="drawer-field-input"
+                                               type="password"
+                                               id="drawer_api_secret"
+                                               placeholder="e.g. a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+                                               spellcheck="false"
+                                               autocomplete="off">
+                                    </div>
+                                    <div class="drawer-form-actions">
+                                        <button type="button" class="drawer-btn-save" id="drawerSaveAccountBtn">Save</button>
+                                        <button type="button" class="drawer-btn-cancel" id="drawerCancelAccountBtn">Cancel</button>
+                                        <span class="drawer-save-status" id="drawerSaveStatus"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- /drawer-broker-sub -->
+                        </div>
+                    </section>
+                </div>
+            </aside>
+        {% endif %}
+        <!-- App Tour -->
+        <div class="app-tour-overlay" id="appTourOverlay"></div>
+        <!-- Security PIN Overlay — visible by default, hidden by JS when verified -->
+        <div class="pin-overlay"
+             id="pinOverlay"
+             style="{% if pin_verified %}display:none{% else %}display:flex{% endif %}">
+            <div class="pin-content">
+                <div class="pin-brand">metron</div>
+                <div class="pin-header">
+                    <div class="pin-icon">
+                        <svg width="36"
+                             height="36"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    {% if has_pin %}
+                        <h2 class="pin-title" id="pinTitle">Enter PIN</h2>
+                        <p class="pin-subtitle" id="pinSubtitle" style="display:none"></p>
+                    {% else %}
+                        <h2 class="pin-title" id="pinTitle">Create PIN</h2>
+                        <p class="pin-subtitle" id="pinSubtitle">
+                            Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored — remember it carefully.
+                        </p>
+                    {% endif %}
+                </div>
+                <div class="pin-body">
+                    <!-- PIN field group -->
+                    <div class="pin-field-group" id="pinFieldGroup1">
+                        <div class="pin-field-header"
+                             id="pinFieldHeader1"
+                             style="{% if has_pin %}display:none{% endif %}">
+                            <span class="pin-field-label" id="pinFieldLabel1">PIN</span>
+                            <span class="pin-field-check" id="pinCheck1">
+                                <svg width="14"
+                                     height="14"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="3"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="pin-input-row" id="pinInputRow">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="0"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="1"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="2"
+                                   autocomplete="off">
+                            <span class="pin-digit-sep"></span>
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="3"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="4"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="5"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <!-- Confirm PIN field group (setup mode) -->
+                    <div class="pin-field-group"
+                         id="pinConfirmGroup"
+                         style="{% if has_pin %}display:none{% endif %}">
+                        <div class="pin-field-header">
+                            <span class="pin-field-label">Confirm PIN</span>
+                            <span class="pin-field-check" id="pinCheck2">
+                                <svg width="14"
+                                     height="14"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="3"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="pin-input-row" id="pinConfirmRow">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="0"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="1"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="2"
+                                   autocomplete="off">
+                            <span class="pin-digit-sep"></span>
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="3"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="4"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="5"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <p class="pin-info"
+                       id="pinInfo"
+                       style="{% if has_pin %}display:none{% endif %}">
+                        Letters and numbers allowed &nbsp;·&nbsp; a–z, A–Z, 0–9
+                    </p>
+                    <div class="pin-error" id="pinError"></div>
+                    <div class="pin-footer-links"
+                         id="pinFooterLinks"
+                         style="{% if not has_pin %}display:none{% endif %}">
+                        <button class="pin-text-btn pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
+                        <span class="pin-footer-sep">·</span>
+                        <button class="pin-text-btn pin-logout-btn" id="pinLogoutBtn">Logout</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button type="button" class="drawer-btn-add" id="drawerAddAccountBtn" title="Add Zerodha account">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-          <span>Add Account</span>
-        </button>
-        <div id="drawerAddAccountForm" class="drawer-add-form hidden">
-          <div class="drawer-field">
-            <label class="drawer-field-label" for="drawer_account_name">Account Name</label>
-            <input class="drawer-field-input" type="text" id="drawer_account_name" placeholder="e.g. Personal, Family" spellcheck="false" autocomplete="off">
-          </div>
-          <div class="drawer-field">
-            <label class="drawer-field-label" for="drawer_api_key">API Key</label>
-            <input class="drawer-field-input" type="text" id="drawer_api_key" placeholder="e.g. x1y2z3a4b5c6d7e8" spellcheck="false" autocomplete="off">
-          </div>
-          <div class="drawer-field">
-            <label class="drawer-field-label" for="drawer_api_secret">API Secret</label>
-            <input class="drawer-field-input" type="password" id="drawer_api_secret" placeholder="e.g. a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" spellcheck="false" autocomplete="off">
-          </div>
-          <div class="drawer-form-actions">
-            <button type="button" class="drawer-btn-save" id="drawerSaveAccountBtn">Save</button>
-            <button type="button" class="drawer-btn-cancel" id="drawerCancelAccountBtn">Cancel</button>
-            <span class="drawer-save-status" id="drawerSaveStatus"></span>
-          </div>
+        <!-- PIN Reset Confirmation Dialog -->
+        <div class="pin-reset-dialog" id="pinResetDialog" style="display:none">
+            <div class="pin-reset-content">
+                <div class="pin-brand">metron</div>
+                <div class="pin-reset-header">
+                    <div class="pin-reset-icon">
+                        <svg width="32"
+                             height="32"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                    </div>
+                    <h3 class="pin-reset-title">Reset PIN?</h3>
+                    <p class="pin-reset-desc">
+                        This will permanently delete all stored credentials and sessions. You'll need to re-add your accounts and set a new PIN.
+                    </p>
+                </div>
+                <div class="pin-reset-body">
+                    <div class="pin-reset-field-group">
+                        <p class="pin-reset-prompt">
+                            Type <strong>reset</strong> below to confirm
+                        </p>
+                        <input type="text"
+                               class="pin-reset-input"
+                               id="pinResetInput"
+                               placeholder="reset"
+                               autocomplete="off"
+                               spellcheck="false">
+                    </div>
+                    <div class="pin-reset-actions">
+                        <button class="pin-reset-cancel" id="pinResetCancel">Cancel</button>
+                        <button class="pin-reset-confirm" id="pinResetConfirm" disabled>Reset Everything</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        </div><!-- /drawer-broker-sub -->
-      </div>
-    </section>
-  </div>
-</aside>
-{% endif %}
-
-<!-- App Tour -->
-<div class="app-tour-overlay" id="appTourOverlay"></div>
-
-<!-- Security PIN Overlay — visible by default, hidden by JS when verified -->
-<div class="pin-overlay" id="pinOverlay" style="{% if pin_verified %}display:none{% else %}display:flex{% endif %}">
-  <div class="pin-content">
-    <div class="pin-brand">metron</div>
-    <div class="pin-header">
-      <div class="pin-icon">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      {% if has_pin %}
-      <h2 class="pin-title" id="pinTitle">Enter PIN</h2>
-      <p class="pin-subtitle" id="pinSubtitle" style="display:none"></p>
-      {% else %}
-      <h2 class="pin-title" id="pinTitle">Create PIN</h2>
-      <p class="pin-subtitle" id="pinSubtitle">Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored &mdash; remember it carefully.</p>
-      {% endif %}
-    </div>
-    <div class="pin-body">
-      <!-- PIN field group -->
-      <div class="pin-field-group" id="pinFieldGroup1">
-        <div class="pin-field-header" id="pinFieldHeader1" style="{% if has_pin %}display:none{% endif %}">
-          <span class="pin-field-label" id="pinFieldLabel1">PIN</span>
-          <span class="pin-field-check" id="pinCheck1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
+        <div class="app-tour-tooltip" id="appTourTooltip">
+            <div class="app-tour-tooltip-content" id="appTourContent"></div>
+            <div class="app-tour-tooltip-footer">
+                <div class="app-tour-progress" id="appTourProgress"></div>
+                <div class="app-tour-actions">
+                    <button class="app-tour-skip" id="appTourSkip">Skip tour</button>
+                    <button class="app-tour-next" id="appTourNext">Next</button>
+                </div>
+            </div>
         </div>
-        <div class="pin-input-row" id="pinInputRow">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="0" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="1" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="2" autocomplete="off">
-          <span class="pin-digit-sep"></span>
-          <input type="password" maxlength="1" class="pin-digit" data-idx="3" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="4" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="5" autocomplete="off">
-        </div>
-      </div>
-      <!-- Confirm PIN field group (setup mode) -->
-      <div class="pin-field-group" id="pinConfirmGroup" style="{% if has_pin %}display:none{% endif %}">
-        <div class="pin-field-header">
-          <span class="pin-field-label">Confirm PIN</span>
-          <span class="pin-field-check" id="pinCheck2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-        </div>
-        <div class="pin-input-row" id="pinConfirmRow">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="0" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="1" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="2" autocomplete="off">
-          <span class="pin-digit-sep"></span>
-          <input type="password" maxlength="1" class="pin-digit" data-idx="3" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="4" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="5" autocomplete="off">
-        </div>
-      </div>
-      <p class="pin-info" id="pinInfo" style="{% if has_pin %}display:none{% endif %}">Letters and numbers allowed &nbsp;&middot;&nbsp; a–z, A–Z, 0–9</p>
-      <div class="pin-error" id="pinError"></div>
-      <div class="pin-footer-links" id="pinFooterLinks" style="{% if not has_pin %}display:none{% endif %}">
-        <button class="pin-text-btn pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
-        <span class="pin-footer-sep">&middot;</span>
-        <button class="pin-text-btn pin-logout-btn" id="pinLogoutBtn">Logout</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PIN Reset Confirmation Dialog -->
-<div class="pin-reset-dialog" id="pinResetDialog" style="display:none">
-  <div class="pin-reset-content">
-    <div class="pin-brand">metron</div>
-    <div class="pin-reset-header">
-      <div class="pin-reset-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </div>
-      <h3 class="pin-reset-title">Reset PIN?</h3>
-      <p class="pin-reset-desc">This will permanently delete all stored credentials and sessions. You&rsquo;ll need to re-add your accounts and set a new PIN.</p>
-    </div>
-    <div class="pin-reset-body">
-      <div class="pin-reset-field-group">
-        <p class="pin-reset-prompt">Type <strong>reset</strong> below to confirm</p>
-        <input type="text" class="pin-reset-input" id="pinResetInput" placeholder="reset" autocomplete="off" spellcheck="false">
-      </div>
-      <div class="pin-reset-actions">
-        <button class="pin-reset-cancel" id="pinResetCancel">Cancel</button>
-        <button class="pin-reset-confirm" id="pinResetConfirm" disabled>Reset Everything</button>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="app-tour-tooltip" id="appTourTooltip">
-  <div class="app-tour-tooltip-content" id="appTourContent"></div>
-  <div class="app-tour-tooltip-footer">
-    <div class="app-tour-progress" id="appTourProgress"></div>
-    <div class="app-tour-actions">
-      <button class="app-tour-skip" id="appTourSkip">Skip tour</button>
-      <button class="app-tour-next" id="appTourNext">Next</button>
-    </div>
-  </div>
-</div>
-
-<script src="/static/js/nav.js"></script>
-<script>
+        <script src="/static/js/nav.js"></script>
+        <script>
 // App fetch wrapper — single source for the API identification header.
 // Intercepts 403 pin_required responses and shows PIN overlay.
 window.metronFetch = async function(url, options) {
@@ -900,43 +1521,77 @@ window.metronFetch = async function(url, options) {
   }
   return resp;
 };
-</script>
-<script src="/static/js/portfolio-ui.js"></script>
-
-{% if initial_data_json %}
-<script>window.__INITIAL_DATA__ = {{ initial_data_json | safe }};</script>
-{% endif %}
-<script>window.__TABLE_ROW_LIMIT__ = {{ table_row_limit }};</script>
-<script src="/static/js/refresh-ui.js"></script>
-<script type="module" src="/static/js/app.js"></script>
-<link rel="stylesheet" href="/static/css/pwa-install.css">
-<script src="/static/js/pwa-install.js"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
-<!-- Nav Drawer -->
-<div class="drawer-backdrop" id="navDrawerBackdrop"></div>
-<aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
-  <div class="drawer-header">
-    <h2 class="drawer-title">Menu</h2>
-    <button class="drawer-close" id="navDrawerClose" title="Close">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="drawer-body">
-    <nav class="nav-drawer-links">
-      <a href="/" class="nav-drawer-link active">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>Portfolio</span>
-      </a>
-      <a href="/exposure" class="nav-drawer-link">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M2 12h20"/><path d="M12 2c-2.76 4.48-2.76 13.52 0 20"/></svg>
-        <span>What You Actually Own</span>
-      </a>
-      <a href="/nifty50" class="nav-drawer-link">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-        <span>Nifty 50</span>
-      </a>
-    </nav>
-  </div>
-</aside>
-</body>
+        </script>
+        <script src="/static/js/portfolio-ui.js"></script>
+        {% if initial_data_json %}<script>window.__INITIAL_DATA__ = {{ initial_data_json | safe }};</script>{% endif %}
+        <script>window.__TABLE_ROW_LIMIT__ = {{ table_row_limit }};</script>
+        <script src="/static/js/refresh-ui.js"></script>
+        <script type="module" src="/static/js/app.js"></script>
+        <link rel="stylesheet" href="/static/css/pwa-install.css">
+        <script src="/static/js/pwa-install.js"></script>
+        <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
+        <!-- Nav Drawer -->
+        <div class="drawer-backdrop" id="navDrawerBackdrop"></div>
+        <aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
+            <div class="drawer-header">
+                <h2 class="drawer-title">Menu</h2>
+                <button class="drawer-close" id="navDrawerClose" title="Close">
+                    <svg width="20"
+                         height="20"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="drawer-body">
+                <nav class="nav-drawer-links">
+                    <a href="/" class="nav-drawer-link active">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        <span>Portfolio</span>
+                    </a>
+                    <a href="/exposure" class="nav-drawer-link">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a10 10 0 0 1 0 20" />
+                            <path d="M2 12h20" />
+                            <path d="M12 2c-2.76 4.48-2.76 13.52 0 20" />
+                        </svg>
+                        <span>What You Actually Own</span>
+                    </a>
+                    <a href="/nifty50" class="nav-drawer-link">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+                        </svg>
+                        <span>Nifty 50</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+    </body>
 </html>

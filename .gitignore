@@ -27,6 +27,9 @@ run_server/
 # ML model weights
 models/
 
+#Node modules
+node_modules/
+
 # Test coverage
 .coverage
 htmlcov/

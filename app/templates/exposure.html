@@ -1,448 +1,827 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>What You Actually Own – Metron</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/styles.css">
-<link rel="stylesheet" href="/static/css/exposure.css">
-<link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
-<link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Metron">
-</head>
-<body{% if not pin_verified %} style="overflow:hidden"{% endif %}>
-<script>
+    <head>
+        <meta charset="utf-8">
+        <title>What You Actually Own – Metron</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="/static/css/styles.css">
+        <link rel="stylesheet" href="/static/css/exposure.css">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <link rel="manifest" href="/static/manifest.json">
+        <meta name="theme-color" content="#0f172a">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style"
+              content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Metron">
+    </head>
+    <body {% if not pin_verified %}style="overflow:hidden"{% endif %}>
+        <script>
   (function() {
     var t = localStorage.getItem('theme');
     if (t === 'dark') document.body.classList.add('dark-theme');
   })();
-</script>
-<div class="container"{% if not pin_verified %} style="visibility:hidden"{% endif %}>
-<header>
-<nav class="nav-hamburger">
-<button class="hamburger-btn" id="hamburgerBtn" aria-label="Navigation menu" aria-expanded="false">
-<svg class="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-</button>
-</nav>
-<div class="header-brand">
-<a href="/" class="brand-mark" aria-label="Metron home">
-<span class="brand-logo"></span>
-<span class="brand-name">Metron</span>
-</a>
-</div>
-<div class="controls">
-{% if user %}
-<div class="user-profile" id="userProfile">
-    <button class="user-avatar-btn" id="userAvatarBtn" title="{{ user.name or user.email }}">
-        {% if user.picture %}
-        <img src="{{ user.picture }}" alt="" class="user-avatar-img" referrerpolicy="no-referrer">
-        {% else %}
-        <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
+        </script>
+        <div class="container"
+             {% if not pin_verified %}style="visibility:hidden"{% endif %}>
+            <header>
+                <nav class="nav-hamburger">
+                    <button class="hamburger-btn"
+                            id="hamburgerBtn"
+                            aria-label="Navigation menu"
+                            aria-expanded="false">
+                        <svg class="hamburger-icon"
+                             width="20"
+                             height="20"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                </nav>
+                <div class="header-brand">
+                    <a href="/" class="brand-mark" aria-label="Metron home">
+                        <span class="brand-logo"></span>
+                        <span class="brand-name">Metron</span>
+                    </a>
+                </div>
+                <div class="controls">
+                    {% if user %}
+                        <div class="user-profile" id="userProfile">
+                            <button class="user-avatar-btn"
+                                    id="userAvatarBtn"
+                                    title="{{ user.name or user.email }}">
+                                {% if user.picture %}
+                                    <img src="{{ user.picture }}"
+                                         alt=""
+                                         class="user-avatar-img"
+                                         referrerpolicy="no-referrer"
+                                         width="40"
+                                         height="40">
+                                {% else %}
+                                    <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
+                                {% endif %}
+                                <span class="avatar-gear-badge" aria-hidden="true">
+                                    <svg width="10"
+                                         height="10"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                    </svg>
+                                </span>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <div class="user-dropdown-header">
+                                    <div class="user-dropdown-avatar">
+                                        {% if user.picture %}
+                                            <img src="{{ user.picture }}"
+                                                 alt=""
+                                                 referrerpolicy="no-referrer"
+                                                 width="40"
+                                                 height="40">
+                                        {% else %}
+                                            <span>{{ (user.name or user.email)[0]|upper }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-dropdown-info">
+                                        <strong>{{ user.name or 'User' }}</strong>
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                </div>
+                                <div class="user-dropdown-section">
+                                    <div class="user-dropdown-section-label">Preferences</div>
+                                    <button class="user-dropdown-toggle-btn"
+                                            id="theme_toggle_btn"
+                                            onclick="toggleTheme()"
+                                            title="Toggle theme">
+                                        <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
+                                            <span class="theme-icon-sun"></span>
+                                            <span class="theme-icon-moon"></span>
+                                        </span>
+                                        <span>Theme</span>
+                                        <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-section">
+                                    <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}"
+                                       target="_blank"
+                                       class="user-dropdown-item">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+                                        </svg>
+                                        <span>My Data</span>
+                                        <svg class="dropdown-external-icon"
+                                             width="12"
+                                             height="12"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                            <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                                        </svg>
+                                    </a>
+                                    <button class="user-dropdown-item" onclick="openSettingsDrawer()">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="3" />
+                                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                        </svg>
+                                        <span>Settings</span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-section user-dropdown-section--logout">
+                                    <button class="user-dropdown-item user-dropdown-logout"
+                                            onclick="handleLogout()">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </header>
+            <!-- Main content -->
+            <div class="exposure-container" id="exposureContent">
+                <div class="exposure-header-row">
+                    <div>
+                        <h1 class="exposure-page-title">What You Actually Own</h1>
+                        <p class="exposure-page-subtitle">Every company hiding inside your mutual funds, ETFs, and direct stocks.</p>
+                    </div>
+                    <div class="exposure-header-right"
+                         id="exposureHeaderRight"
+                         style="display:none">
+                        <button class="refresh-btn"
+                                id="exposureRefreshBtn"
+                                onclick="window.refreshExposure()">
+                            <svg class="refresh-icon"
+                                 width="15"
+                                 height="15"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                            </svg>
+                            <span class="refresh-label">Refresh</span>
+                        </button>
+                        <div id="exposureStatusTag"
+                             class="exposure-status-tag updating"
+                             style="display:none">
+                            <span class="status-dot"></span>
+                            <span id="exposureStatusText">analysing…</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Loading state -->
+                <div class="exposure-loading" id="exposureLoading">
+                    <div class="exposure-spinner"></div>
+                    <span>Analysing your portfolio…</span>
+                </div>
+                <!-- No data state -->
+                <div class="exposure-info-banner"
+                     id="exposureNoBanner"
+                     style="display:none">
+                    <div class="exposure-info-icon">
+                        <svg width="22"
+                             height="22"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 8v4" />
+                            <path d="M12 16h.01" />
+                        </svg>
+                    </div>
+                    <div class="exposure-info-body">
+                        <div class="exposure-info-title">Your portfolio data isn't ready yet</div>
+                        <div class="exposure-info-desc">
+                            To see your company exposure, you need to first load your portfolio data.
+                            <br>
+                            Head to your <strong>Portfolio Dashboard</strong> and either connect a broker account or manually add your holdings (stocks, ETFs, and mutual funds).
+                            Once your data is loaded, come back here for the full breakdown.
+                        </div>
+                        <a href="/" class="exposure-info-cta">
+                            <svg width="15"
+                                 height="15"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2.5"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                            </svg>
+                            Go to Portfolio Dashboard
+                        </a>
+                    </div>
+                </div>
+                <!-- Dashboard (shown when data is available) -->
+                <div id="exposureDashboard" style="display:none">
+                    <!-- Summary Cards -->
+                    <div class="exposure-summary-row">
+                        <div class="exposure-card">
+                            <div class="exposure-card-label">Total Analysed</div>
+                            <div class="exposure-card-value" id="cardTotalValue">—</div>
+                            <div class="exposure-card-sub">Stocks + ETFs + MFs</div>
+                        </div>
+                        <div class="exposure-card">
+                            <div class="exposure-card-label">Companies Tracked</div>
+                            <div class="exposure-card-value" id="cardCompanyCount">—</div>
+                            <div class="exposure-card-sub">Unique companies</div>
+                        </div>
+                        <div class="exposure-card">
+                            <div class="exposure-card-label">Sectors</div>
+                            <div class="exposure-card-value" id="cardSectorCount">—</div>
+                            <div class="exposure-card-sub">Across all holdings</div>
+                        </div>
+                        <div class="exposure-card">
+                            <div class="exposure-card-label">Top Holding</div>
+                            <div class="exposure-card-value" id="cardTopHolding">—</div>
+                            <div class="exposure-card-sub" id="cardTopHoldingName">&nbsp;</div>
+                        </div>
+                    </div>
+                    <!-- Charts: side-by-side on desktop, stacked on mobile -->
+                    <div class="exposure-charts-row">
+                        <!-- Top 10 Companies: D3 Bar Chart Race -->
+                        <div class="exposure-chart-card exposure-chart-card--race">
+                            <div class="exposure-chart-title">Top 10 Company Holdings</div>
+                            <div class="exposure-chart-subtitle">Largest individual company exposures by current value</div>
+                            <div id="topCompaniesChart" class="d3-race-chart"></div>
+                        </div>
+                        <!-- Sector Bars -->
+                        <div class="exposure-chart-card">
+                            <div class="exposure-chart-card-header">
+                                <div>
+                                    <div class="exposure-chart-title">Sector Breakdown</div>
+                                    <div class="exposure-chart-subtitle">Top 20 sectors by value</div>
+                                </div>
+                            </div>
+                            <div class="sector-bars" id="sectorBars"></div>
+                            <div class="sector-view-all-footer" id="barsViewAllFooter">
+                                <button class="sector-view-all-btn" onclick="openSectorModal()">
+                                    View all <span id="barsViewAllCount"></span> sectors →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Sector modal -->
+                    <div class="sector-modal-overlay"
+                         id="sectorModalOverlay"
+                         onclick="closeSectorModal(event)">
+                        <div class="sector-modal"
+                             role="dialog"
+                             aria-modal="true"
+                             aria-labelledby="sectorModalTitle">
+                            <div class="sector-modal-head">
+                                <h2 class="sector-modal-title" id="sectorModalTitle">All Sectors</h2>
+                                <button class="sector-modal-close"
+                                        onclick="closeSectorModal()"
+                                        aria-label="Close">✕</button>
+                            </div>
+                            <div class="sector-modal-body" id="sectorModalBody"></div>
+                        </div>
+                    </div>
+                    <!-- Company Table -->
+                    <div class="exposure-table-card">
+                        <div class="exposure-table-header">
+                            <h2 class="exposure-table-title">All Company Holdings</h2>
+                            <input type="search"
+                                   class="exposure-table-search"
+                                   id="companySearch"
+                                   placeholder="Search companies…"
+                                   aria-label="Search companies">
+                        </div>
+                        <div class="exposure-table-scroll">
+                            <table class="exposure-table" id="companyTable">
+                                <thead>
+                                    <tr>
+                                        <th data-col="company_name">
+                                            Company<span class="sort-arrow">↕</span>
+                                        </th>
+                                        <th data-col="instrument_type">
+                                            Instrument<span class="sort-arrow">↕</span>
+                                        </th>
+                                        <th data-col="sector">
+                                            Sector<span class="sort-arrow">↕</span>
+                                        </th>
+                                        <th data-col="holding_amount">
+                                            Value<span class="sort-arrow">↕</span>
+                                        </th>
+                                        <th data-col="percentage_of_portfolio">
+                                            % of Portfolio<span class="sort-arrow">↕</span>
+                                        </th>
+                                        <th data-col="funds">Via</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="companyTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="exposure-table-pagination">
+                            <span id="paginationInfo">Showing — of —</span>
+                            <div class="exposure-table-pagination-btns">
+                                <button class="exposure-page-btn" id="prevPageBtn">← Prev</button>
+                                <button class="exposure-page-btn" id="nextPageBtn">Next →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /exposureDashboard -->
+            </div>
+            <footer class="site-footer-dashboard">
+                <div class="footer-legal-links">
+                    <a href="/privacy">Privacy Policy</a>
+                    <span class="footer-dot"></span>
+                    <a href="/terms">Terms &amp; Conditions</a>
+                    <span class="footer-dot"></span>
+                    <a href="/contact">Contact Us</a>
+                </div>
+                <div class="made-with-love">
+                    <p>
+                        Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
+                    </p>
+                </div>
+            </footer>
+        </div>
+        <!-- /container -->
+        {% if user %}
+            <!-- Settings Drawer -->
+            <div class="drawer-backdrop"
+                 id="drawerBackdrop"
+                 onclick="closeSettingsDrawer()"></div>
+            <aside class="settings-drawer" id="settingsDrawer">
+                <div class="drawer-header">
+                    <h2 class="drawer-title">Settings</h2>
+                    <button class="drawer-close" onclick="closeSettingsDrawer()" title="Close">
+                        <svg width="20"
+                             height="20"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M18 6L6 18" />
+                            <path d="M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="drawer-body">
+                    <section class="drawer-section">
+                        <h3 class="drawer-section-title">Sync Broker Accounts</h3>
+                        <div class="drawer-card">
+                            <div class="drawer-broker-sub">
+                                <div class="drawer-broker-header">
+                                    <span class="drawer-broker-name">Zerodha</span>
+                                </div>
+                                <p class="drawer-card-hint">
+                                    Connect your Kite Connect API accounts. Credentials are stored securely and never displayed.
+                                </p>
+                                <div class="setup-guide" id="setupGuide">
+                                    <button type="button"
+                                            class="setup-guide-toggle"
+                                            id="setupGuideToggle"
+                                            aria-expanded="false"
+                                            aria-controls="setupGuideBody">
+                                        <div class="setup-guide-toggle-left">
+                                            <svg class="setup-guide-icon"
+                                                 width="16"
+                                                 height="16"
+                                                 viewBox="0 0 24 24"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 stroke-width="2"
+                                                 stroke-linecap="round"
+                                                 stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                                            </svg>
+                                            <span class="setup-guide-label">How to get API Key &amp; Secret</span>
+                                        </div>
+                                        <svg class="setup-guide-chevron"
+                                             width="14"
+                                             height="14"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2.5"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9" />
+                                        </svg>
+                                    </button>
+                                    <div class="setup-guide-body" id="setupGuideBody">
+                                        <div class="setup-guide-inner">
+                                            <div class="setup-guide-steps">
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">1</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Sign up on Zerodha Developer Portal</div>
+                                                        <p>
+                                                            Go to <a href="https://developers.kite.trade/" target="_blank" rel="noopener">developers.kite.trade</a> and <strong>sign up</strong>.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">2</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Create a new app</div>
+                                                        <p>
+                                                            Click <strong>Create new app</strong> and set Redirect URL to <code>https://metron.thecoducer.com/api/callback</code>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">3</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Copy your credentials</div>
+                                                        <p>
+                                                            Copy the <strong>API Key</strong> and <strong>API Secret</strong> from the app details page.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="setup-step">
+                                                    <span class="setup-step-num">4</span>
+                                                    <div class="setup-step-content">
+                                                        <div class="setup-step-title">Add account &amp; sync</div>
+                                                        <p>
+                                                            Click <strong>Add Account</strong> below, enter your key &amp; secret, then click <strong>Login</strong> to authorize.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="drawerAccountsList" class="drawer-accounts-list">
+                                    <div class="drawer-accounts-loading">Loading…</div>
+                                </div>
+                                <button type="button"
+                                        class="drawer-btn-add"
+                                        id="drawerAddAccountBtn"
+                                        title="Add Zerodha account">
+                                    <svg width="16"
+                                         height="16"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round">
+                                        <path d="M12 5v14" />
+                                        <path d="M5 12h14" />
+                                    </svg>
+                                    <span>Add Account</span>
+                                </button>
+                                <div id="drawerAddAccountForm" class="drawer-add-form hidden">
+                                    <div class="drawer-field">
+                                        <label class="drawer-field-label" for="drawer_account_name">Account Name</label>
+                                        <input class="drawer-field-input"
+                                               type="text"
+                                               id="drawer_account_name"
+                                               placeholder="e.g. Personal"
+                                               spellcheck="false"
+                                               autocomplete="off">
+                                    </div>
+                                    <div class="drawer-field">
+                                        <label class="drawer-field-label" for="drawer_api_key">API Key</label>
+                                        <input class="drawer-field-input"
+                                               type="text"
+                                               id="drawer_api_key"
+                                               placeholder="e.g. x1y2z3a4b5c6d7e8"
+                                               spellcheck="false"
+                                               autocomplete="off">
+                                    </div>
+                                    <div class="drawer-field">
+                                        <label class="drawer-field-label" for="drawer_api_secret">API Secret</label>
+                                        <input class="drawer-field-input"
+                                               type="password"
+                                               id="drawer_api_secret"
+                                               placeholder="e.g. a1b2c3d4e5f6g7h8"
+                                               spellcheck="false"
+                                               autocomplete="off">
+                                    </div>
+                                    <div class="drawer-form-actions">
+                                        <button type="button" class="drawer-btn-save" id="drawerSaveAccountBtn">Save</button>
+                                        <button type="button" class="drawer-btn-cancel" id="drawerCancelAccountBtn">Cancel</button>
+                                        <span class="drawer-save-status" id="drawerSaveStatus"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </aside>
         {% endif %}
-        <span class="avatar-gear-badge" aria-hidden="true">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </span>
-    </button>
-    <div class="user-dropdown" id="userDropdown">
-        <div class="user-dropdown-header">
-            <div class="user-dropdown-avatar">
-                {% if user.picture %}
-                <img src="{{ user.picture }}" alt="" referrerpolicy="no-referrer">
-                {% else %}
-                <span>{{ (user.name or user.email)[0]|upper }}</span>
-                {% endif %}
+        <!-- Security PIN Overlay -->
+        <div class="pin-overlay"
+             id="pinOverlay"
+             style="{% if pin_verified %}display:none{% else %}display:flex{% endif %}">
+            <div class="pin-content">
+                <div class="pin-brand">metron</div>
+                <div class="pin-header">
+                    <div class="pin-icon">
+                        <svg width="36"
+                             height="36"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    {% if has_pin %}
+                        <h2 class="pin-title" id="pinTitle">Enter PIN</h2>
+                        <p class="pin-subtitle" id="pinSubtitle" style="display:none"></p>
+                    {% else %}
+                        <h2 class="pin-title" id="pinTitle">Create PIN</h2>
+                        <p class="pin-subtitle" id="pinSubtitle">
+                            Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored — remember it carefully.
+                        </p>
+                    {% endif %}
+                </div>
+                <div class="pin-body">
+                    <div class="pin-field-group" id="pinFieldGroup1">
+                        <div class="pin-field-header"
+                             id="pinFieldHeader1"
+                             style="{% if has_pin %}display:none{% endif %}">
+                            <span class="pin-field-label" id="pinFieldLabel1">PIN</span>
+                            <span class="pin-field-check" id="pinCheck1">
+                                <svg width="14"
+                                     height="14"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="3"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="pin-input-row" id="pinInputRow">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="0"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="1"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="2"
+                                   autocomplete="off">
+                            <span class="pin-digit-sep"></span>
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="3"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="4"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="5"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="pin-field-group"
+                         id="pinConfirmGroup"
+                         style="{% if has_pin %}display:none{% endif %}">
+                        <div class="pin-field-header">
+                            <span class="pin-field-label">Confirm PIN</span>
+                            <span class="pin-field-check" id="pinCheck2">
+                                <svg width="14"
+                                     height="14"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="3"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="pin-input-row" id="pinConfirmRow">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="0"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="1"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="2"
+                                   autocomplete="off">
+                            <span class="pin-digit-sep"></span>
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="3"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="4"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="5"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <p class="pin-info"
+                       id="pinInfo"
+                       style="{% if has_pin %}display:none{% endif %}">
+                        Letters and numbers allowed &nbsp;·&nbsp; a–z, A–Z, 0–9
+                    </p>
+                    <div class="pin-error" id="pinError"></div>
+                    <div class="pin-footer-links"
+                         id="pinFooterLinks"
+                         style="{% if not has_pin %}display:none{% endif %}">
+                        <button class="pin-text-btn pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
+                        <span class="pin-footer-sep">·</span>
+                        <button class="pin-text-btn pin-logout-btn" id="pinLogoutBtn">Logout</button>
+                    </div>
+                </div>
             </div>
-            <div class="user-dropdown-info">
-                <strong>{{ user.name or 'User' }}</strong>
-                <span>{{ user.email }}</span>
+        </div>
+        <!-- PIN Reset Confirmation Dialog -->
+        <div class="pin-reset-dialog" id="pinResetDialog" style="display:none">
+            <div class="pin-reset-content">
+                <div class="pin-brand">metron</div>
+                <div class="pin-reset-header">
+                    <div class="pin-reset-icon">
+                        <svg width="32"
+                             height="32"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                    </div>
+                    <h3 class="pin-reset-title">Reset PIN?</h3>
+                    <p class="pin-reset-desc">
+                        This will permanently delete all stored credentials and sessions. You'll need to re-add your accounts and set a new PIN.
+                    </p>
+                </div>
+                <div class="pin-reset-body">
+                    <div class="pin-reset-field-group">
+                        <p class="pin-reset-prompt">
+                            Type <strong>reset</strong> below to confirm
+                        </p>
+                        <input type="text"
+                               class="pin-reset-input"
+                               id="pinResetInput"
+                               placeholder="reset"
+                               autocomplete="off"
+                               spellcheck="false">
+                    </div>
+                    <div class="pin-reset-actions">
+                        <button class="pin-reset-cancel" id="pinResetCancel">Cancel</button>
+                        <button class="pin-reset-confirm" id="pinResetConfirm" disabled>Reset Everything</button>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="user-dropdown-section">
-            <div class="user-dropdown-section-label">Preferences</div>
-            <button class="user-dropdown-toggle-btn" id="theme_toggle_btn" onclick="toggleTheme()" title="Toggle theme">
-                <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
-                    <span class="theme-icon-sun"></span>
-                    <span class="theme-icon-moon"></span>
-                </span>
-                <span>Theme</span>
-                <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
-            </button>
-        </div>
-
-        <div class="user-dropdown-section">
-            <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}" target="_blank" class="user-dropdown-item">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                <span>My Data</span>
-                <svg class="dropdown-external-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </a>
-            <button class="user-dropdown-item" onclick="openSettingsDrawer()">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                <span>Settings</span>
-            </button>
-        </div>
-
-        <div class="user-dropdown-section user-dropdown-section--logout">
-            <button class="user-dropdown-item user-dropdown-logout" onclick="handleLogout()">
-                <svg class="dropdown-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span>Sign Out</span>
-            </button>
-        </div>
-    </div>
-</div>
-{% endif %}
-</div>
-</header>
-
-<!-- Main content -->
-<div class="exposure-container" id="exposureContent">
-  <div class="exposure-header-row">
-    <div>
-      <h1 class="exposure-page-title">What You Actually Own</h1>
-      <p class="exposure-page-subtitle">Every company hiding inside your mutual funds, ETFs, and direct stocks.</p>
-    </div>
-    <div class="exposure-header-right" id="exposureHeaderRight" style="display:none">
-      <button class="refresh-btn" id="exposureRefreshBtn" onclick="window.refreshExposure()">
-        <svg class="refresh-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        <span class="refresh-label">Refresh</span>
-      </button>
-      <div id="exposureStatusTag" class="exposure-status-tag updating" style="display:none">
-        <span class="status-dot"></span>
-        <span id="exposureStatusText">analysing…</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Loading state -->
-  <div class="exposure-loading" id="exposureLoading">
-    <div class="exposure-spinner"></div>
-    <span>Analysing your portfolio&hellip;</span>
-  </div>
-
-  <!-- No data state -->
-  <div class="exposure-info-banner" id="exposureNoBanner" style="display:none">
-    <div class="exposure-info-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-    </div>
-    <div class="exposure-info-body">
-      <div class="exposure-info-title">Your portfolio data isn't ready yet</div>
-      <div class="exposure-info-desc">
-        To see your company exposure, you need to first load your portfolio data.<br>
-        Head to your <strong>Portfolio Dashboard</strong> and either connect a broker account or manually add your holdings (stocks, ETFs, and mutual funds).
-        Once your data is loaded, come back here for the full breakdown.
-      </div>
-      <a href="/" class="exposure-info-cta">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Go to Portfolio Dashboard
-      </a>
-    </div>
-  </div>
-
-  <!-- Dashboard (shown when data is available) -->
-  <div id="exposureDashboard" style="display:none">
-
-    <!-- Summary Cards -->
-    <div class="exposure-summary-row">
-      <div class="exposure-card">
-        <div class="exposure-card-label">Total Analysed</div>
-        <div class="exposure-card-value" id="cardTotalValue">—</div>
-        <div class="exposure-card-sub">Stocks + ETFs + MFs</div>
-      </div>
-      <div class="exposure-card">
-        <div class="exposure-card-label">Companies Tracked</div>
-        <div class="exposure-card-value" id="cardCompanyCount">—</div>
-        <div class="exposure-card-sub">Unique companies</div>
-      </div>
-      <div class="exposure-card">
-        <div class="exposure-card-label">Sectors</div>
-        <div class="exposure-card-value" id="cardSectorCount">—</div>
-        <div class="exposure-card-sub">Across all holdings</div>
-      </div>
-      <div class="exposure-card">
-        <div class="exposure-card-label">Top Holding</div>
-        <div class="exposure-card-value" id="cardTopHolding">—</div>
-        <div class="exposure-card-sub" id="cardTopHoldingName">&nbsp;</div>
-      </div>
-    </div>
-
-    <!-- Charts: side-by-side on desktop, stacked on mobile -->
-    <div class="exposure-charts-row">
-      <!-- Top 10 Companies: D3 Bar Chart Race -->
-      <div class="exposure-chart-card exposure-chart-card--race">
-        <div class="exposure-chart-title">Top 10 Company Holdings</div>
-        <div class="exposure-chart-subtitle">Largest individual company exposures by current value</div>
-        <div id="topCompaniesChart" class="d3-race-chart"></div>
-      </div>
-
-      <!-- Sector Bars -->
-      <div class="exposure-chart-card">
-        <div class="exposure-chart-card-header">
-          <div>
-            <div class="exposure-chart-title">Sector Breakdown</div>
-            <div class="exposure-chart-subtitle">Top 20 sectors by value</div>
-          </div>
-        </div>
-        <div class="sector-bars" id="sectorBars"></div>
-        <div class="sector-view-all-footer" id="barsViewAllFooter">
-          <button class="sector-view-all-btn" onclick="openSectorModal()">View all <span id="barsViewAllCount"></span> sectors →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sector modal -->
-    <div class="sector-modal-overlay" id="sectorModalOverlay" onclick="closeSectorModal(event)">
-      <div class="sector-modal" role="dialog" aria-modal="true" aria-labelledby="sectorModalTitle">
-        <div class="sector-modal-head">
-          <h2 class="sector-modal-title" id="sectorModalTitle">All Sectors</h2>
-          <button class="sector-modal-close" onclick="closeSectorModal()" aria-label="Close">✕</button>
-        </div>
-        <div class="sector-modal-body" id="sectorModalBody"></div>
-      </div>
-    </div>
-
-    <!-- Company Table -->
-    <div class="exposure-table-card">
-      <div class="exposure-table-header">
-        <h2 class="exposure-table-title">All Company Holdings</h2>
-        <input type="search" class="exposure-table-search" id="companySearch" placeholder="Search companies…" aria-label="Search companies">
-      </div>
-      <div class="exposure-table-scroll">
-        <table class="exposure-table" id="companyTable">
-          <thead>
-            <tr>
-              <th data-col="company_name">Company<span class="sort-arrow">↕</span></th>
-              <th data-col="instrument_type">Instrument<span class="sort-arrow">↕</span></th>
-              <th data-col="sector">Sector<span class="sort-arrow">↕</span></th>
-              <th data-col="holding_amount">Value<span class="sort-arrow">↕</span></th>
-              <th data-col="percentage_of_portfolio">% of Portfolio<span class="sort-arrow">↕</span></th>
-              <th data-col="funds">Via</th>
-            </tr>
-          </thead>
-          <tbody id="companyTableBody"></tbody>
-        </table>
-      </div>
-      <div class="exposure-table-pagination">
-        <span id="paginationInfo">Showing — of —</span>
-        <div class="exposure-table-pagination-btns">
-          <button class="exposure-page-btn" id="prevPageBtn">← Prev</button>
-          <button class="exposure-page-btn" id="nextPageBtn">Next →</button>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /exposureDashboard -->
-</div>
-
-<footer class="site-footer-dashboard">
-  <div class="footer-legal-links">
-    <a href="/privacy">Privacy Policy</a>
-    <span class="footer-dot"></span>
-    <a href="/terms">Terms &amp; Conditions</a>
-    <span class="footer-dot"></span>
-    <a href="/contact">Contact Us</a>
-  </div>
-  <div class="made-with-love">
-    <p>Made with <span class="heart">&hearts;</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a></p>
-  </div>
-</footer>
-</div><!-- /container -->
-
-{% if user %}
-<!-- Settings Drawer -->
-<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeSettingsDrawer()"></div>
-<aside class="settings-drawer" id="settingsDrawer">
-  <div class="drawer-header">
-    <h2 class="drawer-title">Settings</h2>
-    <button class="drawer-close" onclick="closeSettingsDrawer()" title="Close">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="drawer-body">
-    <section class="drawer-section">
-      <h3 class="drawer-section-title">Sync Broker Accounts</h3>
-      <div class="drawer-card">
-        <div class="drawer-broker-sub">
-          <div class="drawer-broker-header">
-            <span class="drawer-broker-name">Zerodha</span>
-          </div>
-        <p class="drawer-card-hint">
-          Connect your Kite Connect API accounts. Credentials are stored securely and never displayed.
-        </p>
-        <div class="setup-guide" id="setupGuide">
-          <button type="button" class="setup-guide-toggle" id="setupGuideToggle" aria-expanded="false" aria-controls="setupGuideBody">
-            <div class="setup-guide-toggle-left">
-              <svg class="setup-guide-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span class="setup-guide-label">How to get API Key &amp; Secret</span>
+        <!-- Nav Drawer -->
+        <div class="drawer-backdrop" id="navDrawerBackdrop"></div>
+        <aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
+            <div class="drawer-header">
+                <h2 class="drawer-title">Menu</h2>
+                <button class="drawer-close" id="navDrawerClose" title="Close">
+                    <svg width="20"
+                         height="20"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
-            <svg class="setup-guide-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="setup-guide-body" id="setupGuideBody">
-            <div class="setup-guide-inner">
-            <div class="setup-guide-steps">
-              <div class="setup-step"><span class="setup-step-num">1</span><div class="setup-step-content"><div class="setup-step-title">Sign up on Zerodha Developer Portal</div><p>Go to <a href="https://developers.kite.trade/" target="_blank" rel="noopener">developers.kite.trade</a> and <strong>sign up</strong>.</p></div></div>
-              <div class="setup-step"><span class="setup-step-num">2</span><div class="setup-step-content"><div class="setup-step-title">Create a new app</div><p>Click <strong>Create new app</strong> and set Redirect URL to <code>https://metron.thecoducer.com/api/callback</code></p></div></div>
-              <div class="setup-step"><span class="setup-step-num">3</span><div class="setup-step-content"><div class="setup-step-title">Copy your credentials</div><p>Copy the <strong>API Key</strong> and <strong>API Secret</strong> from the app details page.</p></div></div>
-              <div class="setup-step"><span class="setup-step-num">4</span><div class="setup-step-content"><div class="setup-step-title">Add account &amp; sync</div><p>Click <strong>Add Account</strong> below, enter your key &amp; secret, then click <strong>Login</strong> to authorize.</p></div></div>
+            <div class="drawer-body">
+                <nav class="nav-drawer-links">
+                    <a href="/" class="nav-drawer-link">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        <span>Portfolio</span>
+                    </a>
+                    <a href="/exposure" class="nav-drawer-link active">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a10 10 0 0 1 0 20" />
+                            <path d="M2 12h20" />
+                            <path d="M12 2c-2.76 4.48-2.76 13.52 0 20" />
+                        </svg>
+                        <span>What You Actually Own</span>
+                    </a>
+                    <a href="/nifty50" class="nav-drawer-link">
+                        <svg class="nav-drawer-link-icon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+                        </svg>
+                        <span>Nifty 50</span>
+                    </a>
+                </nav>
             </div>
-            </div>
-          </div>
-        </div>
-        <div id="drawerAccountsList" class="drawer-accounts-list">
-          <div class="drawer-accounts-loading">Loading…</div>
-        </div>
-        <button type="button" class="drawer-btn-add" id="drawerAddAccountBtn" title="Add Zerodha account">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-          <span>Add Account</span>
-        </button>
-        <div id="drawerAddAccountForm" class="drawer-add-form hidden">
-          <div class="drawer-field">
-            <label class="drawer-field-label" for="drawer_account_name">Account Name</label>
-            <input class="drawer-field-input" type="text" id="drawer_account_name" placeholder="e.g. Personal" spellcheck="false" autocomplete="off">
-          </div>
-          <div class="drawer-field">
-            <label class="drawer-field-label" for="drawer_api_key">API Key</label>
-            <input class="drawer-field-input" type="text" id="drawer_api_key" placeholder="e.g. x1y2z3a4b5c6d7e8" spellcheck="false" autocomplete="off">
-          </div>
-          <div class="drawer-field">
-            <label class="drawer-field-label" for="drawer_api_secret">API Secret</label>
-            <input class="drawer-field-input" type="password" id="drawer_api_secret" placeholder="e.g. a1b2c3d4e5f6g7h8" spellcheck="false" autocomplete="off">
-          </div>
-          <div class="drawer-form-actions">
-            <button type="button" class="drawer-btn-save" id="drawerSaveAccountBtn">Save</button>
-            <button type="button" class="drawer-btn-cancel" id="drawerCancelAccountBtn">Cancel</button>
-            <span class="drawer-save-status" id="drawerSaveStatus"></span>
-          </div>
-        </div>
-        </div>
-      </div>
-    </section>
-  </div>
-</aside>
-{% endif %}
-
-<!-- Security PIN Overlay -->
-<div class="pin-overlay" id="pinOverlay" style="{% if pin_verified %}display:none{% else %}display:flex{% endif %}">
-  <div class="pin-content">
-    <div class="pin-brand">metron</div>
-    <div class="pin-header">
-      <div class="pin-icon">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      {% if has_pin %}
-      <h2 class="pin-title" id="pinTitle">Enter PIN</h2>
-      <p class="pin-subtitle" id="pinSubtitle" style="display:none"></p>
-      {% else %}
-      <h2 class="pin-title" id="pinTitle">Create PIN</h2>
-      <p class="pin-subtitle" id="pinSubtitle">Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored &mdash; remember it carefully.</p>
-      {% endif %}
-    </div>
-    <div class="pin-body">
-      <div class="pin-field-group" id="pinFieldGroup1">
-        <div class="pin-field-header" id="pinFieldHeader1" style="{% if has_pin %}display:none{% endif %}">
-          <span class="pin-field-label" id="pinFieldLabel1">PIN</span>
-          <span class="pin-field-check" id="pinCheck1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-        </div>
-        <div class="pin-input-row" id="pinInputRow">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="0" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="1" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="2" autocomplete="off">
-          <span class="pin-digit-sep"></span>
-          <input type="password" maxlength="1" class="pin-digit" data-idx="3" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="4" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="5" autocomplete="off">
-        </div>
-      </div>
-      <div class="pin-field-group" id="pinConfirmGroup" style="{% if has_pin %}display:none{% endif %}">
-        <div class="pin-field-header">
-          <span class="pin-field-label">Confirm PIN</span>
-          <span class="pin-field-check" id="pinCheck2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-        </div>
-        <div class="pin-input-row" id="pinConfirmRow">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="0" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="1" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="2" autocomplete="off">
-          <span class="pin-digit-sep"></span>
-          <input type="password" maxlength="1" class="pin-digit" data-idx="3" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="4" autocomplete="off">
-          <input type="password" maxlength="1" class="pin-digit" data-idx="5" autocomplete="off">
-        </div>
-      </div>
-      <p class="pin-info" id="pinInfo" style="{% if has_pin %}display:none{% endif %}">Letters and numbers allowed &nbsp;&middot;&nbsp; a–z, A–Z, 0–9</p>
-      <div class="pin-error" id="pinError"></div>
-      <div class="pin-footer-links" id="pinFooterLinks" style="{% if not has_pin %}display:none{% endif %}">
-        <button class="pin-text-btn pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
-        <span class="pin-footer-sep">&middot;</span>
-        <button class="pin-text-btn pin-logout-btn" id="pinLogoutBtn">Logout</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PIN Reset Confirmation Dialog -->
-<div class="pin-reset-dialog" id="pinResetDialog" style="display:none">
-  <div class="pin-reset-content">
-    <div class="pin-brand">metron</div>
-    <div class="pin-reset-header">
-      <div class="pin-reset-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </div>
-      <h3 class="pin-reset-title">Reset PIN?</h3>
-      <p class="pin-reset-desc">This will permanently delete all stored credentials and sessions. You&rsquo;ll need to re-add your accounts and set a new PIN.</p>
-    </div>
-    <div class="pin-reset-body">
-      <div class="pin-reset-field-group">
-        <p class="pin-reset-prompt">Type <strong>reset</strong> below to confirm</p>
-        <input type="text" class="pin-reset-input" id="pinResetInput" placeholder="reset" autocomplete="off" spellcheck="false">
-      </div>
-      <div class="pin-reset-actions">
-        <button class="pin-reset-cancel" id="pinResetCancel">Cancel</button>
-        <button class="pin-reset-confirm" id="pinResetConfirm" disabled>Reset Everything</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Nav Drawer -->
-<div class="drawer-backdrop" id="navDrawerBackdrop"></div>
-<aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
-  <div class="drawer-header">
-    <h2 class="drawer-title">Menu</h2>
-    <button class="drawer-close" id="navDrawerClose" title="Close">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="drawer-body">
-    <nav class="nav-drawer-links">
-      <a href="/" class="nav-drawer-link">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>Portfolio</span>
-      </a>
-      <a href="/exposure" class="nav-drawer-link active">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M2 12h20"/><path d="M12 2c-2.76 4.48-2.76 13.52 0 20"/></svg>
-        <span>What You Actually Own</span>
-      </a>
-      <a href="/nifty50" class="nav-drawer-link">
-        <svg class="nav-drawer-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-        <span>Nifty 50</span>
-      </a>
-    </nav>
-  </div>
-</aside>
-
-<script src="/static/js/nav.js"></script>
-<script>
+        </aside>
+        <script src="/static/js/nav.js"></script>
+        <script>
 // App fetch wrapper — adds the required auth header and handles 403 pin_required.
 window.metronFetch = async function(url, options) {
   options = options || {};
@@ -461,10 +840,10 @@ window.metronFetch = async function(url, options) {
   }
   return resp;
 };
-</script>
-<script src="/static/js/portfolio-ui.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<script>
+        </script>
+        <script src="/static/js/portfolio-ui.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+        <script>
 // ─── Standalone toggle implementations (subset of app.js for this page) ───
 
 function toggleTheme() {
@@ -505,11 +884,11 @@ function toggleCompactFormat() {
   var compactLabel = document.getElementById('compact_toggle_label');
   if (compactLabel) compactLabel.classList.toggle('toggle-on', localStorage.getItem('metron_compact') === '1');
 })();
-</script>
-<script src="/static/js/utils.js"></script>
-<script src="/static/js/refresh-ui.js"></script>
-<script src="/static/js/exposure.js"></script>
-<script>
+        </script>
+        <script type="module" src="/static/js/utils.js"></script>
+        <script src="/static/js/refresh-ui.js"></script>
+        <script src="/static/js/exposure.js"></script>
+        <script>
 document.addEventListener('DOMContentLoaded', async function() {
   {% if not pin_verified %}
   if (typeof window.checkAndPromptPin === 'function') {
@@ -518,9 +897,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   {% endif %}
   window.loadExposureData();
 });
-</script>
-<link rel="stylesheet" href="/static/css/pwa-install.css">
-<script src="/static/js/pwa-install.js"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
-</body>
+        </script>
+        <link rel="stylesheet" href="/static/css/pwa-install.css">
+        <script src="/static/js/pwa-install.js"></script>
+        <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
+    </body>
 </html>

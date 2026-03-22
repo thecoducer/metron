@@ -159,6 +159,7 @@ class TestHoldingsService(unittest.TestCase):
             {"tradingsymbol": "MF1", "folio": "12345", "quantity": 100.5, "average_price": 25.5}
         ]
 
+        # pyrefly: ignore [bad-argument-type]
         stocks, mfs = self.service.fetch_holdings(mock_kite)
 
         self.assertEqual(len(stocks), 1)
@@ -176,6 +177,7 @@ class TestHoldingsService(unittest.TestCase):
         ]
 
         mf_holdings = [{"tradingsymbol": "MF1", "quantity": 100}]
+        # pyrefly: ignore [bad-argument-type]
         self.service._add_nav_dates(mf_holdings, mock_kite)
 
         self.assertEqual(mf_holdings[0]["last_price_date"], "2025-11-22")
@@ -187,6 +189,7 @@ class TestHoldingsService(unittest.TestCase):
         mock_kite._mock_mf_instruments = []
 
         mf_holdings = [{"tradingsymbol": "MF1"}]
+        # pyrefly: ignore [bad-argument-type]
         self.service._add_nav_dates(mf_holdings, mock_kite)
 
         self.assertIsNone(mf_holdings[0].get("last_price_date"))
@@ -204,6 +207,7 @@ class TestHoldingsService(unittest.TestCase):
 
         mf_holdings = [{"tradingsymbol": "MF1"}]
         # Should handle gracefully without raising
+        # pyrefly: ignore [bad-argument-type]
         self.service._add_nav_dates(mf_holdings, mock_kite)
 
         self.assertIsNone(mf_holdings[0].get("last_price_date"))
@@ -223,6 +227,7 @@ class TestAuthenticationManager(unittest.TestCase):
         self.session_manager.is_valid.return_value = True
         self.session_manager.get_token.return_value = "cached_token_123"
 
+        # pyrefly: ignore [bad-argument-type]
         result = self.auth_manager._try_cached_token(mock_kite, "user123", "TestAccount")
 
         self.assertTrue(result)
@@ -233,6 +238,7 @@ class TestAuthenticationManager(unittest.TestCase):
         mock_kite = MockKiteConnect(api_key="test_api_key")
         self.session_manager.is_valid.return_value = False
 
+        # pyrefly: ignore [bad-argument-type]
         result = self.auth_manager._try_cached_token(mock_kite, "user123", "TestAccount")
 
         self.assertFalse(result)
@@ -244,6 +250,7 @@ class TestAuthenticationManager(unittest.TestCase):
         self.session_manager.is_valid.return_value = True
         self.session_manager.get_token.return_value = "some_token"
 
+        # pyrefly: ignore [bad-argument-type]
         result = self.auth_manager._try_cached_token(mock_kite, "user123", "TestAccount")
 
         # Since implementation doesn't validate in _try_cached_token, it returns True
@@ -274,6 +281,7 @@ class TestAuthenticationManager(unittest.TestCase):
         mock_kite = MockKiteConnect(api_key="test_api_key")
         mock_kite.set_access_token("valid_token")
 
+        # pyrefly: ignore [bad-argument-type]
         result = self.auth_manager._validate_token(mock_kite, "user123", "TestAccount")
 
         self.assertTrue(result)
@@ -283,6 +291,7 @@ class TestAuthenticationManager(unittest.TestCase):
         mock_kite = MockKiteConnect(api_key="test_api_key")
         # No access token set
 
+        # pyrefly: ignore [bad-argument-type]
         result = self.auth_manager._validate_token(mock_kite, "user123", "TestAccount")
 
         self.assertFalse(result)
@@ -291,6 +300,7 @@ class TestAuthenticationManager(unittest.TestCase):
         """Test storing access token"""
         mock_kite = MockKiteConnect(api_key="test_api_key")
 
+        # pyrefly: ignore [bad-argument-type]
         self.auth_manager._store_token(mock_kite, "user123", "TestAccount", "new_access_token")
 
         self.assertEqual(mock_kite._access_token, "new_access_token")
@@ -302,6 +312,7 @@ class TestAuthenticationManager(unittest.TestCase):
         mock_kite = MockKiteConnect(api_key="test_api_key")
         self.session_manager.get_token.return_value = "old_token"
 
+        # pyrefly: ignore [bad-argument-type]
         result = self.auth_manager._try_renew_token(mock_kite, "user123", "TestAccount", "api_secret")
 
         self.assertTrue(result)
@@ -317,8 +328,10 @@ class TestAuthenticationManager(unittest.TestCase):
         def raise_error(*args):
             raise Exception("Renewal failed")
 
+        # pyrefly: ignore [bad-assignment]
         mock_kite.renew_access_token = raise_error
 
+        # pyrefly: ignore [bad-argument-type]
         result = self.auth_manager._try_renew_token(mock_kite, "user123", "TestAccount", "api_secret")
 
         self.assertFalse(result)
@@ -342,6 +355,7 @@ class TestAuthenticationManager(unittest.TestCase):
         kite = self.auth_manager.authenticate(account_config)
 
         self.assertIsNotNone(kite)
+        # pyrefly: ignore [missing-attribute]
         self.assertEqual(kite._access_token, "cached_token")
 
     @patch("app.api.auth.KiteConnect")
@@ -392,6 +406,7 @@ class TestSIPService(unittest.TestCase):
             }
         ]
 
+        # pyrefly: ignore [bad-argument-type]
         sips = self.service.fetch_sips(mock_kite)
 
         self.assertEqual(len(sips), 1)
@@ -405,6 +420,7 @@ class TestSIPService(unittest.TestCase):
         mock_kite.set_access_token("test_token")
         mock_kite._mock_mf_sips = []
 
+        # pyrefly: ignore [bad-argument-type]
         sips = self.service.fetch_sips(mock_kite)
 
         self.assertEqual(len(sips), 0)
@@ -420,6 +436,7 @@ class TestSIPService(unittest.TestCase):
 
         mock_kite.mf_sips = raise_error
 
+        # pyrefly: ignore [bad-argument-type]
         sips = self.service.fetch_sips(mock_kite)
 
         # Should handle gracefully and return empty list

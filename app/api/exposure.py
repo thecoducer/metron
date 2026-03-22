@@ -100,6 +100,7 @@ class ExposureCache:
         self._cache: LRUCache[str, ExposureResult] = LRUCache(maxsize=maxsize)
         self._lock = threading.Lock()
         self._in_progress: set[str] = set()
+        self._no_data: set[str] = set()
 
     def get(self, google_id: str) -> ExposureResult | None:
         """Return the cached result for *google_id*, or None on miss."""
@@ -126,10 +127,21 @@ class ExposureCache:
         with self._lock:
             self._in_progress.discard(google_id)
 
+    def has_no_data(self, google_id: str) -> bool:
+        """Return True if the last analysis completed but found no data."""
+        with self._lock:
+            return google_id in self._no_data
+
+    def mark_no_data(self, google_id: str) -> None:
+        """Record that analysis ran but produced no result (avoids re-running)."""
+        with self._lock:
+            self._no_data.add(google_id)
+
     def invalidate(self, google_id: str) -> None:
-        """Remove cached result for *google_id*."""
+        """Remove cached result and no-data flag for *google_id*."""
         with self._lock:
             self._cache.pop(google_id, None)
+            self._no_data.discard(google_id)
 
 
 # Module-level singleton — imported by routes.
@@ -571,8 +583,13 @@ def build_exposure_data(
     if needs_classification:
         all_labels = get_sector_labels()
         if all_labels:
-            classifier = get_company_classifier()
-            classifications = classifier.classify_batch(needs_classification, labels=all_labels)
+            try:
+                classifier = get_company_classifier()
+                classifications = classifier.classify_batch(needs_classification, labels=all_labels)
+            except Exception as exc:
+                logger.warning(
+                    "Classification unavailable, using CDN sectors only: %s", exc
+                )
 
     logger.info(
         "⏱ Classification: %.1fs (%d classified, %d used CDN sector)",

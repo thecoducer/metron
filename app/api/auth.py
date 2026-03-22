@@ -51,7 +51,7 @@ class AuthenticationManager:
             return False
         logger.info("Renewing session for %s...", name)
         try:
-            new_token = kite.renew_access_token(old_token, api_secret).get("access_token")
+            new_token = kite.renew_access_token(old_token, api_secret).get("access_token")  # type: ignore[union-attr]
             if not new_token:
                 return False
             logger.info("Renewed session for %s", name)

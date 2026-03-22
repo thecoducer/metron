@@ -7,73 +7,58 @@ import threading
 import time
 from typing import Any
 
-import psutil
-from flask import Flask, Response, jsonify, make_response, redirect, render_template, request, session
+from flask import jsonify, make_response, redirect, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .api.google_sheets_client import is_blank_row
-from .api.physical_gold import enrich_holdings_with_prices
 from .cache import manual_ltp_cache, market_cache, portfolio_cache, user_sheets_cache
 from .constants import HTTP_ACCEPTED, HTTP_CONFLICT, PORTFOLIO_TABLE_ROW_LIMIT
-from .fetchers import get_google_creds_dict, prefetch_all_user_sheets
+from .fetchers import (
+    _fetch_manual_entries,  # noqa: F401 — re-exported for test imports
+    _fetch_uncached_manual_ltps,
+    _fetch_user_sheets_data,  # noqa: F401 — re-exported for test imports
+    _get_sheets_client,
+    _validate_nse_symbol,
+    prefetch_all_user_sheets,
+)
+from .fetchers import (
+    get_google_creds_dict as _get_google_creds_dict,  # noqa: F401 — re-exported for test imports
+)
 from .firebase_store import reset_zerodha_data, verify_user_pin
 from .logging_config import logger
 from .middleware import app_only, login_required, pin_required, protected_api
 from .services import (
+    _autofill_mf_nav_from_cache,
+    _build_data_for_type,
+    _build_fd_data,
+    _build_gold_data,
+    _build_mf_data,
+    _build_sips_data,
     _build_status_response,
+    _build_stocks_data,
+    _enrich_manual_entries_with_ltp,  # noqa: F401 — re-exported for test imports
+    _refresh_single_sheet_cache,
+    _serialise_exposure,
     ensure_user_loaded,
     get_authenticated_accounts,
     get_user_accounts,
     session_manager,
     state_manager,
 )
-from .utils import format_date_for_sheet, pin_rate_limiter
+from .utils import (
+    _collect_process_metrics,
+    _create_flask_app,
+    _current_user,
+    _exposure_json_response,
+    _is_google_auth_error,  # noqa: F401 — re-exported for test imports
+    _json_response,
+    _normalize_date_values,
+    _sheets_error_response,
+    pin_rate_limiter,
+)
 
-_REAUTH_MESSAGE = "Google session expired. Please sign in again."
-_BYTES_PER_MB = 1024 * 1024
-
-
-def _collect_process_metrics() -> dict[str, Any]:
-    """Collect process-level health metrics for the /healthz endpoint."""
-    process = psutil.Process(os.getpid())
-    mem_info = process.memory_info()
-
-    return {
-        "memory": {
-            "rss_mb": round(mem_info.rss / _BYTES_PER_MB, 1),
-        },
-        "cpu_percent": round(process.cpu_percent(interval=None), 1),
-        "uptime_seconds": round(time.time() - process.create_time()),
-        "threads": process.num_threads(),
-    }
-
-
-def _sheets_error_response(exc: Exception, action: str, sheet_type: str) -> tuple:
-    """Return an appropriate Flask error response for Google Sheets exceptions."""
-    if _is_google_auth_error(exc):
-        logger.warning("Auth error %s %s: %s", action, sheet_type, exc)
-        return jsonify({"error": _REAUTH_MESSAGE}), 401
-    logger.exception("Error %s %s", action, sheet_type)
-    return jsonify({"error": str(exc)}), 500
-
-
-def _is_google_auth_error(exc: Exception) -> bool:
-    """Return True if *exc* is a Google credential refresh / auth failure."""
-    name = type(exc).__name__
-    return "RefreshError" in name or "InvalidGrantError" in name
-
-
-def _create_flask_app(name: str, enable_static: bool = False) -> Flask:
-    """Create and configure a Flask app with templates and optional static files."""
-    app = Flask(name)
-    base_dir = os.path.dirname(__file__)
-    app.template_folder = os.path.join(base_dir, "templates")
-    if enable_static:
-        app.static_folder = os.path.join(base_dir, "static")
-        app.config["JSON_SORT_KEYS"] = False
-        app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
-    return app
-
+# Re-export for backward-compatibility with tests that import from routes.py
+_prefetch_all_user_sheets = prefetch_all_user_sheets
 
 app_ui = _create_flask_app("ui_server", enable_static=True)
 
@@ -163,51 +148,6 @@ def _set_cache_headers(response):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
             response.headers["Pragma"] = "no-cache"
     return response
-
-
-def _json_response(data: list[dict[str, Any]], sort_key: str | None = None) -> Response:
-    """JSON response with no-cache headers and optional sorting."""
-    sorted_data = sorted(data, key=lambda x: x.get(sort_key, "")) if sort_key else data
-    resp = jsonify(sorted_data)
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    return resp
-
-
-def _current_user() -> dict[str, Any] | None:
-    """Return the authenticated user dict from the session, or None."""
-    return session.get("user")
-
-
-def _get_google_creds_dict(user: dict[str, Any] | None = None) -> dict | None:
-    """Return decrypted Google OAuth credentials for the current/given user."""
-    if user is None:
-        user = _current_user()
-    return get_google_creds_dict(user) if user else None
-
-
-def _fetch_user_sheets_data(user):
-    """Return (physical_gold, fixed_deposits) from cache.
-
-    Returns whatever is available now (may be ``(None, None)`` when
-    the background sheets fetch hasn't completed yet).
-    """
-    google_id = user.get("google_id", "")
-    cached = user_sheets_cache.get(google_id)
-    if cached:
-        return cached.physical_gold, cached.fixed_deposits
-    return None, None
-
-
-def _fetch_manual_entries(user, sheet_type):
-    """Fetch manual entries from the sheets cache, returning a list of dicts."""
-    google_id = user.get("google_id", "")
-    cached = user_sheets_cache.get_manual(google_id, sheet_type)
-    return cached if cached is not None else []
-
-
-def _prefetch_all_user_sheets(user):
-    """Thin wrapper — delegates to fetchers.prefetch_all_user_sheets."""
-    prefetch_all_user_sheets(user)
 
 
 @app_ui.route("/api/auth/google/login", methods=["GET"])
@@ -355,6 +295,7 @@ def pin_status():
     from .firebase_store import get_zerodha_account_names, has_pin
 
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
     has_setup_pin = has_pin(google_id)
     has_accounts = len(get_zerodha_account_names(google_id)) > 0
@@ -377,6 +318,7 @@ def pin_status():
 def pin_verify():
     """Verify the user's security PIN.  Stores PIN in memory on success."""
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
 
     # ── Rate-limit check ──
@@ -439,6 +381,7 @@ def pin_setup():
     from .firebase_store import has_pin, store_pin_check
 
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
     data = request.get_json(silent=True) or {}
     pin = (data.get("pin") or "").strip()
@@ -470,6 +413,7 @@ def pin_reset():
     The user must re-add Zerodha accounts and set a new PIN afterward.
     """
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
 
     reset_zerodha_data(google_id)
@@ -520,7 +464,7 @@ def zerodha_callback():
 
             kite = KiteConnect(api_key=acc["api_key"])
             session_data = kite.generate_session(req_token, api_secret=acc["api_secret"])
-            access_token = session_data.get("access_token")
+            access_token = session_data.get("access_token")  # type: ignore[union-attr]
             if access_token:
                 session_manager.set_token(google_id, acc["name"], access_token)
                 session_manager.save(google_id)
@@ -550,329 +494,11 @@ def zerodha_callback():
 def status():
     """Return portfolio fetch status, authenticated accounts, and session validity."""
     user = _current_user()
+    assert user is not None
     google_id = user.get("google_id")
     response = jsonify(_build_status_response(google_id))
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
-
-
-def _build_stocks_data(user):
-    """Build merged broker + manual stocks list with live LTPs.
-
-    When broker is connected (live data in cache), broker entries take
-    precedence and zerodha-sourced sheet rows are skipped.  When broker
-    is offline, persisted zerodha entries from sheets serve as fallback.
-    """
-    google_id = user["google_id"]
-    user_data = portfolio_cache.get(google_id)
-    connected_accounts = user_data.connected_accounts
-
-    # Only use cached broker data when at least one broker session is live;
-    # when all offline, synced sheet data is the sole source of truth.
-    broker_stocks = []
-    if connected_accounts:
-        for s in user_data.stocks:
-            s.setdefault("source", "zerodha")
-            broker_stocks.append(s)
-        for s in user_data.etfs:
-            # Tag ETFs so the frontend can classify without ISIN/symbol heuristics.
-            s.setdefault("source", "zerodha")
-            s.setdefault("manual_type", "etfs")
-            broker_stocks.append(s)
-
-    sheet_entries = []
-    for sheet_type in ("stocks", "etfs"):
-        entries = _fetch_manual_entries(user, sheet_type)
-        for m in entries:
-            source = m.get("source", "manual")
-
-            # Skip persisted zerodha rows only for accounts with a live session;
-            # rows for disconnected accounts serve as fallback.
-            if source == "zerodha" and m.get("account", "") in connected_accounts:
-                continue
-
-            qty = float(m.get("qty") or 0)
-            avg = float(m.get("avg_price") or 0)
-            sheet_entries.append(
-                {
-                    "tradingsymbol": (m.get("symbol") or "").upper(),
-                    "quantity": qty,
-                    "average_price": avg,
-                    "last_price": avg,  # fallback; enriched below
-                    "invested": qty * avg,
-                    "exchange": m.get("exchange", "NSE"),
-                    "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
-                    "day_change": 0,
-                    "day_change_percentage": 0,
-                    "isin": (m.get("isin") or "").strip().upper(),
-                    "source": source,
-                    "row_number": m.get("row_number"),
-                    "manual_type": sheet_type,
-                }
-            )
-
-    # Enrich sheet entries (both manual and zerodha-fallback) with LTP
-    if sheet_entries:
-        _enrich_manual_entries_with_ltp(sheet_entries)
-
-    broker_stocks.extend(sheet_entries)
-    return sorted(broker_stocks, key=lambda x: x.get("tradingsymbol", ""))
-
-
-def _validate_nse_symbol(symbol: str) -> dict | None:
-    """Validate a symbol and return its quote (with ISIN when available).
-
-    Tries NSE India first — returns LTP + ISIN in one call.
-    Falls back to Yahoo Finance if NSE is unreachable (no ISIN in that case).
-    Returns None when the symbol does not exist on the exchange.
-    """
-    from .api.market_data import MarketDataClient
-
-    client = MarketDataClient()
-    try:
-        data = client.fetch_nse_quote(symbol)
-        if data and data.get("ltp"):
-            return data
-    except Exception:
-        logger.warning("NSE validation failed for %s, trying Yahoo Finance", symbol)
-
-    try:
-        data = client.fetch_stock_quote(symbol)
-        if data and data.get("ltp"):
-            return data
-    except Exception:
-        logger.warning("Symbol validation failed for %s", symbol)
-    return None
-
-
-def _normalize_date_values(fields: list[str], values: list) -> None:
-    """Reformat any date field in *values* to MM/DD/YYYY before saving to sheets."""
-    from .api.user_sheets import DATE_FIELDS
-
-    for i, field in enumerate(fields):
-        if field in DATE_FIELDS and i < len(values) and values[i]:
-            values[i] = format_date_for_sheet(values[i])
-
-
-def _autofill_mf_nav_from_cache(fields: list[str], values: list) -> None:
-    """Populate ISIN, latest NAV and NAV date from the MF market cache when the fund name matches.
-
-    Looks up the fund name ("fund_name" field) in the in-memory mf_market_cache.
-    If an exact match is found, fills in any empty isin, latest_nav and
-    nav_updated_date columns so manual entries have up-to-date NAV data.
-
-    Args:
-        fields: Ordered list of field names for the mutual_funds sheet config.
-        values: Mutable list of column values aligned with *fields*.
-    """
-    from .api.mf_market_data import mf_market_cache
-
-    if not mf_market_cache.is_populated:
-        return
-
-    fund_name_idx = fields.index("fund_name") if "fund_name" in fields else -1
-    if fund_name_idx < 0 or fund_name_idx >= len(values):
-        return
-
-    fund_name = str(values[fund_name_idx]).strip()
-    isin = mf_market_cache.get_isin_for_name(fund_name)
-    if not isin:
-        return
-
-    scheme = mf_market_cache.get_by_isin(isin)
-    if not scheme:
-        return
-
-    # Only fill fields that are empty — never overwrite user-provided data.
-    for field_key, value in [
-        ("isin", scheme.isin),
-        ("latest_nav", scheme.latest_nav),
-        ("nav_updated_date", format_date_for_sheet(scheme.nav_updated_date)),
-    ]:
-        if field_key in fields:
-            idx = fields.index(field_key)
-            if idx < len(values) and not values[idx]:
-                values[idx] = value
-
-    logger.debug("MF cache autofill: fund_name=%s isin=%s nav=%s", fund_name, scheme.isin, scheme.latest_nav)
-
-
-def _fetch_uncached_manual_ltps(user: dict, new_symbol: str = "") -> None:
-    """Fetch LTPs for all uncached manual stock/ETF symbols after a CRUD add.
-
-    Collects symbols from both stocks and etfs sheets, adds the newly-added
-    symbol, then batch-fetches any that aren't already in the LTP cache.
-    """
-    try:
-        from .api.market_data import MarketDataClient
-
-        all_symbols: set[str] = set()
-        for sheet_type in ("stocks", "etfs"):
-            for entry in _fetch_manual_entries(user, sheet_type) or []:
-                sym = (entry.get("symbol") or "").upper()
-                if sym:
-                    all_symbols.add(sym)
-        if new_symbol:
-            all_symbols.add(new_symbol)
-
-        to_fetch = [s for s in all_symbols if not manual_ltp_cache.get(s) and not manual_ltp_cache.is_negative(s)]
-        if not to_fetch:
-            return
-
-        fetched = MarketDataClient().fetch_stock_quotes(to_fetch)
-        if fetched:
-            manual_ltp_cache.put_batch(fetched)
-        missed = [s for s in to_fetch if s not in (fetched or {})]
-        if missed:
-            manual_ltp_cache.put_negative_batch(missed)
-    except Exception:
-        logger.warning("Failed to fetch LTPs after CRUD add for %s", new_symbol)
-
-
-def _enrich_manual_entries_with_ltp(entries: list) -> None:
-    """Apply cached LTPs to manual entries (read-only, never fetches)."""
-    symbols = list({e["tradingsymbol"] for e in entries if e["tradingsymbol"]})
-    if not symbols:
-        return
-
-    enriched = 0
-    for sym in symbols:
-        cached = manual_ltp_cache.get(sym)
-        if not cached or not cached.get("ltp"):
-            continue
-        for entry in entries:
-            if entry["tradingsymbol"] == sym:
-                entry["last_price"] = cached["ltp"]
-                entry["day_change"] = cached.get("change", 0)
-                entry["day_change_percentage"] = cached.get("pChange", 0)
-                enriched += 1
-
-    if enriched:
-        logger.debug("Manual LTP enrichment: %d/%d symbols from cache", enriched, len(symbols))
-    else:
-        logger.debug("Manual LTP enrichment: %d symbols, all uncached", len(symbols))
-
-
-def _build_mf_data(user):
-    """Build merged broker + manual mutual fund holdings list.
-
-    Zerodha-sourced sheet entries are used as fallback when broker is offline.
-    """
-    google_id = user["google_id"]
-    user_data = portfolio_cache.get(google_id)
-    connected_accounts = user_data.connected_accounts
-    broker_mf = list(user_data.mf_holdings) if connected_accounts else []
-
-    for mf in broker_mf:
-        mf.setdefault("source", "zerodha")
-
-    entries = _fetch_manual_entries(user, "mutual_funds")
-    for m in entries:
-        source = m.get("source", "manual")
-        if source == "zerodha" and m.get("account", "") in connected_accounts:
-            continue
-
-        qty = float(m.get("qty") or 0)
-        avg = float(m.get("avg_nav") or 0)
-        # Column 0 is now "ISIN" (renamed from "Fund") — stores ISIN / trading symbol.
-        isin = (m.get("isin") or "").upper()
-        fund_name = m.get("fund_name") or isin
-        # Use stored latest NAV if available, otherwise fall back to avg NAV.
-        latest_nav = float(m.get("latest_nav") or 0)
-        nav_date = m.get("nav_updated_date") or None
-        broker_mf.append(
-            {
-                "fund": fund_name,
-                "isin": isin,
-                "quantity": qty,
-                "average_price": avg,
-                "last_price": latest_nav if latest_nav else avg,
-                "invested": qty * avg,
-                "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
-                "last_price_date": nav_date,
-                "source": source,
-                "row_number": m.get("row_number"),
-            }
-        )
-    _normalize_mf_names(broker_mf)
-    return sorted(broker_mf, key=lambda x: x.get("fund", ""))
-
-
-def _normalize_mf_names(holdings: list[dict]) -> None:
-    """Replace broker/sheet fund names with canonical names from mfapi.in.
-
-    mfapi.in names take precedence over broker-reported names.  Equality is
-    established via ISIN so entries that share an ISIN always display the
-    same canonical name regardless of their source.
-    """
-    from .api.mf_market_data import mf_market_cache
-
-    if not mf_market_cache.is_populated:
-        return
-
-    for mf in holdings:
-        isin = (mf.get("isin") or "").upper()
-        if not isin:
-            continue
-        scheme = mf_market_cache.get_by_isin(isin)
-        if scheme:
-            mf["fund"] = scheme.scheme_name.upper()
-
-
-def _build_sips_data(user):
-    """Build merged broker + manual SIPs list.
-
-    Zerodha-sourced sheet entries are used as fallback when broker is offline.
-    """
-    google_id = user["google_id"]
-    user_data = portfolio_cache.get(google_id)
-    connected_accounts = user_data.connected_accounts
-    broker_sips = list(user_data.sips) if connected_accounts else []
-
-    for sip in broker_sips:
-        sip.setdefault("source", "zerodha")
-
-    entries = _fetch_manual_entries(user, "sips")
-    for m in entries:
-        source = m.get("source", "manual")
-        if source == "zerodha" and m.get("account", "") in connected_accounts:
-            continue
-
-        fund_id = (m.get("fund") or "").upper()
-        fund_display = m.get("fund_name") or fund_id
-        broker_sips.append(
-            {
-                "fund": fund_display,
-                "tradingsymbol": fund_id,
-                "instalment_amount": float(m.get("amount") or 0),
-                "frequency": m.get("frequency", "MONTHLY"),
-                "instalments": int(m.get("installments") or -1),
-                "completed_instalments": int(m.get("completed") or 0),
-                "status": (m.get("status") or "ACTIVE").upper(),
-                "next_instalment": m.get("next_due", ""),
-                "account": m.get("account", "Manual") if source == "manual" else m.get("account", ""),
-                "source": source,
-                "row_number": m.get("row_number"),
-            }
-        )
-    return sorted(broker_sips, key=lambda x: x.get("status", ""))
-
-
-def _build_gold_data(user):
-    """Build enriched physical gold holdings list."""
-    gold, _ = _fetch_user_sheets_data(user)
-    if gold is not None:
-        enriched = enrich_holdings_with_prices(gold, market_cache.gold_prices)
-        return sorted(enriched, key=lambda x: x.get("date", ""))
-    return []
-
-
-def _build_fd_data(user):
-    """Build fixed deposits list."""
-    _, deposits = _fetch_user_sheets_data(user)
-    if deposits is not None:
-        return sorted(deposits, key=lambda x: x.get("deposited_on", ""))
-    return []
 
 
 @app_ui.route("/api/stocks_data", methods=["GET"])
@@ -946,6 +572,7 @@ def portfolio_data():
     """Return broker-sourced portfolio data (stocks, MFs, SIPs) + status."""
     _t0 = time.monotonic()
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
     payload = {
         "stocks": _build_stocks_data(user),
@@ -965,6 +592,7 @@ def sheets_data():
     """Return Google Sheets data (gold, FDs) + status."""
     _t0 = time.monotonic()
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
     payload = {
         "physicalGold": _build_gold_data(user),
@@ -983,6 +611,7 @@ def all_data():
     """Return all portfolio data in a single response (legacy/initial load)."""
     _t0 = time.monotonic()
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
     payload = {
         "stocks": _build_stocks_data(user),
@@ -1011,6 +640,7 @@ def exposure_data():
     from .api.exposure import ExposureResult, build_exposure_data, exposure_cache
 
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
 
     # 1. Serve from cache if warm.
@@ -1018,11 +648,16 @@ def exposure_data():
     if cached:
         return _exposure_json_response(_serialise_exposure(cached))
 
-    # 2. If analysis is already running, tell the client to wait.
+    # 2. If a previous analysis completed with no result, report no data.
+    if exposure_cache.has_no_data(google_id):
+        payload = {"has_data": False, "companies": [], "sector_totals": {}, "total_portfolio_value": 0}
+        return _exposure_json_response(payload)
+
+    # 3. If analysis is already running, tell the client to wait.
     if exposure_cache.is_in_progress(google_id):
         return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
 
-    # 3. Gather portfolio data (reads from in-memory caches, fast).
+    # 4. Gather portfolio data (reads from in-memory caches, fast).
     stocks_and_etfs = _build_stocks_data(user)
     mf_data = _build_mf_data(user)
 
@@ -1030,7 +665,7 @@ def exposure_data():
         payload = {"has_data": False, "companies": [], "sector_totals": {}, "total_portfolio_value": 0}
         return _exposure_json_response(payload)
 
-    # 4. Kick off the heavy analysis in a background thread.
+    # 5. Kick off the heavy analysis in a background thread.
     exposure_cache.set_in_progress(google_id)
 
     def _run_analysis() -> None:
@@ -1041,8 +676,12 @@ def exposure_data():
                 # that returns 200 already sees a non-null exposure_last_updated.
                 state_manager.set_exposure_updated(google_id)
                 exposure_cache.put(google_id, result)
+            else:
+                logger.info("Exposure analysis returned no data for user=%s", google_id[:8])
+                exposure_cache.mark_no_data(google_id)
         except Exception as exc:
             logger.exception("Exposure analysis failed for user=%s: %s", google_id[:8], exc)
+            exposure_cache.mark_no_data(google_id)
         finally:
             exposure_cache.clear_in_progress(google_id)
 
@@ -1065,6 +704,7 @@ def exposure_refresh():
     from .api.exposure import ExposureResult, build_exposure_data, exposure_cache
 
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
 
     if exposure_cache.is_in_progress(google_id):
@@ -1096,12 +736,16 @@ def exposure_refresh():
             if result is not None:
                 state_manager.set_exposure_updated(google_id)
                 exposure_cache.put(google_id, result)
+            else:
+                logger.info("Exposure refresh returned no data for user=%s", google_id[:8])
+                exposure_cache.mark_no_data(google_id)
         except Exception as exc:
             logger.exception(
                 "Exposure refresh failed for user=%s: %s",
                 google_id[:8],
                 exc,
             )
+            exposure_cache.mark_no_data(google_id)
         finally:
             exposure_cache.clear_in_progress(google_id)
 
@@ -1112,34 +756,6 @@ def exposure_refresh():
     ).start()
 
     return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
-
-
-def _exposure_json_response(data: dict) -> Response:
-    """JSON response for exposure endpoints with no-cache headers."""
-    resp = jsonify(data)
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    return resp
-
-
-def _serialise_exposure(result) -> dict:
-    """Convert an ExposureResult to a JSON-serialisable dict."""
-    return {
-        "has_data": True,
-        "total_portfolio_value": result.total_portfolio_value,
-        "sector_totals": result.sector_totals,
-        "fund_totals": result.fund_totals,
-        "companies": [
-            {
-                "company_name": c.company_name,
-                "instrument_type": c.instrument_type,
-                "sector": c.sector or "Unknown",
-                "holding_amount": round(c.holding_amount, 2),
-                "percentage_of_portfolio": round(c.percentage_of_portfolio, 4),
-                "funds": c.funds,
-            }
-            for c in result.companies
-        ],
-    }
 
 
 @app_ui.route("/api/fd_summary_data", methods=["GET"])
@@ -1172,6 +788,7 @@ def refresh_route():
     from .fetchers import collect_manual_symbols, run_background_fetch
 
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
 
     if portfolio_cache.is_fetch_in_progress(google_id):
@@ -1394,6 +1011,7 @@ def contact_page():
 def get_settings():
     """Return user's Zerodha accounts, session validity, and login URLs."""
     user = _current_user()
+    assert user is not None
     from .firebase_store import get_zerodha_accounts
 
     google_id = user["google_id"]
@@ -1428,6 +1046,7 @@ def add_zerodha():
     if not account_name or not api_key or not api_secret:
         return jsonify({"error": "account_name, api_key, and api_secret are required"}), 400
 
+    assert user is not None
     google_id = user["google_id"]
     pin = session_manager.get_pin(google_id) or ""
     if not pin:
@@ -1453,6 +1072,7 @@ def add_zerodha():
 def remove_zerodha(account_name):
     """Remove a Zerodha account by name."""
     user = _current_user()
+    assert user is not None
     google_id = user["google_id"]
     from .firebase_store import remove_zerodha_account
 
@@ -1484,114 +1104,6 @@ def remove_zerodha(account_name):
 # ---------------------------------------------------------------------------
 
 
-def _get_sheets_client():
-    """Return an authenticated GoogleSheetsClient for the current user."""
-    from .api.google_auth import credentials_from_dict
-    from .api.google_sheets_client import GoogleSheetsClient
-
-    user = _current_user()
-    creds_dict = _get_google_creds_dict(user)
-    if not creds_dict:
-        return None, None, "Google credentials not available"
-    creds = credentials_from_dict(creds_dict)
-    client = GoogleSheetsClient(user_credentials=creds)
-    spreadsheet_id = user.get("spreadsheet_id")
-    if not spreadsheet_id:
-        return None, None, "No spreadsheet linked"
-    return client, spreadsheet_id, None
-
-
-# Mapping: sheet_type → frontend data key for CRUD response
-_SHEET_TYPE_DATA_KEY = {
-    "stocks": "stocks",
-    "etfs": "stocks",  # ETFs merge into the stocks table
-    "mutual_funds": "mfHoldings",
-    "sips": "sips",
-    "physical_gold": "physicalGold",
-    "fixed_deposits": "fixedDeposits",
-}
-
-
-def _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type):
-    """Re-fetch and re-cache a single sheet type after a CRUD mutation.
-
-    Reads only the affected sheet from Google Sheets (not all 6),
-    preserving cache entries for every other type.
-    """
-    from .api.user_sheets import SHEET_CONFIGS
-
-    cfg = SHEET_CONFIGS.get(sheet_type)
-    if not cfg:
-        return
-
-    try:
-        raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
-    except Exception:
-        logger.exception("Error re-reading %s after CRUD", sheet_type)
-        user_sheets_cache.invalidate(google_id)
-        return
-
-    if sheet_type == "physical_gold":
-        from .api.google_sheets_client import PhysicalGoldService
-
-        svc = PhysicalGoldService(client)
-        parsed = svc._parse_batch_data(raw)
-        user_sheets_cache.put(google_id, physical_gold=parsed)
-
-    elif sheet_type == "fixed_deposits":
-        from .api.fixed_deposits import calculate_current_value
-        from .api.google_sheets_client import FixedDepositsService
-
-        svc = FixedDepositsService(client)
-        parsed = calculate_current_value(svc._parse_batch_data(raw))
-        user_sheets_cache.put(google_id, fixed_deposits=parsed)
-
-    else:
-        # Manual types: stocks, etfs, mutual_funds, sips
-        rows = []
-        if raw and len(raw) >= 2:
-            fields = cfg["fields"]
-            for idx, row in enumerate(raw[1:], start=2):
-                if is_blank_row(row):
-                    break
-                entry = {"row_number": idx}
-                for fi, fname in enumerate(fields):
-                    entry[fname] = row[fi] if fi < len(row) else ""
-                # Default empty/missing source to "manual"
-                if not entry.get("source"):
-                    entry["source"] = "manual"
-                rows.append(entry)
-        user_sheets_cache.put_manual(google_id, sheet_type, rows)
-
-
-def _build_data_for_type(user, sheet_type):
-    """Build and return ``{data_key: [rows]}`` for a single sheet type.
-
-    Called after a CRUD mutation so the response can carry the refreshed
-    dataset and the frontend can skip a full ``/api/all_data`` call.
-    """
-    data_key = _SHEET_TYPE_DATA_KEY.get(sheet_type)
-    if not data_key:
-        return {}
-
-    builders = {
-        "stocks": _build_stocks_data,
-        "mfHoldings": _build_mf_data,
-        "sips": _build_sips_data,
-        "physicalGold": _build_gold_data,
-        "fixedDeposits": _build_fd_data,
-    }
-    builder = builders.get(data_key)
-    if not builder:  # pragma: no cover – all valid data_keys have builders
-        return {}
-
-    try:
-        return {data_key: builder(user)}
-    except Exception:
-        logger.exception("Error building data for %s after CRUD", sheet_type)
-        return {}
-
-
 @app_ui.route("/api/sheets/<sheet_type>", methods=["GET"])
 @protected_api
 def sheets_list(sheet_type):
@@ -1605,6 +1117,8 @@ def sheets_list(sheet_type):
     client, spreadsheet_id, err = _get_sheets_client()
     if err:
         return jsonify({"error": err}), 400
+    assert client is not None
+    assert spreadsheet_id is not None
 
     try:
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
@@ -1620,7 +1134,7 @@ def sheets_list(sheet_type):
     for idx, row in enumerate(raw[1:], start=2):
         if is_blank_row(row):
             break
-        entry = {"row_number": idx}
+        entry: dict[str, Any] = {"row_number": idx}
         for fi, fname in enumerate(fields):
             entry[fname] = row[fi] if fi < len(row) else ""
         rows.append(entry)
@@ -1640,6 +1154,8 @@ def sheets_add(sheet_type):
     client, spreadsheet_id, err = _get_sheets_client()
     if err:
         return jsonify({"error": err}), 400
+    assert client is not None
+    assert spreadsheet_id is not None
 
     data = request.get_json(silent=True) or {}
     symbol = (data.get("symbol") or "").upper()
@@ -1680,6 +1196,7 @@ def sheets_add(sheet_type):
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
         row_num = client.append_row(spreadsheet_id, cfg["sheet_name"], values)
         user = _current_user()
+        assert user is not None
         google_id = user.get("google_id", "")
         _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
 
@@ -1690,7 +1207,7 @@ def sheets_add(sheet_type):
         return _sheets_error_response(e, "adding", sheet_type)
 
     logger.info("sheets_add: type=%s row=%d", sheet_type, row_num)
-    result = {"status": "added", "row_number": row_num}
+    result: dict[str, Any] = {"status": "added", "row_number": row_num}
     refreshed = _build_data_for_type(user, sheet_type)
     if refreshed:
         result["data"] = refreshed
@@ -1713,6 +1230,8 @@ def sheets_update(sheet_type, row_number):
     client, spreadsheet_id, err = _get_sheets_client()
     if err:
         return jsonify({"error": err}), 400
+    assert client is not None
+    assert spreadsheet_id is not None
 
     data = request.get_json(silent=True) or {}
     symbol = (data.get("symbol") or "").upper()
@@ -1751,12 +1270,13 @@ def sheets_update(sheet_type, row_number):
     try:
         client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)
         user = _current_user()
+        assert user is not None
         google_id = user.get("google_id", "")
         _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
     except Exception as e:
         return _sheets_error_response(e, "updating", sheet_type)
 
-    result = {"status": "updated"}
+    result: dict[str, Any] = {"status": "updated"}
     refreshed = _build_data_for_type(user, sheet_type)
     if refreshed:
         result["data"] = refreshed
@@ -1779,17 +1299,20 @@ def sheets_delete(sheet_type, row_number):
     client, spreadsheet_id, err = _get_sheets_client()
     if err:
         return jsonify({"error": err}), 400
+    assert client is not None
+    assert spreadsheet_id is not None
 
     try:
         client.delete_row(spreadsheet_id, cfg["sheet_name"], row_number)
         # Refresh only the changed sheet in cache (not all 6).
         user = _current_user()
+        assert user is not None
         google_id = user.get("google_id", "")
         _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
     except Exception as e:
         return _sheets_error_response(e, "deleting", sheet_type)
 
-    result = {"status": "deleted"}
+    result: dict[str, Any] = {"status": "deleted"}
     refreshed = _build_data_for_type(user, sheet_type)
     if refreshed:
         result["data"] = refreshed

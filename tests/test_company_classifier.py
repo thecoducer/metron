@@ -16,10 +16,12 @@ class TestCompanyClassifier(unittest.TestCase):
 
             classifier = CompanyClassifier()
         classifier._pipeline = mock_pipe
+        classifier._cache = {}  # isolate from real disk cache
         return classifier
 
     def test_classify_returns_top_label(self):
         classifier = self._make_classifier()
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.return_value = {
             "labels": ["Banking", "Insurance", "IT Services"],
             "scores": [0.95, 0.03, 0.02],
@@ -30,6 +32,7 @@ class TestCompanyClassifier(unittest.TestCase):
 
     def test_classify_caches_results(self):
         classifier = self._make_classifier()
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.return_value = {
             "labels": ["Insurance"],
             "scores": [0.90],
@@ -37,10 +40,12 @@ class TestCompanyClassifier(unittest.TestCase):
         classifier.classify("HDFC Life Insurance")
         classifier.classify("HDFC Life Insurance")
         # Pipeline called only once — second call served from cache.
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.assert_called_once()
 
     def test_classify_batch_groups_results(self):
         classifier = self._make_classifier()
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.return_value = [
             {"labels": ["Banking", "Insurance"], "scores": [0.96, 0.02]},
             {"labels": ["IT Services", "Banking"], "scores": [0.92, 0.04]},
@@ -53,6 +58,7 @@ class TestCompanyClassifier(unittest.TestCase):
         classifier = self._make_classifier()
         # Pre-populate cache.
         classifier._cache["HDFC Bank"] = ("Banking", 0.96)
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.return_value = [
             {"labels": ["IT Services"], "scores": [0.92]},
         ]
@@ -60,12 +66,15 @@ class TestCompanyClassifier(unittest.TestCase):
         self.assertEqual(results["HDFC Bank"], ("Banking", 0.96))
         self.assertEqual(results["Infosys"], ("IT Services", 0.92))
         # Only "Infosys" was sent to the pipeline.
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.assert_called_once()
+        # pyrefly: ignore [missing-attribute]
         self.assertEqual(classifier._pipeline.call_args[0][0], ["Infosys"])
 
     def test_classify_batch_single_item(self):
         """Pipeline returns a dict (not list) for a single item."""
         classifier = self._make_classifier()
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.return_value = {
             "labels": ["Pharmaceuticals"],
             "scores": [0.85],
@@ -81,10 +90,12 @@ class TestCompanyClassifier(unittest.TestCase):
         self.assertEqual(results["A"], ("Banking", 0.9))
         self.assertEqual(results["B"], ("Insurance", 0.8))
         # Pipeline never called.
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.assert_not_called()
 
     def test_classify_with_custom_labels(self):
         classifier = self._make_classifier()
+        # pyrefly: ignore [missing-attribute]
         classifier._pipeline.return_value = {
             "labels": ["Fintech"],
             "scores": [0.88],

@@ -80,6 +80,7 @@ class TestConfigure(unittest.TestCase):
             args=(),
             exc_info=None,
         )
+        # pyrefly: ignore [missing-attribute]
         formatted = handler.formatter.formatTime(record)
         self.assertTrue(formatted.endswith("Z"))
         self.assertIn("T", formatted)

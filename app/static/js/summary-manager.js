@@ -180,7 +180,7 @@ class SummaryManager {
     // Show allocation % in label strip tag
     const tagPct = document.querySelector(`[data-snap-pct="${prefix}"]`);
     if (tagPct) {
-      tagPct.innerText = allocPct != null ? allocPct.toFixed(1) + '%' : '';
+      tagPct.innerText = allocPct !== null ? allocPct.toFixed(1) + '%' : '';
       tagPct.style.color = '';
     }
   }

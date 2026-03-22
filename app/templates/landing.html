@@ -1,528 +1,954 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Metron — Measure what matters</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Metron — an investment dashboard for Indian investors. Track Stocks, Mutual Funds, ETFs, Physical Gold, Fixed Deposits and SIPs. Your data lives in your own Google Drive. Open source, privacy-first.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/landing.css">
-<link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
-<link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Metron">
-</head>
-<body>
-<script>
+    <head>
+        <meta charset="utf-8">
+        <title>Metron — Measure what matters</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta name="description"
+              content="Metron — an investment dashboard for Indian investors. Track Stocks, Mutual Funds, ETFs, Physical Gold, Fixed Deposits and SIPs. Your data lives in your own Google Drive. Open source, privacy-first.">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="/static/css/landing.css">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <link rel="manifest" href="/static/manifest.json">
+        <meta name="theme-color" content="#0f172a">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style"
+              content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Metron">
+    </head>
+    <body>
+        <script>
   (function(){
     var t=localStorage.getItem('theme');
     if(t==='dark')document.body.classList.add('dark-theme');
   })();
-</script>
-
-<div class="bg-grid"></div>
-<div class="bg-glow"></div>
-
-<div class="page">
-
-  <!-- Nav -->
-  <nav class="nav">
-    <a href="/" class="nav-brand">
-      <span class="nav-logo"></span>
-      <span class="nav-name">Metron</span>
-    </a>
-    <div class="nav-actions">
-      <button class="theme-toggle" onclick="(function(){var b=document.body,d=b.classList.toggle('dark-theme');localStorage.setItem('theme',d?'dark':'light')}())" aria-label="Toggle theme">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a href="/api/auth/google/login" class="nav-cta">
-        Sign in
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-  </nav>
-
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-badge">
-      <span class="hero-badge-dot"></span>
-      Open-source &amp; privacy-first
-    </div>
-    <h1>Your Investments,<br>One <span class="accent">Dashboard.</span></h1>
-    <p class="hero-tagline">
-      <span class="tagline-word">Measure</span>
-      <span class="tagline-word">what</span>
-      <span class="tagline-accent">matters.</span>
-    </p>
-    <div class="cta-group">
-      <a href="/api/auth/google/login" class="btn-primary">
-        <svg viewBox="0 0 48 48" width="20" height="20">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-          <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/>
-          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        </svg>
-        Login with Google
-      </a>
-      <a href="https://github.com/thecoducer/metron" target="_blank" rel="noopener" class="btn-secondary">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.43 9.8 8.21 11.39.6.11.79-.26.79-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.41-4.04-1.41-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.08-.73.08-.73 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.63-5.48 5.92.42.36.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.18.7.8.58C20.57 21.8 24 17.31 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        View on GitHub
-      </a>
-    </div>
-  </section>
-
-  <div class="section-divider"></div>
-
-  <!-- What you get -->
-  <section class="unified-section">
-    <span class="section-label purple">What You Get</span>
-    <h2 class="section-title">Everything in one place</h2>
-    <p class="section-sub">No bloat, no gimmicks &mdash; a fast, reliable dashboard for every asset class you care about.</p>
-
-    <!-- Compact asset strip -->
-    <div class="asset-strip">
-      <div class="asset-chip">
-        <span class="asset-chip-icon a-rose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
-        <span>Stocks</span>
-      </div>
-      <div class="asset-chip">
-        <span class="asset-chip-icon a-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-        <span>Mutual Funds</span>
-      </div>
-      <div class="asset-chip">
-        <span class="asset-chip-icon a-emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-        <span>ETFs</span>
-      </div>
-      <div class="asset-chip">
-        <span class="asset-chip-icon a-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></span>
-        <span>Physical Gold</span>
-      </div>
-      <div class="asset-chip">
-        <span class="asset-chip-icon a-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M2 11h20"/><path d="m12 2 10 9H2z"/></svg></span>
-        <span>Fixed Deposits</span>
-      </div>
-      <div class="asset-chip">
-        <span class="asset-chip-icon a-rose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
-        <span>SIPs</span>
-      </div>
-    </div>
-
-    <!-- Feature cards -->
-    <div class="features">
-      <div class="feature-card">
-        <div class="feature-icon violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-        <h3>Fresh data, on your schedule</h3>
-        <p>Hit refresh. Metron pulls live holdings and prices from your broker, Google Sheets, and market APIs in seconds. Results cache in memory and stay fast until you ask for a new pull.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <h3>Multi-account support</h3>
-        <p>Connect multiple broker accounts. Holdings are merged and grouped by symbol across all linked accounts.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></div>
-        <h3>Your Drive is the database</h3>
-        <p>All investment data lives in a Google Sheet auto-created in your Drive. No proprietary databases — you own and control the data.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon cyan">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <!-- Outer dashed ring = fund -->
-            <circle cx="12" cy="12" r="10" stroke-dasharray="3 2" opacity="0.35"/>
-            <!-- Inner ring -->
-            <circle cx="12" cy="12" r="6" opacity="0.65"/>
-            <!-- Company dots around inner ring -->
-            <circle cx="12" cy="6" r="1.8" fill="currentColor" stroke="none"/>
-            <circle cx="17.2" cy="9" r="1.8" fill="currentColor" stroke="none"/>
-            <circle cx="17.2" cy="15" r="1.8" fill="currentColor" stroke="none"/>
-            <circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/>
-            <circle cx="6.8" cy="15" r="1.8" fill="currentColor" stroke="none"/>
-            <circle cx="6.8" cy="9" r="1.8" fill="currentColor" stroke="none"/>
-            <!-- Center = your allocation -->
-            <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" opacity="0.85"/>
-          </svg>
+        </script>
+        <div class="bg-grid"></div>
+        <div class="bg-glow"></div>
+        <div class="page">
+            <!-- Nav -->
+            <nav class="nav">
+                <a href="/" class="nav-brand">
+                    <span class="nav-logo"></span>
+                    <span class="nav-name">Metron</span>
+                </a>
+                <div class="nav-actions">
+                    <button class="theme-toggle"
+                            onclick="(function(){var b=document.body,d=b.classList.toggle('dark-theme');localStorage.setItem('theme',d?'dark':'light')}())"
+                            aria-label="Toggle theme">
+                        <svg class="sun"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                        </svg>
+                        <svg class="moon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
+                    </button>
+                    <a href="/api/auth/google/login" class="nav-cta">
+                        Sign in
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M5 12h14" />
+                            <path d="M12 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            </nav>
+            <!-- Hero -->
+            <section class="hero">
+                <div class="hero-badge">
+                    <span class="hero-badge-dot"></span>
+                    Open-source &amp; privacy-first
+                </div>
+                <h1>
+                    Your Investments,
+                    <br>
+                    One <span class="accent">Dashboard.</span>
+                </h1>
+                <p class="hero-tagline">
+                    <span class="tagline-word">Measure</span>
+                    <span class="tagline-word">what</span>
+                    <span class="tagline-accent">matters.</span>
+                </p>
+                <div class="cta-group">
+                    <a href="/api/auth/google/login" class="btn-primary">
+                        <svg viewBox="0 0 48 48" width="20" height="20">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                            <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z" />
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                        </svg>
+                        Login with Google
+                    </a>
+                    <a href="https://github.com/thecoducer/metron"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.43 9.8 8.21 11.39.6.11.79-.26.79-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.41-4.04-1.41-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.08-.73.08-.73 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.63-5.48 5.92.42.36.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.18.7.8.58C20.57 21.8 24 17.31 24 12c0-6.63-5.37-12-12-12z" />
+                        </svg>
+                        View on GitHub
+                    </a>
+                </div>
+            </section>
+            <div class="section-divider"></div>
+            <!-- What you get -->
+            <section class="unified-section">
+                <span class="section-label purple">What You Get</span>
+                <h2 class="section-title">Everything in one place</h2>
+                <p class="section-sub">No bloat, no gimmicks — a fast, reliable dashboard for every asset class you care about.</p>
+                <!-- Compact asset strip -->
+                <div class="asset-strip">
+                    <div class="asset-chip">
+                        <span class="asset-chip-icon a-rose">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+                            </svg>
+                        </span>
+                        <span>Stocks</span>
+                    </div>
+                    <div class="asset-chip">
+                        <span class="asset-chip-icon a-blue">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                            </svg>
+                        </span>
+                        <span>Mutual Funds</span>
+                    </div>
+                    <div class="asset-chip">
+                        <span class="asset-chip-icon a-emerald">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23" />
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                        </span>
+                        <span>ETFs</span>
+                    </div>
+                    <div class="asset-chip">
+                        <span class="asset-chip-icon a-amber">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+                            </svg>
+                        </span>
+                        <span>Physical Gold</span>
+                    </div>
+                    <div class="asset-chip">
+                        <span class="asset-chip-icon a-teal">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M3 22h18" />
+                                <path d="M6 18v-7" />
+                                <path d="M10 18v-7" />
+                                <path d="M14 18v-7" />
+                                <path d="M18 18v-7" />
+                                <path d="M2 11h20" />
+                                <path d="m12 2 10 9H2z" />
+                            </svg>
+                        </span>
+                        <span>Fixed Deposits</span>
+                    </div>
+                    <div class="asset-chip">
+                        <span class="asset-chip-icon a-rose">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <polyline points="17 1 21 5 17 9" />
+                                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                                <polyline points="7 23 3 19 7 15" />
+                                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                            </svg>
+                        </span>
+                        <span>SIPs</span>
+                    </div>
+                </div>
+                <!-- Feature cards -->
+                <div class="features">
+                    <div class="feature-card">
+                        <div class="feature-icon violet">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                            </svg>
+                        </div>
+                        <h3>Fresh data, on your schedule</h3>
+                        <p>
+                            Hit refresh. Metron pulls live holdings and prices from your broker, Google Sheets, and market APIs in seconds. Results cache in memory and stay fast until you ask for a new pull.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon blue">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                        </div>
+                        <h3>Multi-account support</h3>
+                        <p>Connect multiple broker accounts. Holdings are merged and grouped by symbol across all linked accounts.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon emerald">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" />
+                            </svg>
+                        </div>
+                        <h3>Your Drive is the database</h3>
+                        <p>
+                            All investment data lives in a Google Sheet auto-created in your Drive. No proprietary databases — you own and control the data.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon cyan">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="1.5"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <!-- Outer dashed ring = fund -->
+                                <circle cx="12" cy="12" r="10" stroke-dasharray="3 2" opacity="0.35" />
+                                <!-- Inner ring -->
+                                <circle cx="12" cy="12" r="6" opacity="0.65" />
+                                <!-- Company dots around inner ring -->
+                                <circle cx="12" cy="6" r="1.8" fill="currentColor" stroke="none" />
+                                <circle cx="17.2" cy="9" r="1.8" fill="currentColor" stroke="none" />
+                                <circle cx="17.2" cy="15" r="1.8" fill="currentColor" stroke="none" />
+                                <circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none" />
+                                <circle cx="6.8" cy="15" r="1.8" fill="currentColor" stroke="none" />
+                                <circle cx="6.8" cy="9" r="1.8" fill="currentColor" stroke="none" />
+                                <!-- Center = your allocation -->
+                                <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" opacity="0.85" />
+                            </svg>
+                        </div>
+                        <h3>Company exposure analysis</h3>
+                        <p>
+                            See inside your funds. Metron tallies your total allocation to any single company across all your mutual funds and ETFs — so you know how concentrated you are before it bites you.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            <!-- Architecture -->
+            <section class="arch-section">
+                <span class="section-label amber">Under the Hood</span>
+                <h2 class="section-title">How it works</h2>
+                <p class="section-sub">
+                    App server runs on a spare PC at home. Cloudflare Tunnel puts it on the internet without a cloud provider anywhere in the chain. The browser gets everything on demand.
+                </p>
+                <div class="arch-pipeline">
+                    <!-- Stage 1: Sources -->
+                    <div class="arch-stage">
+                        <div class="arch-stage-label">Data Sources</div>
+                        <div class="arch-stage-card">
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-zerodha">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">Brokers</span>
+                                    <span class="arch-node-sub">Trading APIs</span>
+                                </div>
+                            </div>
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-sheets">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">Google Sheets</span>
+                                    <span class="arch-node-sub">Your Drive data</span>
+                                </div>
+                            </div>
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-ibja">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                                        <line x1="7" y1="7" x2="7.01" y2="7" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">IBJA</span>
+                                    <span class="arch-node-sub">Gold spot price</span>
+                                </div>
+                            </div>
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-nse">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">NSE</span>
+                                    <span class="arch-node-sub">Nifty 50 data</span>
+                                </div>
+                            </div>
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-nse">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">Yahoo Finance</span>
+                                    <span class="arch-node-sub">Market data</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Arrow -->
+                    <div class="arch-pipeline-arrow">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M5 12h14" />
+                            <path d="M12 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                    <!-- Stage 2: Processing -->
+                    <div class="arch-stage arch-stage-center">
+                        <div class="arch-stage-label">Processing</div>
+                        <div class="arch-stage-card">
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-flask">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">Flask Backend</span>
+                                    <span class="arch-node-sub">Aggregation &amp; caching</span>
+                                </div>
+                            </div>
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-firebase">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">Firebase</span>
+                                    <span class="arch-node-sub">Auth &amp; encrypted store</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Arrow -->
+                    <div class="arch-pipeline-arrow">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M5 12h14" />
+                            <path d="M12 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                    <!-- Stage 3: Delivery -->
+                    <div class="arch-stage">
+                        <div class="arch-stage-label">Delivery</div>
+                        <div class="arch-stage-card">
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-api">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">REST API</span>
+                                    <span class="arch-node-sub">On-demand fetch</span>
+                                </div>
+                            </div>
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-firebase">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                                        <path d="M13 16l3-3-3-3" />
+                                        <line x1="16" y1="13" x2="9" y2="13" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">Cloudflare Tunnel</span>
+                                    <span class="arch-node-sub">Self-hosted, public access</span>
+                                </div>
+                            </div>
+                            <div class="arch-stage-item">
+                                <div class="arch-node-icon n-browser">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+                                    </svg>
+                                </div>
+                                <div class="arch-stage-text">
+                                    <span class="arch-node-label">Browser</span>
+                                    <span class="arch-node-sub">Vanilla JS — no framework</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Security Deep Dive -->
+            <section class="security-section">
+                <span class="section-label shield">Security</span>
+                <h2 class="section-title">Your data. Not ours.</h2>
+                <p class="section-sub">
+                    Here's what gets stored, where it lives, and why a full Firebase breach still can't touch your broker credentials.
+                </p>
+                <!-- ── Diagram 1: Where your data lives ── -->
+                <div class="sec-diagram-card">
+                    <h3 class="sec-diagram-title">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             style="width:18px;
+                                    height:18px">
+                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        Where does your data actually live?
+                    </h3>
+                    <p class="sec-diagram-desc">
+                        Your financial data and your broker credentials live in completely different places and never share a home.
+                    </p>
+                    <div class="sec-split-diagram">
+                        <!-- Google Sheets side -->
+                        <div class="sec-split-box sec-box-sheets">
+                            <div class="sec-box-header">
+                                <span class="sec-box-icon sheets">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <strong>Google Sheets</strong>
+                                    <span class="sec-box-location">Your Google Drive</span>
+                                </div>
+                            </div>
+                            <ul class="sec-box-items">
+                                <li>
+                                    <span class="sec-item-dot green"></span>Stock &amp; MF holdings
+                                </li>
+                                <li>
+                                    <span class="sec-item-dot green"></span>Physical gold records
+                                </li>
+                                <li>
+                                    <span class="sec-item-dot green"></span>Fixed deposits &amp; SIPs
+                                </li>
+                                <li>
+                                    <span class="sec-item-dot green"></span>Transaction history
+                                </li>
+                            </ul>
+                            <div class="sec-box-badge green">
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2.5"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     style="width:12px;
+                                            height:12px">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                You own this
+                            </div>
+                        </div>
+                        <!-- Arrow between -->
+                        <div class="sec-split-arrow">
+                            <div class="sec-split-arrow-line"></div>
+                            <span class="sec-split-arrow-label">Separated</span>
+                            <div class="sec-split-arrow-line"></div>
+                        </div>
+                        <!-- Firebase side -->
+                        <div class="sec-split-box sec-box-firebase">
+                            <div class="sec-box-header">
+                                <span class="sec-box-icon firebase">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <strong>Firebase</strong>
+                                    <span class="sec-box-location">Google Cloud</span>
+                                </div>
+                            </div>
+                            <ul class="sec-box-items">
+                                <li>
+                                    <span class="sec-item-dot amber"></span>Your name &amp; email (login)
+                                </li>
+                                <li>
+                                    <span class="sec-item-dot red"></span>Broker API keys <span class="sec-encrypted-tag">encrypted</span>
+                                </li>
+                                <li>
+                                    <span class="sec-item-dot red"></span>Google OAuth tokens <span class="sec-encrypted-tag">encrypted</span>
+                                </li>
+                                <li>
+                                    <span class="sec-item-dot amber"></span>PIN verification sentinel
+                                </li>
+                            </ul>
+                            <div class="sec-box-badge amber">
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     style="width:12px;
+                                            height:12px">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                All sensitive data encrypted at rest
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ── Diagram 2: How encryption works ── -->
+                <div class="sec-diagram-card">
+                    <h3 class="sec-diagram-title">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             style="width:18px;
+                                    height:18px">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        How does encryption protect you?
+                    </h3>
+                    <p class="sec-diagram-desc">
+                        Two layers of encryption. Your broker credentials need <em>both</em> a server secret <em>and</em> your personal PIN to decrypt. Either one alone gets you nothing.
+                    </p>
+                    <!-- Encryption flow diagram -->
+                    <div class="sec-flow">
+                        <!-- Tier 1 -->
+                        <div class="sec-flow-tier">
+                            <div class="sec-tier-label">Broker Credentials (API keys &amp; secrets)</div>
+                            <div class="sec-flow-row">
+                                <div class="sec-flow-node sec-node-input">
+                                    <span class="sec-flow-node-icon cloud">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                        </svg>
+                                    </span>
+                                    <span class="sec-flow-node-name">Server Secret</span>
+                                </div>
+                                <div class="sec-flow-plus">+</div>
+                                <div class="sec-flow-node sec-node-input">
+                                    <span class="sec-flow-node-icon pin">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                            <path d="M8 12h.01M12 12h.01M16 12h.01" />
+                                        </svg>
+                                    </span>
+                                    <span class="sec-flow-node-name">Your PIN</span>
+                                    <span class="sec-flow-node-sub">Only in your head
+                                        <br>
+                                    Never stored</span>
+                                </div>
+                                <div class="sec-flow-arrow">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M5 12h14" />
+                                        <path d="M12 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                                <div class="sec-flow-node sec-node-process">
+                                    <span class="sec-flow-node-icon hash">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" />
+                                        </svg>
+                                    </span>
+                                    <span class="sec-flow-node-name">HMAC‑SHA256</span>
+                                    <span class="sec-flow-node-sub">Combined into one
+                                        <br>
+                                    unique key</span>
+                                </div>
+                                <div class="sec-flow-arrow">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M5 12h14" />
+                                        <path d="M12 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                                <div class="sec-flow-node sec-node-output">
+                                    <span class="sec-flow-node-icon lock">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                        </svg>
+                                    </span>
+                                    <span class="sec-flow-node-name">Fernet Encrypted</span>
+                                    <span class="sec-flow-node-sub">Stored in Firebase
+                                        <br>
+                                    Unreadable gibberish</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sec-flow-divider"></div>
+                        <!-- Tier 2 -->
+                        <div class="sec-flow-tier">
+                            <div class="sec-tier-label">Google Login Tokens</div>
+                            <div class="sec-flow-row">
+                                <div class="sec-flow-node sec-node-input">
+                                    <span class="sec-flow-node-icon cloud">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                        </svg>
+                                    </span>
+                                    <span class="sec-flow-node-name">Flask Secret</span>
+                                </div>
+                                <div class="sec-flow-arrow" style="margin-left:0">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M5 12h14" />
+                                        <path d="M12 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                                <div class="sec-flow-node sec-node-process">
+                                    <span class="sec-flow-node-icon hash">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" />
+                                        </svg>
+                                    </span>
+                                    <span class="sec-flow-node-name">SHA‑256</span>
+                                    <span class="sec-flow-node-sub">Hashed into
+                                        <br>
+                                    encryption key</span>
+                                </div>
+                                <div class="sec-flow-arrow">
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M5 12h14" />
+                                        <path d="M12 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                                <div class="sec-flow-node sec-node-output">
+                                    <span class="sec-flow-node-icon lock">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                        </svg>
+                                    </span>
+                                    <span class="sec-flow-node-name">Fernet Encrypted</span>
+                                    <span class="sec-flow-node-sub">Stored in Firebase
+                                        <br>
+                                    Unreadable gibberish</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- What-if callout -->
+                    <div class="sec-callout">
+                        <div class="sec-callout-icon">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        </div>
+                        <div class="sec-callout-body">
+                            <strong>What if Firebase gets breached?</strong>
+                            <p>
+                                An attacker with the entire Firebase database <em>and</em> the server secret <strong>still cannot read your broker credentials.</strong> They'd also need your 6-character PIN — which is never stored anywhere. Not in the database, not on the server, not in logs. It exists only in your head.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <!-- ── Detailed Security Features ── -->
+                <div class="sec-features">
+                    <div class="sec-feature-card">
+                        <div class="sec-feature-icon rate-icon">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                            </svg>
+                        </div>
+                        <h4>Brute-force protection</h4>
+                        <p>
+                            Three wrong PINs and you're locked out for 15 minutes. Keep guessing and that climbs to 1 hour, then 4. The rate limiter runs server-side, so clearing your browser won't save you.
+                        </p>
+                    </div>
+                    <div class="sec-feature-card">
+                        <div class="sec-feature-icon oss-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.43 9.8 8.21 11.39.6.11.79-.26.79-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.41-4.04-1.41-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.08-.73.08-.73 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.63-5.48 5.92.42.36.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.18.7.8.58C20.57 21.8 24 17.31 24 12c0-6.63-5.37-12-12-12z" />
+                            </svg>
+                        </div>
+                        <h4>100% open source. Read it yourself.</h4>
+                        <p>
+                            Every line of code is on <a href="https://github.com/thecoducer/metron"
+    target="_blank"
+    rel="noopener">GitHub</a>. Don't take our word for it — read the code, or paste it into ChatGPT / Claude and ask "is this safe?" Open source is the only honest security policy.
+                        </p>
+                    </div>
+                </div>
+                <!-- ── The Big Picture Callout ── -->
+                <div class="sec-summary">
+                    <div class="sec-summary-cols">
+                        <div class="sec-summary-item">
+                            <div class="sec-summary-num">2</div>
+                            <div class="sec-summary-text">
+                                <strong>Layers of encryption</strong>
+                                <span>PIN-based for broker keys, server-key for OAuth tokens</span>
+                            </div>
+                        </div>
+                        <div class="sec-summary-divider"></div>
+                        <div class="sec-summary-item">
+                            <div class="sec-summary-num">0</div>
+                            <div class="sec-summary-text">
+                                <strong>Credentials stored in plain text</strong>
+                                <span>Everything sensitive is encrypted before it touches the database</span>
+                            </div>
+                        </div>
+                        <div class="sec-summary-divider"></div>
+                        <div class="sec-summary-item">
+                            <div class="sec-summary-num">0</div>
+                            <div class="sec-summary-text">
+                                <strong>Access to your portfolio data</strong>
+                                <span>Financial data lives in your Drive. We can't see it. Period.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Bottom CTA -->
+            <div class="cta-banner">
+                <h2>Portfolio scattered across tabs?</h2>
+                <p>Sign in, connect your broker, and see the full picture in one place.</p>
+                <div class="cta-group">
+                    <a href="/api/auth/google/login" class="btn-primary">
+                        <svg viewBox="0 0 48 48" width="20" height="20">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                            <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z" />
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                        </svg>
+                        Get started
+                    </a>
+                    <a href="https://github.com/thecoducer/metron"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.43 9.8 8.21 11.39.6.11.79-.26.79-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.41-4.04-1.41-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.08-.73.08-.73 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.63-5.48 5.92.42.36.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.18.7.8.58C20.57 21.8 24 17.31 24 12c0-6.63-5.37-12-12-12z" />
+                        </svg>
+                        Star on GitHub
+                    </a>
+                </div>
+            </div>
+            <!-- Footer -->
+            <footer class="footer">
+                <div class="footer-legal-links">
+                    <a href="/privacy">Privacy Policy</a>
+                    <span class="footer-dot"></span>
+                    <a href="/terms">Terms &amp; Conditions</a>
+                    <span class="footer-dot"></span>
+                    <a href="/contact">Contact Us</a>
+                </div>
+                <div class="made-with-love">
+                    <p>
+                        Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
+                    </p>
+                </div>
+            </footer>
         </div>
-        <h3>Company exposure analysis</h3>
-        <p>See inside your funds. Metron tallies your total allocation to any single company across all your mutual funds and ETFs &mdash; so you know how concentrated you are before it bites you.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Architecture -->
-  <section class="arch-section">
-    <span class="section-label amber">Under the Hood</span>
-    <h2 class="section-title">How it works</h2>
-    <p class="section-sub">App server runs on a spare PC at home. Cloudflare Tunnel puts it on the internet without a cloud provider anywhere in the chain. The browser gets everything on demand.</p>
-
-    <div class="arch-pipeline">
-      <!-- Stage 1: Sources -->
-      <div class="arch-stage">
-        <div class="arch-stage-label">Data Sources</div>
-        <div class="arch-stage-card">
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-zerodha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">Brokers</span>
-              <span class="arch-node-sub">Trading APIs</span>
-            </div>
-          </div>
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-sheets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">Google Sheets</span>
-              <span class="arch-node-sub">Your Drive data</span>
-            </div>
-          </div>
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-ibja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">IBJA</span>
-              <span class="arch-node-sub">Gold spot price</span>
-            </div>
-          </div>
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-nse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">NSE</span>
-              <span class="arch-node-sub">Nifty 50 data</span>
-            </div>
-          </div>
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-nse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">Yahoo Finance</span>
-              <span class="arch-node-sub">Market data</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Arrow -->
-      <div class="arch-pipeline-arrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-      </div>
-
-      <!-- Stage 2: Processing -->
-      <div class="arch-stage arch-stage-center">
-        <div class="arch-stage-label">Processing</div>
-        <div class="arch-stage-card">
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-flask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">Flask Backend</span>
-              <span class="arch-node-sub">Aggregation &amp; caching</span>
-            </div>
-          </div>
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-firebase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">Firebase</span>
-              <span class="arch-node-sub">Auth &amp; encrypted store</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Arrow -->
-      <div class="arch-pipeline-arrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-      </div>
-
-      <!-- Stage 3: Delivery -->
-      <div class="arch-stage">
-        <div class="arch-stage-label">Delivery</div>
-        <div class="arch-stage-card">
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">REST API</span>
-              <span class="arch-node-sub">On-demand fetch</span>
-            </div>
-          </div>
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-firebase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><path d="M13 16l3-3-3-3"/><line x1="16" y1="13" x2="9" y2="13"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">Cloudflare Tunnel</span>
-              <span class="arch-node-sub">Self-hosted, public access</span>
-            </div>
-          </div>
-          <div class="arch-stage-item">
-            <div class="arch-node-icon n-browser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
-            <div class="arch-stage-text">
-              <span class="arch-node-label">Browser</span>
-              <span class="arch-node-sub">Vanilla JS &mdash; no framework</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-  </section>
-
-  <!-- Security Deep Dive -->
-  <section class="security-section">
-    <span class="section-label shield">Security</span>
-    <h2 class="section-title">Your data. Not ours.</h2>
-    <p class="section-sub">Here&rsquo;s what gets stored, where it lives, and why a full Firebase breach still can&rsquo;t touch your broker credentials.</p>
-
-    <!-- ── Diagram 1: Where your data lives ── -->
-    <div class="sec-diagram-card">
-      <h3 class="sec-diagram-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        Where does your data actually live?
-      </h3>
-      <p class="sec-diagram-desc">Your financial data and your broker credentials live in completely different places and never share a home.</p>
-
-      <div class="sec-split-diagram">
-        <!-- Google Sheets side -->
-        <div class="sec-split-box sec-box-sheets">
-          <div class="sec-box-header">
-            <span class="sec-box-icon sheets">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            </span>
-            <div>
-              <strong>Google Sheets</strong>
-              <span class="sec-box-location">Your Google Drive</span>
-            </div>
-          </div>
-          <ul class="sec-box-items">
-            <li><span class="sec-item-dot green"></span>Stock &amp; MF holdings</li>
-            <li><span class="sec-item-dot green"></span>Physical gold records</li>
-            <li><span class="sec-item-dot green"></span>Fixed deposits &amp; SIPs</li>
-            <li><span class="sec-item-dot green"></span>Transaction history</li>
-          </ul>
-          <div class="sec-box-badge green">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="20 6 9 17 4 12"/></svg>
-            You own this
-          </div>
-        </div>
-
-        <!-- Arrow between -->
-        <div class="sec-split-arrow">
-          <div class="sec-split-arrow-line"></div>
-          <span class="sec-split-arrow-label">Separated</span>
-          <div class="sec-split-arrow-line"></div>
-        </div>
-
-        <!-- Firebase side -->
-        <div class="sec-split-box sec-box-firebase">
-          <div class="sec-box-header">
-            <span class="sec-box-icon firebase">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </span>
-            <div>
-              <strong>Firebase</strong>
-              <span class="sec-box-location">Google Cloud</span>
-            </div>
-          </div>
-          <ul class="sec-box-items">
-            <li><span class="sec-item-dot amber"></span>Your name &amp; email (login)</li>
-            <li><span class="sec-item-dot red"></span>Broker API keys <span class="sec-encrypted-tag">encrypted</span></li>
-            <li><span class="sec-item-dot red"></span>Google OAuth tokens <span class="sec-encrypted-tag">encrypted</span></li>
-            <li><span class="sec-item-dot amber"></span>PIN verification sentinel</li>
-          </ul>
-          <div class="sec-box-badge amber">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            All sensitive data encrypted at rest
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Diagram 2: How encryption works ── -->
-    <div class="sec-diagram-card">
-      <h3 class="sec-diagram-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        How does encryption protect you?
-      </h3>
-      <p class="sec-diagram-desc">Two layers of encryption. Your broker credentials need <em>both</em> a server secret <em>and</em> your personal PIN to decrypt. Either one alone gets you nothing.</p>
-
-      <!-- Encryption flow diagram -->
-      <div class="sec-flow">
-        <!-- Tier 1 -->
-        <div class="sec-flow-tier">
-          <div class="sec-tier-label">Broker Credentials (API keys &amp; secrets)</div>
-          <div class="sec-flow-row">
-            <div class="sec-flow-node sec-node-input">
-              <span class="sec-flow-node-icon cloud">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              </span>
-              <span class="sec-flow-node-name">Server Secret</span>
-            </div>
-            <div class="sec-flow-plus">+</div>
-            <div class="sec-flow-node sec-node-input">
-              <span class="sec-flow-node-icon pin">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
-              </span>
-              <span class="sec-flow-node-name">Your PIN</span>
-              <span class="sec-flow-node-sub">Only in your head<br>Never stored</span>
-            </div>
-            <div class="sec-flow-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-            </div>
-            <div class="sec-flow-node sec-node-process">
-              <span class="sec-flow-node-icon hash">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
-              </span>
-              <span class="sec-flow-node-name">HMAC&#8209;SHA256</span>
-              <span class="sec-flow-node-sub">Combined into one<br>unique key</span>
-            </div>
-            <div class="sec-flow-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-            </div>
-            <div class="sec-flow-node sec-node-output">
-              <span class="sec-flow-node-icon lock">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              </span>
-              <span class="sec-flow-node-name">Fernet Encrypted</span>
-              <span class="sec-flow-node-sub">Stored in Firebase<br>Unreadable gibberish</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="sec-flow-divider"></div>
-
-        <!-- Tier 2 -->
-        <div class="sec-flow-tier">
-          <div class="sec-tier-label">Google Login Tokens</div>
-          <div class="sec-flow-row">
-            <div class="sec-flow-node sec-node-input">
-              <span class="sec-flow-node-icon cloud">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              </span>
-              <span class="sec-flow-node-name">Flask Secret</span>
-            </div>
-            <div class="sec-flow-arrow" style="margin-left:0">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-            </div>
-            <div class="sec-flow-node sec-node-process">
-              <span class="sec-flow-node-icon hash">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
-              </span>
-              <span class="sec-flow-node-name">SHA&#8209;256</span>
-              <span class="sec-flow-node-sub">Hashed into<br>encryption key</span>
-            </div>
-            <div class="sec-flow-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-            </div>
-            <div class="sec-flow-node sec-node-output">
-              <span class="sec-flow-node-icon lock">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              </span>
-              <span class="sec-flow-node-name">Fernet Encrypted</span>
-              <span class="sec-flow-node-sub">Stored in Firebase<br>Unreadable gibberish</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- What-if callout -->
-      <div class="sec-callout">
-        <div class="sec-callout-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </div>
-        <div class="sec-callout-body">
-          <strong>What if Firebase gets breached?</strong>
-          <p>An attacker with the entire Firebase database <em>and</em> the server secret <strong>still cannot read your broker credentials.</strong> They&rsquo;d also need your 6-character PIN &mdash; which is never stored anywhere. Not in the database, not on the server, not in logs. It exists only in your head.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Detailed Security Features ── -->
-    <div class="sec-features">
-      <div class="sec-feature-card">
-        <div class="sec-feature-icon rate-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <h4>Brute-force protection</h4>
-        <p>Three wrong PINs and you&rsquo;re locked out for 15 minutes. Keep guessing and that climbs to 1 hour, then 4. The rate limiter runs server-side, so clearing your browser won&rsquo;t save you.</p>
-      </div>
-      <div class="sec-feature-card">
-        <div class="sec-feature-icon oss-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.43 9.8 8.21 11.39.6.11.79-.26.79-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.41-4.04-1.41-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.08-.73.08-.73 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.63-5.48 5.92.42.36.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.18.7.8.58C20.57 21.8 24 17.31 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        </div>
-        <h4>100% open source. Read it yourself.</h4>
-        <p>Every line of code is on <a href="https://github.com/thecoducer/metron" target="_blank" rel="noopener">GitHub</a>. Don&rsquo;t take our word for it &mdash; read the code, or paste it into ChatGPT / Claude and ask &ldquo;is this safe?&rdquo; Open source is the only honest security policy.</p>
-      </div>
-    </div>
-
-    <!-- ── The Big Picture Callout ── -->
-    <div class="sec-summary">
-      <div class="sec-summary-cols">
-        <div class="sec-summary-item">
-          <div class="sec-summary-num">2</div>
-          <div class="sec-summary-text">
-            <strong>Layers of encryption</strong>
-            <span>PIN-based for broker keys, server-key for OAuth tokens</span>
-          </div>
-        </div>
-        <div class="sec-summary-divider"></div>
-        <div class="sec-summary-item">
-          <div class="sec-summary-num">0</div>
-          <div class="sec-summary-text">
-            <strong>Credentials stored in plain text</strong>
-            <span>Everything sensitive is encrypted before it touches the database</span>
-          </div>
-        </div>
-        <div class="sec-summary-divider"></div>
-        <div class="sec-summary-item">
-          <div class="sec-summary-num">0</div>
-          <div class="sec-summary-text">
-            <strong>Access to your portfolio data</strong>
-            <span>Financial data lives in your Drive. We can&rsquo;t see it. Period.</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Bottom CTA -->
-  <div class="cta-banner">
-    <h2>Portfolio scattered across tabs?</h2>
-    <p>Sign in, connect your broker, and see the full picture in one place.</p>
-    <div class="cta-group">
-      <a href="/api/auth/google/login" class="btn-primary">
-        <svg viewBox="0 0 48 48" width="20" height="20">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-          <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/>
-          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        </svg>
-        Get started
-      </a>
-      <a href="https://github.com/thecoducer/metron" target="_blank" rel="noopener" class="btn-secondary">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.43 9.8 8.21 11.39.6.11.79-.26.79-.58 0-.29-.01-1.24-.02-2.25-3.34.73-4.04-1.41-4.04-1.41-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.08-.73.08-.73 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.63-5.48 5.92.42.36.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.18.7.8.58C20.57 21.8 24 17.31 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        Star on GitHub
-      </a>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-legal-links">
-      <a href="/privacy">Privacy Policy</a>
-      <span class="footer-dot"></span>
-      <a href="/terms">Terms &amp; Conditions</a>
-      <span class="footer-dot"></span>
-      <a href="/contact">Contact Us</a>
-    </div>
-    <div class="made-with-love">
-      <p>Made with <span class="heart">&hearts;</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a></p>
-    </div>
-  </footer>
-
-</div>
-
-<link rel="stylesheet" href="/static/css/pwa-install.css">
-<script src="/static/js/pwa-install.js"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
-</body>
+        <link rel="stylesheet" href="/static/css/pwa-install.css">
+        <script src="/static/js/pwa-install.js"></script>
+        <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
+    </body>
 </html>

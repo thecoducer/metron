@@ -377,7 +377,9 @@ class MarketDataClient:
     # Batch quote fetching via Yahoo Finance (concurrent)
     # ------------------------------------------------------------------
 
-    def fetch_stock_quotes(self, symbols: list, timeout: int = None, cancel: threading.Event | None = None) -> dict:
+    def fetch_stock_quotes(
+        self, symbols: list, timeout: int | None = None, cancel: threading.Event | None = None
+    ) -> dict:
         """Fetch quotes for multiple symbols concurrently via Yahoo Finance.
 
         Uses a thread pool to fetch quotes in parallel. Each individual

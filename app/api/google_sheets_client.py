@@ -50,8 +50,8 @@ class GoogleSheetsClient:
             raise ValueError("user_credentials is required")
 
         self._user_credentials = user_credentials
-        self.credentials = None
-        self.service = None
+        self.credentials: Any | None = None
+        self.service: Any | None = None
         self._is_authenticated = False
 
     def authenticate(self) -> bool:
@@ -89,6 +89,7 @@ class GoogleSheetsClient:
 
     def _fetch_sheet_data_impl(self, spreadsheet_id: str, range_name: str) -> list[list[Any]]:
         """Execute the Sheets API values.get call and return raw row data."""
+        assert self.service is not None
         try:
             result = (
                 self.service.spreadsheets()
@@ -147,6 +148,7 @@ class GoogleSheetsClient:
 
     def _batch_fetch_impl(self, spreadsheet_id: str, ranges: list[str]) -> dict[str, list[list[Any]]]:
         """Execute the Sheets API values.batchGet call and key results by input range."""
+        assert self.service is not None
         try:
             result = (
                 self.service.spreadsheets()
@@ -239,6 +241,7 @@ class GoogleSheetsClient:
         Returns the 1-based row number of the newly appended row.
         """
         self.authenticate()
+        assert self.service is not None
         try:
             result = (
                 self.service.spreadsheets()
@@ -267,6 +270,7 @@ class GoogleSheetsClient:
     def update_row(self, spreadsheet_id: str, sheet_name: str, row_number: int, values: list[Any]) -> None:
         """Overwrite a specific row (1-based) with new values."""
         self.authenticate()
+        assert self.service is not None
         col_end = chr(ord("A") + len(values) - 1)
         range_str = f"{sheet_name}!A{row_number}:{col_end}{row_number}"
         try:
@@ -284,6 +288,7 @@ class GoogleSheetsClient:
     def delete_row(self, spreadsheet_id: str, sheet_name: str, row_number: int) -> None:
         """Delete a specific row (1-based) from a sheet."""
         self.authenticate()
+        assert self.service is not None
         # Need the internal sheetId for batchUpdate
         sheet_id = self._get_sheet_id(spreadsheet_id, sheet_name)
         try:
@@ -314,6 +319,7 @@ class GoogleSheetsClient:
         if not rows:
             return
         self.authenticate()
+        assert self.service is not None
         try:
             self.service.spreadsheets().values().append(
                 spreadsheetId=spreadsheet_id,
@@ -335,6 +341,7 @@ class GoogleSheetsClient:
         if not updates:
             return
         self.authenticate()
+        assert self.service is not None
         data = []
         for row_number, values in updates:
             col_end = chr(ord("A") + len(values) - 1)
@@ -362,6 +369,7 @@ class GoogleSheetsClient:
         if not row_numbers:
             return
         self.authenticate()
+        assert self.service is not None
         sheet_id = self._get_sheet_id(spreadsheet_id, sheet_name)
         requests = [
             {
@@ -388,6 +396,7 @@ class GoogleSheetsClient:
 
     def _get_sheet_id(self, spreadsheet_id: str, sheet_name: str) -> int:
         """Return the internal numeric sheetId for a named tab."""
+        assert self.service is not None
         meta = (
             self.service.spreadsheets()
             .get(
@@ -409,6 +418,7 @@ class GoogleSheetsClient:
         single ``batchGet`` call.  Missing tabs are created individually.
         """
         self.authenticate()
+        assert self.service is not None
         try:
             meta = (
                 self.service.spreadsheets()
@@ -463,6 +473,7 @@ class GoogleSheetsClient:
         If the tab exists but has fewer headers than expected, update the
         header row so new columns are visible to the user."""
         self.authenticate()
+        assert self.service is not None
         try:
             meta = (
                 self.service.spreadsheets()

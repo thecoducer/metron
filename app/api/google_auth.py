@@ -6,6 +6,7 @@ to create/read spreadsheets in *their* Google Drive.
 """
 
 import os
+from pathlib import Path
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -23,10 +24,8 @@ USER_SCOPES = [
 ]
 
 
-_LOCAL_CLIENT_SECRETS = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-    "config",
-    "google-oauth-credentials.json",
+_LOCAL_CLIENT_SECRETS = (
+    Path(__file__).resolve().parent.parent.parent / "config" / "google-oauth-credentials.json"
 )
 
 
@@ -94,7 +93,7 @@ def exchange_code_for_credentials(code: str, redirect_uri: str) -> Credentials:
     # unchecked optional scopes on the consent screen).
     os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
     flow.fetch_token(code=code)
-    return flow.credentials
+    return flow.credentials  # type: ignore[return-value]
 
 
 def credentials_from_dict(data: dict) -> Credentials:

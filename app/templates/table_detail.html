@@ -1,92 +1,118 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>{{ table_title }} – Metron</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/styles.css">
-<link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
-<link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0f172a">
-</head>
-<body>
-<script>
+    <head>
+        <meta charset="utf-8">
+        <title>{{ table_title }} – Metron</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="/static/css/styles.css">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <link rel="manifest" href="/static/manifest.json">
+        <meta name="theme-color" content="#0f172a">
+    </head>
+    <body>
+        <script>
   (function() {
     var t = localStorage.getItem('theme');
     if (t === 'dark') document.body.classList.add('dark-theme');
   })();
-</script>
-<div class="container">
-
-  <!-- Nav -->
-  <nav class="td-nav">
-    <a href="/" class="td-nav-brand">
-      <span class="td-nav-logo"></span>
-      <span class="td-nav-name">Metron</span>
-    </a>
-    <div class="td-nav-actions">
-      <button class="td-theme-toggle" onclick="(function(){var b=document.body,d=b.classList.toggle('dark-theme');localStorage.setItem('theme',d?'dark':'light')}())" aria-label="Toggle theme">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a href="/" class="td-nav-cta">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-        Dashboard
-      </a>
-    </div>
-  </nav>
-
-  <!-- Page title -->
-  <div class="table-detail-page-header">
-    <h2 class="table-detail-title">{{ table_title }}</h2>
-  </div>
-
-<div class="section-wrapper" id="detail-section">
-  <div class="section-header">
-    <div class="controls-container">
-      <div class="pagination-controls">
-        <label for="detail_page_size">Show:</label>
-        <select id="detail_page_size" onchange="window.changeDetailPageSize(this.value)">
-          <option value="10">10</option>
-          <option value="25" selected>25</option>
-          <option value="50">50</option>
-          <option value="100">All</option>
-        </select>
-      </div>
-    </div>
-  </div>
-<div class="table-scroll-wrapper">
-<!-- Table skeleton rendered dynamically by JS based on table_key -->
-<table id="detailTable" aria-label="{{ table_title }} detail table">
-<thead id="detailThead"></thead>
-<tbody id="detailTbody"></tbody>
-</table>
-</div>
-<div class="pagination-info" id="detail_pagination_info"></div>
-<div class="pagination-buttons" id="detail_pagination_buttons"></div>
-</div>
-
-<footer class="site-footer-dashboard">
-  <div class="footer-legal-links">
-    <a href="/privacy">Privacy Policy</a>
-    <span class="footer-dot"></span>
-    <a href="/terms">Terms &amp; Conditions</a>
-    <span class="footer-dot"></span>
-    <a href="/contact">Contact Us</a>
-  </div>
-  <div class="made-with-love">
-    <p>Made with <span class="heart">&hearts;</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a></p>
-  </div>
-</footer>
-</div>
-
-
-<script>
+        </script>
+        <div class="container">
+            <!-- Nav -->
+            <nav class="td-nav">
+                <a href="/" class="td-nav-brand">
+                    <span class="td-nav-logo"></span>
+                    <span class="td-nav-name">Metron</span>
+                </a>
+                <div class="td-nav-actions">
+                    <button class="td-theme-toggle"
+                            onclick="(function(){var b=document.body,d=b.classList.toggle('dark-theme');localStorage.setItem('theme',d?'dark':'light')}())"
+                            aria-label="Toggle theme">
+                        <svg class="sun"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                        </svg>
+                        <svg class="moon"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
+                    </button>
+                    <a href="/" class="td-nav-cta">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M19 12H5" />
+                            <path d="M12 19l-7-7 7-7" />
+                        </svg>
+                        Dashboard
+                    </a>
+                </div>
+            </nav>
+            <!-- Page title -->
+            <div class="table-detail-page-header">
+                <h2 class="table-detail-title">{{ table_title }}</h2>
+            </div>
+            <div class="section-wrapper" id="detail-section">
+                <div class="section-header">
+                    <div class="controls-container">
+                        <div class="pagination-controls">
+                            <label for="detail_page_size">Show:</label>
+                            <select id="detail_page_size"
+                                    onchange="window.changeDetailPageSize(this.value)">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">All</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-scroll-wrapper">
+                    <!-- Table skeleton rendered dynamically by JS based on table_key -->
+                    <table id="detailTable" aria-label="{{ table_title }} detail table">
+                        <thead id="detailThead">
+                        </thead>
+                        <tbody id="detailTbody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination-info" id="detail_pagination_info"></div>
+                <div class="pagination-buttons" id="detail_pagination_buttons"></div>
+            </div>
+            <footer class="site-footer-dashboard">
+                <div class="footer-legal-links">
+                    <a href="/privacy">Privacy Policy</a>
+                    <span class="footer-dot"></span>
+                    <a href="/terms">Terms &amp; Conditions</a>
+                    <span class="footer-dot"></span>
+                    <a href="/contact">Contact Us</a>
+                </div>
+                <div class="made-with-love">
+                    <p>
+                        Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
+                    </p>
+                </div>
+            </footer>
+        </div>
+        <script>
 window.metronFetch = function(url, options) {
   options = options || {};
   var h = new Headers(options.headers || {});
@@ -94,7 +120,7 @@ window.metronFetch = function(url, options) {
   return fetch(url, Object.assign({}, options, { headers: h }));
 };
 window.__TABLE_KEY__ = "{{ table_key }}";
-</script>
-<script type="module" src="/static/js/table-detail.js"></script>
-</body>
+        </script>
+        <script type="module" src="/static/js/table-detail.js"></script>
+    </body>
 </html>
