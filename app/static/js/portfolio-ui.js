@@ -613,6 +613,7 @@ function removeDrawerAccount(name) {
         if (e.key === 'Backspace' && !inp.value && i > 0) {
           inputs[i - 1].focus();
           inputs[i - 1].value = '';
+          inputs[i - 1].classList.remove('pin-digit-filled');
           updateSubmitState();
         }
         if (e.key === 'Enter') handlePinSubmit();
@@ -622,6 +623,7 @@ function removeDrawerAccount(name) {
         const paste = (e.clipboardData.getData('text') || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6);
         for (let j = 0; j < paste.length && (i + j) < inputs.length; j++) {
           inputs[i + j].value = paste[j];
+          inputs[i + j].classList.toggle('pin-digit-filled', !!paste[j]);
         }
         const nextEmpty = Array.from(inputs).findIndex(el => !el.value);
         if (nextEmpty >= 0) {

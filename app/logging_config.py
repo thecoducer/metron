@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 # Shared logger for the project. Modules can import this `logger` to avoid
@@ -14,12 +15,20 @@ class _UTCFormatter(logging.Formatter):
     converter = time.gmtime  # force UTC regardless of server timezone
 
 
-def configure(level: int = logging.INFO, fmt: str | None = None) -> None:
+def configure(level: int | None = None, fmt: str | None = None) -> None:
     """Configure root logging for the application.
 
     Call this once from the entry point (e.g., `server.main()`).
     All timestamps are emitted in UTC for consistency across deployments.
+
+    The log level is resolved in order: *level* argument → ``LOG_LEVEL``
+    environment variable → ``logging.INFO`` default.
     """
+    if level is None:
+        env_level = os.environ.get("LOG_LEVEL", "").upper()
+        level = getattr(logging, env_level, None) if env_level else None
+        if not isinstance(level, int):
+            level = logging.INFO
     if fmt is None:
         fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 

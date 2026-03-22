@@ -24,6 +24,9 @@ run_server/
 # Firebase
 .firebase/
 
+# ML model weights
+models/
+
 # Test coverage
 .coverage
 htmlcov/

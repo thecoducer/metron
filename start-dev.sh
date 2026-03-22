@@ -102,6 +102,7 @@ start_server() {
     echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
     cd "$SCRIPT_DIR"
     export METRON_UI_PORT=8000
+    export LOG_LEVEL=DEBUG
     uv run python3 main.py
 }
 

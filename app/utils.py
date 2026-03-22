@@ -353,6 +353,7 @@ class StateManager:
                 "manual_ltp_last_updated": None,
                 "sheets_state": None,
                 "sheets_last_updated": None,
+                "exposure_last_updated": None,
             }
             self._user_state[google_id] = state
             return state
@@ -439,6 +440,17 @@ class StateManager:
     def get_sheets_last_updated(self, google_id: str) -> Any:
         """Return epoch timestamp of the last sheets update."""
         return self._get_user_state(google_id).get("sheets_last_updated")
+
+    # Per-user exposure state
+
+    def set_exposure_updated(self, google_id: str) -> None:
+        """Record the current time as the exposure analysis completion timestamp."""
+        if google_id:
+            self._get_user_state(google_id)["exposure_last_updated"] = time.time()
+
+    def get_exposure_last_updated(self, google_id: str) -> Any:
+        """Return epoch timestamp of the last exposure analysis completion."""
+        return self._get_user_state(google_id).get("exposure_last_updated")
 
     # Global state (dynamic set_<type>_updating / set_<type>_updated)
 

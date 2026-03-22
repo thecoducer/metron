@@ -14,7 +14,13 @@ from datetime import datetime
 
 import requests
 
-from ..constants import MF_API_MAX_RETRIES, MF_API_RETRY_DELAY, MF_API_TIMEOUT, MF_API_URL, MF_HOLDINGS_URL_TEMPLATE
+from ..constants import (
+    COMPANY_HOLDINGS_URL_TEMPLATE,
+    MF_API_MAX_RETRIES,
+    MF_API_RETRY_DELAY,
+    MF_API_TIMEOUT,
+    MF_API_URL,
+)
 from ..logging_config import logger
 
 
@@ -63,7 +69,7 @@ class MFMarketCache:
                 isin=isin,
                 latest_nav=str(s.get("nav", "")),
                 nav_updated_date=str(s.get("date", "")),
-                holdings_url=MF_HOLDINGS_URL_TEMPLATE.format(isin=isin),
+                holdings_url=COMPANY_HOLDINGS_URL_TEMPLATE.format(isin=isin),
             )
             isin_map[isin] = info
             name_to_isin[name] = isin

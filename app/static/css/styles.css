@@ -198,8 +198,9 @@ header > div {
 
 .page-title-right {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .index-tickers {
@@ -2510,9 +2511,9 @@ table {
   table-layout: auto;
   border-collapse: collapse;
   background: #fff;
-  border-radius: 10px;
+  
   overflow: hidden;
-  border: 1px solid #e8e8e8;
+  
   margin: 0;
   box-shadow: none;
   position: relative;
@@ -3025,7 +3026,7 @@ body.dark-theme .nav-date-sub {
   }
 
   .page-title-right {
-    gap: 8px;
+    gap: 4px;
   }
 
   .overview-label {
@@ -8037,9 +8038,13 @@ body.dark-theme .pin-field-check.done {
   border: 2px solid rgba(0, 0, 0, 0.12);
   border-radius: 50%;
   outline: none;
-  transition: border-color .2s, box-shadow .2s, background .2s, color .2s;
+  transition: border-color .2s, box-shadow .2s, background .2s, color .2s, font-size .15s;
   caret-color: transparent;
-  line-height: 1;
+  line-height: 50px;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
 }
 
 .pin-digit:focus {
@@ -8047,11 +8052,13 @@ body.dark-theme .pin-field-check.done {
   box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Filled: solid dot */
+/* Filled: large centered dot */
 .pin-digit.pin-digit-filled {
-  background: #18181b;
-  border-color: #18181b;
+  background: rgba(0, 0, 0, 0.68);
+  border-color: rgba(0, 0, 0, 0.68);
   color: #fff;
+  font-size: 38px;
+  line-height: 50px;
 }
 
 body.dark-theme .pin-digit {
@@ -8066,9 +8073,11 @@ body.dark-theme .pin-digit:focus {
 }
 
 body.dark-theme .pin-digit.pin-digit-filled {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 0.82);
   color: #0a0a0a;
+  font-size: 38px;
+  line-height: 50px;
 }
 
 .pin-digit-sep {
@@ -8501,7 +8510,8 @@ body.dark-theme .pin-reset-confirm:hover:not(:disabled) {
 
 @media (max-width: 420px) {
   .pin-content { width: 340px; }
-  .pin-digit { width: 42px; height: 42px; font-size: 18px; }
+  .pin-digit { width: 42px; height: 42px; font-size: 18px; line-height: 42px; }
+  .pin-digit.pin-digit-filled { font-size: 32px; line-height: 42px; }
   .pin-input-row { gap: 7px; }
   .pin-field-group { margin-bottom: 16px; }
   .pin-reset-content { width: 340px; }

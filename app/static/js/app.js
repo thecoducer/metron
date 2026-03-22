@@ -75,12 +75,10 @@ class PortfolioApp {
   }
 
   _refreshRelativeStatusText() {
-    const statusText = document.getElementById('status_text');
-    if (!statusText) return;
     if (!this.lastStatus) return;
     const isUpdating = this._isStatusUpdating(this.lastStatus);
     if (isUpdating) return;
-    statusText.innerText = this._formatStatusUpdatedText();
+    this._refreshUI().setStatusTag('updated', this._formatStatusUpdatedText());
   }
 
   _startRelativeStatusUpdater() {
@@ -829,18 +827,15 @@ class PortfolioApp {
   _applyStatus(status) {
     this.lastStatus = status;
     const statusTag = document.getElementById('status_tag');
-    const statusText = document.getElementById('status_text');
     const isUpdating = this._isStatusUpdating(status);
 
-    statusTag.classList.toggle('updating', isUpdating);
-    statusTag.classList.toggle('updated', !isUpdating);
     statusTag.classList.toggle('market_closed', status.market_open === false);
 
     if (isUpdating) {
-      statusText.innerText = 'updating';
+      this._refreshUI().setStatusTag('updating', 'updating');
     } else {
       this.lastPortfolioUpdatedAt = status.portfolio_last_updated || null;
-      statusText.innerText = this._formatStatusUpdatedText();
+      this._refreshUI().setDoneWithText(this._formatStatusUpdatedText());
     }
 
     const unauthenticated = status.unauthenticated_accounts || [];
@@ -860,11 +855,7 @@ class PortfolioApp {
    * Set UI to "updating" state (status tag + refresh button).
    */
   _setUpdatingUI() {
-    const statusTag = document.getElementById('status_tag');
-    const statusText = document.getElementById('status_text');
-    statusTag.className = 'updating';
-    statusText.innerText = 'updating';
-    this._updateRefreshButton(true);
+    this._refreshUI().setUpdating();
   }
 
   _renderTablesAndSummary(hasData, status, isUpdating) {
@@ -1083,9 +1074,8 @@ class PortfolioApp {
       const respTimestamp = data.status?.portfolio_last_updated || null;
       if (respTimestamp) {
         this.lastPortfolioUpdatedAt = respTimestamp;
-        const statusText = document.getElementById('status_text');
-        if (statusText && !this._isStatusUpdating(this.lastStatus || {})) {
-          statusText.innerText = this._formatStatusUpdatedText();
+        if (!this._isStatusUpdating(this.lastStatus || {})) {
+          this._refreshUI().setDoneWithText(this._formatStatusUpdatedText());
         }
       }
     } catch (error) {
@@ -1213,15 +1203,15 @@ class PortfolioApp {
     }
   }
 
-  _updateRefreshButton(isUpdating) {
-    const btn = document.getElementById('refresh_btn');
-    if (isUpdating) {
-      btn.classList.add('loading');
-      btn.disabled = true;
-    } else {
-      btn.classList.remove('loading');
-      btn.disabled = false;
+  _refreshUI() {
+    if (!this._refreshUIInstance) {
+      this._refreshUIInstance = new RefreshUI('refresh_btn', 'status_tag', 'status_text');
     }
+    return this._refreshUIInstance;
+  }
+
+  _updateRefreshButton(isUpdating) {
+    this._refreshUI().setButtonLoading(isUpdating);
   }
 
   _escapeHtml(str) {

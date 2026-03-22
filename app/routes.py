@@ -25,6 +25,7 @@ from .services import (
     get_authenticated_accounts,
     get_user_accounts,
     session_manager,
+    state_manager,
 )
 from .utils import format_date_for_sheet, pin_rate_limiter
 
@@ -997,6 +998,150 @@ def all_data():
     return resp
 
 
+@app_ui.route("/api/exposure/data", methods=["GET"])
+@pin_required
+def exposure_data():
+    """Return company exposure analysis data for the signed-in user.
+
+    On cache miss the heavy analysis (holdings fetch, model inference)
+    runs in a background thread.  The endpoint returns 202 immediately
+    so the sync Gunicorn worker is free to serve other requests.  The
+    frontend polls until the result is ready.
+    """
+    from .api.exposure import ExposureResult, build_exposure_data, exposure_cache
+
+    user = _current_user()
+    google_id = user["google_id"]
+
+    # 1. Serve from cache if warm.
+    cached = exposure_cache.get(google_id)
+    if cached:
+        return _exposure_json_response(_serialise_exposure(cached))
+
+    # 2. If analysis is already running, tell the client to wait.
+    if exposure_cache.is_in_progress(google_id):
+        return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
+
+    # 3. Gather portfolio data (reads from in-memory caches, fast).
+    stocks_and_etfs = _build_stocks_data(user)
+    mf_data = _build_mf_data(user)
+
+    if not stocks_and_etfs and not mf_data:
+        payload = {"has_data": False, "companies": [], "sector_totals": {}, "total_portfolio_value": 0}
+        return _exposure_json_response(payload)
+
+    # 4. Kick off the heavy analysis in a background thread.
+    exposure_cache.set_in_progress(google_id)
+
+    def _run_analysis() -> None:
+        try:
+            result: ExposureResult | None = build_exposure_data(google_id, stocks_and_etfs, mf_data)
+            if result is not None:
+                # Set timestamp before putting in cache so the next poll
+                # that returns 200 already sees a non-null exposure_last_updated.
+                state_manager.set_exposure_updated(google_id)
+                exposure_cache.put(google_id, result)
+        except Exception as exc:
+            logger.exception("Exposure analysis failed for user=%s: %s", google_id[:8], exc)
+        finally:
+            exposure_cache.clear_in_progress(google_id)
+
+    threading.Thread(
+        target=_run_analysis,
+        name=f"ExposureAnalysis-{google_id[:8]}",
+        daemon=True,
+    ).start()
+
+    return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
+
+
+@app_ui.route("/api/exposure/refresh", methods=["POST"])
+@pin_required
+def exposure_refresh():
+    """Invalidate the exposure cache and re-trigger analysis.
+
+    Returns 202 (analysis started) or 409 (already in progress).
+    """
+    from .api.exposure import ExposureResult, build_exposure_data, exposure_cache
+
+    user = _current_user()
+    google_id = user["google_id"]
+
+    if exposure_cache.is_in_progress(google_id):
+        return _exposure_json_response({"status": "processing"}), HTTP_CONFLICT
+
+    exposure_cache.invalidate(google_id)
+
+    stocks_and_etfs = _build_stocks_data(user)
+    mf_data = _build_mf_data(user)
+
+    if not stocks_and_etfs and not mf_data:
+        payload = {
+            "has_data": False,
+            "companies": [],
+            "sector_totals": {},
+            "total_portfolio_value": 0,
+        }
+        return _exposure_json_response(payload)
+
+    exposure_cache.set_in_progress(google_id)
+
+    def _run_analysis() -> None:
+        try:
+            result: ExposureResult | None = build_exposure_data(
+                google_id,
+                stocks_and_etfs,
+                mf_data,
+            )
+            if result is not None:
+                state_manager.set_exposure_updated(google_id)
+                exposure_cache.put(google_id, result)
+        except Exception as exc:
+            logger.exception(
+                "Exposure refresh failed for user=%s: %s",
+                google_id[:8],
+                exc,
+            )
+        finally:
+            exposure_cache.clear_in_progress(google_id)
+
+    threading.Thread(
+        target=_run_analysis,
+        name=f"ExposureRefresh-{google_id[:8]}",
+        daemon=True,
+    ).start()
+
+    return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
+
+
+def _exposure_json_response(data: dict) -> Response:
+    """JSON response for exposure endpoints with no-cache headers."""
+    resp = jsonify(data)
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+def _serialise_exposure(result) -> dict:
+    """Convert an ExposureResult to a JSON-serialisable dict."""
+    return {
+        "has_data": True,
+        "total_portfolio_value": result.total_portfolio_value,
+        "sector_totals": result.sector_totals,
+        "fund_totals": result.fund_totals,
+        "companies": [
+            {
+                "company_name": c.company_name,
+                "instrument_type": c.instrument_type,
+                "sector": c.sector or "Unknown",
+                "holding_amount": round(c.holding_amount, 2),
+                "percentage_of_portfolio": round(c.percentage_of_portfolio, 4),
+                "funds": c.funds,
+            }
+            for c in result.companies
+        ],
+    }
+
+
 @app_ui.route("/api/fd_summary_data", methods=["GET"])
 @pin_required
 def fd_summary_data():
@@ -1183,6 +1328,47 @@ def nifty50_page():
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+@app_ui.route("/exposure", methods=["GET"])
+@login_required
+def exposure_page():
+    """Serve the company exposure analysis dashboard.
+
+    Requires PIN verification to access data — the PIN overlay is shown
+    when the user has not yet verified their PIN in this session.
+    """
+    user = _current_user()
+    if not user:
+        return redirect("/")
+
+    google_id = user.get("google_id", "")
+    pin_verified = session.get("pin_verified", False)
+
+    # Stale session guard: clear pin_verified when in-memory PIN is gone
+    # (e.g. after a server restart).
+    if pin_verified and not session_manager.get_pin(google_id):
+        logger.info("exposure_page: stale pin_verified — clearing")
+        session["pin_verified"] = False
+        session.modified = True
+        pin_verified = False
+
+    from .firebase_store import has_pin as _has_pin
+
+    user_has_pin = _has_pin(google_id)
+
+    logger.info(
+        "exposure_page: pin_verified=%s has_pin=%s",
+        pin_verified,
+        user_has_pin,
+    )
+
+    return render_template(
+        "exposure.html",
+        user=user,
+        pin_verified=pin_verified,
+        has_pin=user_has_pin,
+    )
 
 
 @app_ui.route("/privacy", methods=["GET"])

@@ -18,6 +18,7 @@ dependencies = [
     "google-api-python-client==2.108.0",
     "firebase-admin==6.4.0",
     "apscheduler>=3.11.2",
+    "sentence-transformers>=5.0.0",
 ]
 
 [dependency-groups]

@@ -32,6 +32,7 @@ HTTP_CONFLICT = 409
 
 # API client timeouts and rate-limiting (seconds)
 NSE_REQUEST_TIMEOUT = 10
+NSE_EQUITY_TIMEOUT = 30  # seconds — full equity list CSV (~2 MB)
 GOOGLE_SHEETS_TIMEOUT = 20
 IBJA_GOLD_PRICE_TIMEOUT = 20
 
@@ -83,12 +84,38 @@ BROKER_SYNC_LOCKS_MAX = 500
 
 # External service URLs
 NSE_BASE_URL = "https://www.nseindia.com"
+NSE_EQUITY_CSV_URL = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
 IBJA_BASE_URL = "https://ibjarates.com/"
 YF_BASE_URL = "https://query1.finance.yahoo.com"
 
+# Company exposure analysis
+MAX_EXPOSURE_CACHE_USERS = 200
+HOLDINGS_FETCH_TIMEOUT = 10  # seconds per holdings URL request
+HOLDINGS_FETCH_MAX_WORKERS = 10  # max concurrent holdings fetch threads
+SEMANTIC_MATCH_THRESHOLD = 0.75  # cosine similarity for SentenceTransformer entity clustering
+SENTENCE_TRANSFORMER_MODEL_PATH = "models/all-MiniLM-L6-v2"  # local model weights (no network calls)
+
+# Zero-shot company classification (BART-MNLI)
+BART_MNLI_MODEL_PATH = "models/bart-large-mnli"  # local model weights (~1.5 GB)
+COMPANY_CLASSIFICATION_THRESHOLD = 0.5  # min confidence to use model label over CDN sector
+
+# CDN row names that are cash/repo instruments, not equities — excluded from exposure.
+# Checked as upper-cased prefixes against the normalised company name.
+NON_EQUITY_CDN_PREFIXES: tuple[str, ...] = (
+    "TREPS",
+    "CBLO",
+    "NET RECEIV",
+    "NET CURRENT",
+    "CASH AND CASH",
+    "CASH & CASH",
+    "REVERSE REPO",
+    "TRI PARTY REPO",
+    "TRIPARTY REPO",
+)
+
 # Mutual fund market data (mfapi.in)
 MF_API_URL = "https://api.mfapi.in/mf/latest"
-MF_HOLDINGS_URL_TEMPLATE = "https://staticassets.zerodha.com/coin/scheme-portfolio/{isin}.json"
+COMPANY_HOLDINGS_URL_TEMPLATE = "https://staticassets.zerodha.com/coin/scheme-portfolio/{isin}.json"
 MF_API_TIMEOUT = 90  # seconds — the response is large (~4 MB)
 MF_API_MAX_RETRIES = 3  # retry attempts on transient failures
 MF_API_RETRY_DELAY = 5  # base delay in seconds (exponential backoff: 5s, 10s)

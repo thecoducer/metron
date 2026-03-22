@@ -22,10 +22,12 @@ _scheduler: BackgroundScheduler | None = None
 
 
 def _run_market_data_fetch() -> None:
-    """Cron task: fetch and cache market data."""
+    """Cron task: fetch and cache MF market data and NSE equity master."""
     from .api.mf_market_data import fetch_and_cache_market_data
+    from .api.nse_equity import fetch_and_cache_nse_equity
 
     fetch_and_cache_market_data()
+    fetch_and_cache_nse_equity()
 
 
 def start_scheduler() -> None:
