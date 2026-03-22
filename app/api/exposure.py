@@ -587,9 +587,7 @@ def build_exposure_data(
                 classifier = get_company_classifier()
                 classifications = classifier.classify_batch(needs_classification, labels=all_labels)
             except Exception as exc:
-                logger.warning(
-                    "Classification unavailable, using CDN sectors only: %s", exc
-                )
+                logger.warning("Classification unavailable, using CDN sectors only: %s", exc)
 
     logger.info(
         "⏱ Classification: %.1fs (%d classified, %d used CDN sector)",

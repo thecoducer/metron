@@ -24,9 +24,7 @@ USER_SCOPES = [
 ]
 
 
-_LOCAL_CLIENT_SECRETS = (
-    Path(__file__).resolve().parent.parent.parent / "config" / "google-oauth-credentials.json"
-)
+_LOCAL_CLIENT_SECRETS = Path(__file__).resolve().parent.parent.parent / "config" / "google-oauth-credentials.json"
 
 
 def _get_client_config() -> dict:
