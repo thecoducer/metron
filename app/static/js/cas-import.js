@@ -183,7 +183,7 @@
   // ── Verification Modal ──
   function openVerificationModal(data, account) {
     // Close settings drawer
-    if (typeof closeSettingsDrawer === 'function') closeSettingsDrawer();
+    if (typeof window.closeSettingsDrawer === 'function') window.closeSettingsDrawer();
 
     modalInfo.innerHTML =
       '<div class="cas-info-row">' +

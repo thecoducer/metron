@@ -64,7 +64,7 @@ class PaginationManager {
 
     // Page number buttons
     let startPage = Math.max(1, currentPage - Math.floor(maxPageButtons / 2));
-    let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+    const endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
     
     if (endPage - startPage < maxPageButtons - 1) {
       startPage = Math.max(1, endPage - maxPageButtons + 1);

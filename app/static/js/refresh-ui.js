@@ -12,7 +12,7 @@
  *   ui.setError();           // button stops, tag hidden
  */
 
-// eslint-disable-next-line no-unused-vars
+ 
 function RefreshUI(btnId, tagId, textId) {
   this.btnId = btnId;
   this.tagId = tagId;
@@ -20,7 +20,7 @@ function RefreshUI(btnId, tagId, textId) {
 }
 
 RefreshUI.prototype.setButtonLoading = function(loading) {
-  var btn = document.getElementById(this.btnId);
+  const btn = document.getElementById(this.btnId);
   if (!btn) return;
   if (loading) {
     btn.disabled = true;
@@ -32,8 +32,8 @@ RefreshUI.prototype.setButtonLoading = function(loading) {
 };
 
 RefreshUI.prototype.setStatusTag = function(state, text) {
-  var tag = document.getElementById(this.tagId);
-  var textEl = document.getElementById(this.textId);
+  const tag = document.getElementById(this.tagId);
+  const textEl = document.getElementById(this.textId);
   if (!tag) return;
   tag.style.display = 'inline-flex';
   // Toggle state classes without wiping base classes
@@ -43,7 +43,7 @@ RefreshUI.prototype.setStatusTag = function(state, text) {
 };
 
 RefreshUI.prototype.hideStatusTag = function() {
-  var tag = document.getElementById(this.tagId);
+  const tag = document.getElementById(this.tagId);
   if (tag) tag.style.display = 'none';
 };
 

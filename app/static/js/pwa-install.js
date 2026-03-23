@@ -51,12 +51,12 @@
     if (document.getElementById('pwa-install-banner')) return;
 
     // Build the banner
-    var banner = document.createElement('div');
+    const banner = document.createElement('div');
     banner.id = 'pwa-install-banner';
     banner.setAttribute('role', 'dialog');
     banner.setAttribute('aria-label', 'Install Metron app');
 
-    var isIOSPrompt = isIOS && !deferredPrompt;
+    const isIOSPrompt = isIOS && !deferredPrompt;
 
     banner.innerHTML =
       '<div class="pwa-backdrop"></div>' +
@@ -93,8 +93,8 @@
     });
 
     // Close handler
-    var closeBtn = document.getElementById('pwaClose');
-    var backdrop = banner.querySelector('.pwa-backdrop');
+    const closeBtn = document.getElementById('pwaClose');
+    const backdrop = banner.querySelector('.pwa-backdrop');
     function dismiss() {
       banner.classList.remove('pwa-visible');
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
@@ -104,7 +104,7 @@
     backdrop.addEventListener('click', dismiss);
 
     // Install handler (Chrome/Edge)
-    var installBtn = document.getElementById('pwaInstall');
+    const installBtn = document.getElementById('pwaInstall');
     if (installBtn && deferredPrompt) {
       installBtn.addEventListener('click', function () {
         deferredPrompt.prompt();
@@ -121,7 +121,7 @@
 
   // Hide banner if user installs via browser UI
   window.addEventListener('appinstalled', function () {
-    var banner = document.getElementById('pwa-install-banner');
+    const banner = document.getElementById('pwa-install-banner');
     if (banner) {
       banner.classList.remove('pwa-visible');
       setTimeout(function () { banner.remove(); }, 350);

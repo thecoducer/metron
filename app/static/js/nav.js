@@ -1,9 +1,9 @@
 // Shared navigation utilities (loaded by both portfolio and nifty50 pages)
 
 function openNavDrawer() {
-  var drawer = document.getElementById('navDrawer');
-  var backdrop = document.getElementById('navDrawerBackdrop');
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  const drawer = document.getElementById('navDrawer');
+  const backdrop = document.getElementById('navDrawerBackdrop');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
   if (!drawer || !backdrop) return;
   drawer.classList.add('open');
   backdrop.classList.add('open');
@@ -12,9 +12,9 @@ function openNavDrawer() {
 }
 
 function closeNavDrawer() {
-  var drawer = document.getElementById('navDrawer');
-  var backdrop = document.getElementById('navDrawerBackdrop');
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  const drawer = document.getElementById('navDrawer');
+  const backdrop = document.getElementById('navDrawerBackdrop');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
   if (!drawer || !backdrop) return;
   drawer.classList.remove('open');
   backdrop.classList.remove('open');
@@ -24,8 +24,8 @@ function closeNavDrawer() {
 
 // Close user dropdown when clicking outside
 document.addEventListener('click', function(event) {
-  var dropdown = document.getElementById('userDropdown');
-  var avatarBtn = document.getElementById('userAvatarBtn');
+  const dropdown = document.getElementById('userDropdown');
+  const avatarBtn = document.getElementById('userAvatarBtn');
   if (dropdown && avatarBtn && !avatarBtn.contains(event.target) && !dropdown.contains(event.target)) {
     dropdown.classList.remove('open');
   }
@@ -40,20 +40,20 @@ document.addEventListener('keydown', function(event) {
 
 document.addEventListener('DOMContentLoaded', function() {
   // Nav drawer backdrop click
-  var backdrop = document.getElementById('navDrawerBackdrop');
+  const backdrop = document.getElementById('navDrawerBackdrop');
   if (backdrop) {
     backdrop.addEventListener('click', closeNavDrawer);
   }
 
   // Nav drawer close button
-  var closeBtn = document.getElementById('navDrawerClose');
+  const closeBtn = document.getElementById('navDrawerClose');
   if (closeBtn) {
     closeBtn.addEventListener('click', closeNavDrawer);
   }
 
   // User avatar dropdown toggle
-  var avatarBtn = document.getElementById('userAvatarBtn');
-  var dropdown = document.getElementById('userDropdown');
+  const avatarBtn = document.getElementById('userAvatarBtn');
+  const dropdown = document.getElementById('userDropdown');
   if (avatarBtn && dropdown) {
     avatarBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Hamburger opens nav drawer
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
   if (hamburgerBtn) {
     hamburgerBtn.addEventListener('click', function(e) {
       e.stopPropagation();

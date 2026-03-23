@@ -4,8 +4,8 @@
 
   // ─── Utilities ────────────────────────────────────────────────
 
-  var privacyMode = localStorage.getItem('metron_privacy') === '1';
-  var compactMode = localStorage.getItem('metron_compact') === '1';
+  const privacyMode = localStorage.getItem('metron_privacy') === '1';
+  const compactMode = localStorage.getItem('metron_compact') === '1';
 
   function formatAmount(v) {
     if (privacyMode) return '••••';
@@ -24,12 +24,12 @@
   // ─── Chart helpers ────────────────────────────────────────────
 
   // Generate visually distinct colors using golden-angle hue spacing.
-  var GOLDEN_ANGLE = 137.508;
+  const GOLDEN_ANGLE = 137.508;
   function chartColor(index) {
-    var hue = (index * GOLDEN_ANGLE) % 360;
-    var dark = isDark();
-    var sat = dark ? '55%' : '58%';
-    var lum = dark ? '62%' : '56%';
+    const hue = (index * GOLDEN_ANGLE) % 360;
+    const dark = isDark();
+    const sat = dark ? '55%' : '58%';
+    const lum = dark ? '62%' : '56%';
     return 'hsl(' + hue + ',' + sat + ',' + lum + ')';
   }
 
@@ -39,8 +39,8 @@
 
   // ─── D3 Bar Chart Race ────────────────────────────────────────
 
-  var _raceData = null;
-  var _raceResizeTimer = null;
+  let _raceData = null;
+  let _raceResizeTimer = null;
 
   function buildTopCompaniesChart(companies) {
     _raceData = companies.slice(0, 10);
@@ -48,17 +48,17 @@
   }
 
   function _drawRaceChart(top10) {
-    var container = document.getElementById('topCompaniesChart');
+    const container = document.getElementById('topCompaniesChart');
     if (!container || !top10 || !top10.length) return;
     container.innerHTML = '';
 
-    var data = top10.slice(0, 10);
-    var maxVal = data[0].holding_amount;
+    const data = top10.slice(0, 10);
+    const maxVal = data[0].holding_amount;
 
     // Scale bars to 85% max so rank #1 always has room for its stats text
     container.innerHTML = data.map(function(d, i) {
-      var barPct = (d.holding_amount / maxVal * 85).toFixed(2);
-      var color = chartColor(i);
+      const barPct = (d.holding_amount / maxVal * 85).toFixed(2);
+      const color = chartColor(i);
       return (
         '<div class="rc-row">' +
           '<span class="rc-name" title="' + d.company_name + '">' + d.company_name + '</span>' +
@@ -101,21 +101,21 @@
     if (_raceData) _drawRaceChart(_raceData);
   }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-  var SECTOR_PREVIEW_LIMIT = 20;
-  var allSectorEntries = [];
+  const SECTOR_PREVIEW_LIMIT = 20;
+  let allSectorEntries = [];
 
   function initSectorEntries(sectorTotals) {
     allSectorEntries = Object.entries(sectorTotals).sort(function(a, b) { return b[1] - a[1]; });
   }
 
   function buildSectorBars(sectorTotals, totalPortfolioValue) {
-    var entries = Object.entries(sectorTotals).sort(function(a, b) { return b[1] - a[1]; });
-    var top = entries.slice(0, SECTOR_PREVIEW_LIMIT);
-    var container = document.getElementById('sectorBars');
-    var maxVal = entries.length ? entries[0][1] : 1;
+    const entries = Object.entries(sectorTotals).sort(function(a, b) { return b[1] - a[1]; });
+    const top = entries.slice(0, SECTOR_PREVIEW_LIMIT);
+    const container = document.getElementById('sectorBars');
+    const maxVal = entries.length ? entries[0][1] : 1;
     container.innerHTML = top.map(function(e, i) {
-      var pct = totalPortfolioValue > 0 ? (e[1] / totalPortfolioValue * 100) : 0;
-      var barWidth = (e[1] / maxVal * 100).toFixed(1);
+      const pct = totalPortfolioValue > 0 ? (e[1] / totalPortfolioValue * 100) : 0;
+      const barWidth = (e[1] / maxVal * 100).toFixed(1);
       return '<div class="sector-bar-row">' +
         '<span class="sector-bar-label" title="' + e[0] + '">' + e[0] + '</span>' +
         '<div class="sector-bar-track"><div class="sector-bar-fill" style="width:' + barWidth + '%;background:' + chartColor(i) + '"></div></div>' +
@@ -124,7 +124,7 @@
     }).join('');
 
     if (entries.length > SECTOR_PREVIEW_LIMIT) {
-      var footer = document.getElementById('barsViewAllFooter');
+      const footer = document.getElementById('barsViewAllFooter');
       document.getElementById('barsViewAllCount').textContent = entries.length;
       footer.style.display = 'flex';
     }
@@ -133,11 +133,11 @@
   // ─── Sector modal ──────────────────────────────────────────────
 
   function openSectorModal() {
-    var total = allSectorEntries.reduce(function(s, e) { return s + e[1]; }, 0);
+    const total = allSectorEntries.reduce(function(s, e) { return s + e[1]; }, 0);
     document.getElementById('sectorModalTitle').textContent =
       'All Sectors (' + allSectorEntries.length + ')';
     document.getElementById('sectorModalBody').innerHTML = allSectorEntries.map(function(e) {
-      var pct = total > 0 ? (e[1] / total * 100).toFixed(1) : '0.0';
+      const pct = total > 0 ? (e[1] / total * 100).toFixed(1) : '0.0';
       return '<div class="sector-modal-row">' +
         '<span class="sector-modal-name" title="' + e[0] + '">' + e[0] + '</span>' +
         '<span class="sector-modal-value">' + formatAmount(e[1]) + '</span>' +
@@ -160,14 +160,14 @@
 
   // ─── Fund popup / modal ──────────────────────────────────
 
-  var MOBILE_BREAKPOINT = 768;
+  const MOBILE_BREAKPOINT = 768;
 
   function isMobileView() {
     return window.innerWidth <= MOBILE_BREAKPOINT;
   }
 
   // Create the fund modal overlay once
-  var fundModalOverlay = document.createElement('div');
+  const fundModalOverlay = document.createElement('div');
   fundModalOverlay.className = 'fund-modal-overlay';
   fundModalOverlay.id = 'fundModalOverlay';
   fundModalOverlay.innerHTML =
@@ -196,9 +196,9 @@
   }
 
   function openFundModal(funds) {
-    var body = document.getElementById('fundModalBody');
-    var tags = funds.map(function(f) {
-      var cls = f === 'Direct' ? 'fund-tag fund-tag--direct' : 'fund-tag';
+    const body = document.getElementById('fundModalBody');
+    const tags = funds.map(function(f) {
+      const cls = f === 'Direct' ? 'fund-tag fund-tag--direct' : 'fund-tag';
       return '<span class="' + cls + '">' + f + '</span>';
     }).join('');
     document.getElementById('fundModalTitle').textContent =
@@ -210,9 +210,9 @@
 
   // Desktop popup: position fixed near the button
   window.toggleFundPopup = function(btn) {
-    var popupId = btn.getAttribute('data-popup');
-    var fundsAttr = btn.getAttribute('data-funds');
-    var funds = fundsAttr ? JSON.parse(fundsAttr) : [];
+    const popupId = btn.getAttribute('data-popup');
+    const fundsAttr = btn.getAttribute('data-funds');
+    const funds = fundsAttr ? JSON.parse(fundsAttr) : [];
 
     // Mobile: use modal
     if (isMobileView()) {
@@ -220,7 +220,7 @@
       return;
     }
 
-    var popup = document.getElementById(popupId);
+    const popup = document.getElementById(popupId);
     if (!popup) return;
 
     // Close all other popups first
@@ -228,13 +228,13 @@
       if (p.id !== popupId) p.classList.remove('open');
     });
 
-    var isOpen = popup.classList.toggle('open');
+    const isOpen = popup.classList.toggle('open');
     if (isOpen) {
       // Position the popup near the button
-      var rect = btn.getBoundingClientRect();
-      var popupH = 260;
-      var spaceAbove = rect.top;
-      var spaceBelow = window.innerHeight - rect.bottom;
+      const rect = btn.getBoundingClientRect();
+      const popupH = 260;
+      const spaceAbove = rect.top;
+      const spaceBelow = window.innerHeight - rect.bottom;
 
       popup.style.left = '';
       popup.style.right = '';
@@ -249,7 +249,7 @@
       }
 
       // Horizontal: align right edge with button right
-      var rightEdge = window.innerWidth - rect.right;
+      const rightEdge = window.innerWidth - rect.right;
       popup.style.right = Math.max(rightEdge, 8) + 'px';
     }
   };
@@ -274,26 +274,26 @@
     document.getElementById('cardCompanyCount').textContent = data.companies.length;
     document.getElementById('cardSectorCount').textContent = Object.keys(data.sector_totals).length;
     if (data.companies.length > 0) {
-      var top = data.companies[0];
+      const top = data.companies[0];
       document.getElementById('cardTopHolding').textContent = formatPct(top.percentage_of_portfolio);
-      var name = top.company_name;
+      const name = top.company_name;
       document.getElementById('cardTopHoldingName').textContent = name.length > 22 ? name.substring(0,20) + '…' : name;
     }
   }
 
   // ─── Company Table ────────────────────────────────────────────
 
-  var allCompanies = [];
-  var filteredCompanies = [];
-  var currentPage = 0;
-  var PAGE_SIZE = 25;
-  var sortCol = 'holding_amount';
-  var sortDir = 'desc';
+  let allCompanies = [];
+  let filteredCompanies = [];
+  let currentPage = 0;
+  const PAGE_SIZE = 25;
+  let sortCol = 'holding_amount';
+  let sortDir = 'desc';
 
   function sortCompanies(arr, col, dir) {
     return arr.slice().sort(function(a, b) {
-      var va = col === 'rank' ? allCompanies.indexOf(a) : a[col];
-      var vb = col === 'rank' ? allCompanies.indexOf(b) : b[col];
+      let va = col === 'rank' ? allCompanies.indexOf(a) : a[col];
+      let vb = col === 'rank' ? allCompanies.indexOf(b) : b[col];
       if (typeof va === 'string') va = va.toLowerCase();
       if (typeof vb === 'string') vb = vb.toLowerCase();
       if (va < vb) return dir === 'asc' ? -1 : 1;
@@ -302,11 +302,11 @@
     });
   }
 
-  var VIA_PREVIEW_LIMIT = 2;
+  const VIA_PREVIEW_LIMIT = 2;
 
   function buildFundTagsHtml(funds, rowIndex) {
-    var directTag = '';
-    var otherFunds = [];
+    let directTag = '';
+    const otherFunds = [];
 
     funds.forEach(function(f) {
       if (f === 'Direct') {
@@ -316,14 +316,14 @@
       }
     });
 
-    var visibleTags = otherFunds.slice(0, VIA_PREVIEW_LIMIT).map(function(f) {
+    const visibleTags = otherFunds.slice(0, VIA_PREVIEW_LIMIT).map(function(f) {
       return '<span class="fund-tag" title="' + f + '">' + f + '</span>';
     }).join('');
 
-    var moreHtml = '';
+    let moreHtml = '';
     if (otherFunds.length > VIA_PREVIEW_LIMIT) {
-      var remaining = otherFunds.slice(VIA_PREVIEW_LIMIT);
-      var allFundsJson = JSON.stringify(funds).replace(/"/g, '&quot;');
+      const remaining = otherFunds.slice(VIA_PREVIEW_LIMIT);
+      const allFundsJson = JSON.stringify(funds).replace(/"/g, '&quot;');
       moreHtml = '<button class="fund-more-btn" data-popup="fundPopup' + rowIndex + '" data-funds="' + allFundsJson + '" onclick="window.toggleFundPopup(this)">+' + remaining.length + '</button>' +
         '<div class="fund-more-popup" id="fundPopup' + rowIndex + '">' +
         '<div class="fund-more-popup-title">All funds (' + otherFunds.length + ')</div>' +
@@ -340,16 +340,16 @@
   }
 
   function renderTable() {
-    var start = currentPage * PAGE_SIZE;
-    var end = Math.min(start + PAGE_SIZE, filteredCompanies.length);
-    var slice = filteredCompanies.slice(start, end);
-    var tbody = document.getElementById('companyTableBody');
+    const start = currentPage * PAGE_SIZE;
+    const end = Math.min(start + PAGE_SIZE, filteredCompanies.length);
+    const slice = filteredCompanies.slice(start, end);
+    const tbody = document.getElementById('companyTableBody');
 
     tbody.innerHTML = slice.map(function(c, i) {
-      var fundTagsHtml = buildFundTagsHtml(c.funds, start + i);
-      var maxPct = allCompanies.length > 0 ? allCompanies[0].percentage_of_portfolio : 1;
-      var barPct = Math.min((c.percentage_of_portfolio / maxPct) * 100, 100).toFixed(1);
-      var sector = c.sector || '—';
+      const fundTagsHtml = buildFundTagsHtml(c.funds, start + i);
+      const maxPct = allCompanies.length > 0 ? allCompanies[0].percentage_of_portfolio : 1;
+      const barPct = Math.min((c.percentage_of_portfolio / maxPct) * 100, 100).toFixed(1);
+      const sector = c.sector || '—';
       return '<tr>' +
         '<td class="company-name-cell">' + c.company_name + '</td>' +
         '<td>' + (c.instrument_type || '—') + '</td>' +
@@ -362,7 +362,7 @@
         '</tr>';
     }).join('');
 
-    var info = document.getElementById('paginationInfo');
+    const info = document.getElementById('paginationInfo');
     if (filteredCompanies.length === 0) {
       info.textContent = 'No companies found';
     } else {
@@ -373,8 +373,8 @@
   }
 
   function applyFilterAndSort() {
-    var query = (document.getElementById('companySearch').value || '').toLowerCase().trim();
-    var filtered = query
+    const query = (document.getElementById('companySearch').value || '').toLowerCase().trim();
+    const filtered = query
       ? allCompanies.filter(function(c) {
           return c.company_name.toLowerCase().includes(query) ||
                  (c.instrument_type || '').toLowerCase().includes(query) ||
@@ -389,7 +389,7 @@
   function setupTableSort() {
     document.querySelectorAll('.exposure-table thead th[data-col]').forEach(function(th) {
       th.addEventListener('click', function() {
-        var col = th.dataset.col;
+        const col = th.dataset.col;
         if (col === 'funds') return;
         if (sortCol === col) {
           sortDir = sortDir === 'asc' ? 'desc' : 'asc';
@@ -399,11 +399,11 @@
         }
         document.querySelectorAll('.exposure-table thead th').forEach(function(h) {
           h.classList.remove('sorted');
-          var arrow = h.querySelector('.sort-arrow');
+          const arrow = h.querySelector('.sort-arrow');
           if (arrow) arrow.textContent = '↕';
         });
         th.classList.add('sorted');
-        var arrow = th.querySelector('.sort-arrow');
+        const arrow = th.querySelector('.sort-arrow');
         if (arrow) arrow.textContent = sortDir === 'asc' ? '↑' : '↓';
         applyFilterAndSort();
       });
@@ -444,10 +444,10 @@
     }, 100);
   }
 
-  var POLL_INTERVAL = 3000;
-  var refreshUI = new RefreshUI('exposureRefreshBtn', 'exposureStatusTag', 'exposureStatusText');
-  var lastPortfolioUpdatedAt = null;
-  var relativeStatusTimer = null;
+  const POLL_INTERVAL = 3000;
+  const refreshUI = new RefreshUI('exposureRefreshBtn', 'exposureStatusTag', 'exposureStatusText');
+  let lastPortfolioUpdatedAt = null;
+  let relativeStatusTimer = null;
 
   // ─── Refresh header visibility ─────────────────────────
 
@@ -463,14 +463,14 @@
 
   function formatStatusText() {
     if (!lastPortfolioUpdatedAt) return 'updated';
-    var relative = typeof Formatter !== 'undefined'
+    const relative = typeof Formatter !== 'undefined'
       ? Formatter.formatRelativeTime(lastPortfolioUpdatedAt)
       : '';
     return relative ? 'updated ' + relative : 'updated';
   }
 
   function refreshRelativeStatusText() {
-    var tag = document.getElementById('exposureStatusTag');
+    const tag = document.getElementById('exposureStatusTag');
     if (!tag || tag.classList.contains('updating')) return;
     refreshUI.setStatusTag('updated', formatStatusText());
   }
@@ -484,7 +484,7 @@
     window.metronFetch('/api/status')
       .then(function(r) { return r.json(); })
       .then(function(status) {
-        var tag = document.getElementById('exposureStatusTag');
+        const tag = document.getElementById('exposureStatusTag');
         if (!tag) return;
         tag.classList.toggle('market_closed', status.market_open === false);
         lastPortfolioUpdatedAt = status.exposure_last_updated || null;
@@ -525,7 +525,7 @@
   function pollForData() {
     window.metronFetch('/api/exposure/data')
       .then(function(r) {
-        var status = r.status;
+        const status = r.status;
         return r.json().then(function(data) { return { status: status, data: data }; });
       })
       .then(function(result) {

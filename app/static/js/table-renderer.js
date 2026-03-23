@@ -273,7 +273,7 @@ class TableRenderer {
     let sgbCurrent = 0;
     let silverInvested = 0;
     let silverCurrent = 0;
-    let filteredHoldings = [];
+    const filteredHoldings = [];
 
     // Filter and calculate totals (Gold and Silver shown in table but not in Stocks summary)
     // ETFs are excluded entirely from this table
@@ -407,7 +407,7 @@ class TableRenderer {
 
     let mfTotalInvested = 0;
     let mfTotalCurrent = 0;
-    let filteredHoldings = [];
+    const filteredHoldings = [];
 
     mfHoldings.forEach(mf => {
       const fundName = mf.fund || mf.isin;
@@ -489,7 +489,7 @@ class TableRenderer {
     const isUpdating = status.portfolio_state === 'updating';
     const dataClass = this._getUpdateClass(isUpdating);
 
-    let allRows = [];
+    const allRows = [];
     let totalMonthlyAmount = 0;
     const frequencyCounts = { monthly: 0, weekly: 0, quarterly: 0 };
     const frequencyAmounts = { monthly: 0, weekly: 0, quarterly: 0 };
@@ -940,7 +940,7 @@ class TableRenderer {
 
     let etfInvested = 0;
     let etfCurrent = 0;
-    let filteredHoldings = [];
+    const filteredHoldings = [];
 
     // Filter only non-gold, non-silver ETF holdings
     holdings.forEach(holding => {
@@ -1073,7 +1073,7 @@ class TableRenderer {
 
     let totalInvested = 0;
     let totalCurrent = 0;
-    let filteredHoldings = [];
+    const filteredHoldings = [];
 
     holdings.forEach(holding => {
       const symbol = holding.tradingsymbol || '';

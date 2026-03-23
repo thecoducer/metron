@@ -57,9 +57,7 @@ class CASParseResult:
     schemes: list[CASScheme] = field(default_factory=list)
 
 
-def parse_cas_pdf(
-    file_bytes: bytes, password: str
-) -> CASParseResult:
+def parse_cas_pdf(file_bytes: bytes, password: str) -> CASParseResult:
     """Parse a CAS PDF and return normalised data.
 
     Args:
@@ -83,12 +81,9 @@ def parse_cas_pdf(
         if "password" in error_msg or "decrypt" in error_msg:
             raise ValueError("Incorrect password. Please try again.") from exc
         logger.exception("CAS PDF parsing failed: %s", exc)
-        raise ValueError(
-            "Failed to parse the PDF. Please ensure it is a valid"
-            " CAMS/KFintech CAS statement."
-        ) from exc
+        raise ValueError("Failed to parse the PDF. Please ensure it is a valid CAMS/KFintech CAS statement.") from exc
 
-    raw = data.model_dump() if hasattr(data, "model_dump") else data
+    raw: dict[str, Any] = data.model_dump() if hasattr(data, "model_dump") else data  # type: ignore[union-attr]
 
     period = raw.get("statement_period", {})
     investor = raw.get("investor_info", {})

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Transaction History – Metron</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="/static/css/styles.css">
+        <link rel="stylesheet" href="/static/css/transactions.css">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
+        <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+        <link rel="manifest" href="/static/manifest.json">
+        <meta name="theme-color" content="#0f172a">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style"
+              content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Metron">
+    </head>
+    <body {% if not pin_verified %}style="overflow:hidden"{% endif %}>
+        <script>
+  (function() {
+    var t = localStorage.getItem('theme');
+    if (t === 'dark') document.body.classList.add('dark-theme');
+  })();
+        </script>
+        <div class="container"
+             {% if not pin_verified %}style="visibility:hidden"{% endif %}>
+            <header>
+                <nav class="nav-hamburger">
+                    <button class="hamburger-btn"
+                            id="hamburgerBtn"
+                            aria-label="Navigation menu"
+                            aria-expanded="false">
+                        <svg class="hamburger-icon"
+                             width="20"
+                             height="20"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                </nav>
+                <div class="header-brand">
+                    <a href="/" class="brand-mark" aria-label="Metron home">
+                        <span class="brand-logo"></span>
+                        <span class="brand-name">Metron</span>
+                    </a>
+                </div>
+                <div class="controls">
+                    {% if user %}
+                        <div class="user-profile" id="userProfile">
+                            <button class="user-avatar-btn"
+                                    id="userAvatarBtn"
+                                    title="{{ user.name or user.email }}">
+                                {% if user.picture %}
+                                    <img src="{{ user.picture }}"
+                                         alt=""
+                                         class="user-avatar-img"
+                                         referrerpolicy="no-referrer"
+                                         width="40"
+                                         height="40">
+                                {% else %}
+                                    <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
+                                {% endif %}
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <div class="user-dropdown-header">
+                                    <div class="user-dropdown-avatar">
+                                        {% if user.picture %}
+                                            <img src="{{ user.picture }}"
+                                                 alt=""
+                                                 referrerpolicy="no-referrer"
+                                                 width="40"
+                                                 height="40">
+                                        {% else %}
+                                            <span>{{ (user.name or user.email)[0]|upper }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-dropdown-info">
+                                        <strong>{{ user.name or 'User' }}</strong>
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                </div>
+                                <div class="user-dropdown-section">
+                                    <div class="user-dropdown-section-label">Preferences</div>
+                                    <button class="user-dropdown-toggle-btn"
+                                            id="theme_toggle_btn"
+                                            onclick="toggleTheme()"
+                                            title="Toggle theme">
+                                        <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
+                                            <span class="theme-icon-sun"></span>
+                                            <span class="theme-icon-moon"></span>
+                                        </span>
+                                        <span>Theme</span>
+                                        <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
+                                    </button>
+                                </div>
+                                <div class="user-dropdown-section user-dropdown-section--logout">
+                                    <button class="user-dropdown-item user-dropdown-logout"
+                                            onclick="handleLogout()">
+                                        <svg class="dropdown-icon"
+                                             width="17"
+                                             height="17"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="1.8"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </header>
+            <!-- Main content -->
+            <div class="txn-container" id="txnContent">
+                <div class="txn-header-row">
+                    <div>
+                        <a href="/" class="txn-back-link">
+                            <svg width="16"
+                                 height="16"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M19 12H5" />
+                                <polyline points="12 19 5 12 12 5" />
+                            </svg>
+                            Back to Portfolio
+                        </a>
+                        <h1 class="txn-page-title">Mutual Fund Transactions</h1>
+                        <p class="txn-page-subtitle">Complete buy &amp; sell history from your CAS statement.</p>
+                    </div>
+                </div>
+                <!-- Loading state -->
+                <div class="txn-loading" id="txnLoading">
+                    <div class="txn-loading-spinner"></div>
+                    <span>Loading transactions...</span>
+                </div>
+                <!-- Empty state -->
+                <div class="txn-empty hidden" id="txnEmpty">
+                    <svg width="48"
+                         height="48"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.5"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <h3>No transaction history yet</h3>
+                    <p>Upload a CAS PDF from Settings to import your mutual fund transaction history.</p>
+                    <a href="/" class="txn-empty-cta">Go to Portfolio</a>
+                </div>
+                <!-- Data content -->
+                <div class="txn-data hidden" id="txnData">
+                    <!-- Summary cards -->
+                    <div class="txn-summary-cards" id="txnSummaryCards"></div>
+                    <!-- Charts section -->
+                    <div class="txn-charts-section">
+                        <div class="txn-chart-card">
+                            <h3 class="txn-chart-title">Investment Timeline</h3>
+                            <p class="txn-chart-desc">Cumulative investment over time</p>
+                            <div class="txn-chart" id="txnTimelineChart"></div>
+                        </div>
+                        <div class="txn-chart-card">
+                            <h3 class="txn-chart-title">Buy vs Sell</h3>
+                            <p class="txn-chart-desc">Monthly transaction volume</p>
+                            <div class="txn-chart" id="txnBuySellChart"></div>
+                        </div>
+                    </div>
+                    <!-- Fund filter -->
+                    <div class="txn-filter-row">
+                        <label class="txn-filter-label" for="txnFundFilter">Filter by Fund</label>
+                        <select class="txn-filter-select" id="txnFundFilter">
+                            <option value="">All Funds</option>
+                        </select>
+                    </div>
+                    <!-- Transaction table -->
+                    <div class="txn-table-wrapper">
+                        <table class="txn-table" id="txnTable">
+                            <thead>
+                                <tr>
+                                    <th class="txn-th-date">Date</th>
+                                    <th class="txn-th-fund">Fund</th>
+                                    <th class="txn-th-type">Type</th>
+                                    <th class="txn-th-amount">Amount</th>
+                                    <th class="txn-th-units">Units</th>
+                                    <th class="txn-th-nav">NAV</th>
+                                    <th class="txn-th-balance">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="txnTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <footer class="site-footer-dashboard">
+                <div class="footer-legal-links">
+                    <a href="/privacy">Privacy Policy</a>
+                    <span class="footer-dot"></span>
+                    <a href="/terms">Terms &amp; Conditions</a>
+                    <span class="footer-dot"></span>
+                    <a href="/contact">Contact Us</a>
+                    <span class="footer-dot"></span>
+                    <a href="/health">Health</a>
+                </div>
+                <div class="made-with-love">
+                    <p>
+                        Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
+                    </p>
+                </div>
+            </footer>
+        </div>
+        <!-- Security PIN Overlay -->
+        <div class="pin-overlay"
+             id="pinOverlay"
+             style="{% if pin_verified %}display:none{% else %}display:flex{% endif %}">
+            <div class="pin-content">
+                <div class="pin-brand">metron</div>
+                <div class="pin-header">
+                    <div class="pin-icon">
+                        <svg width="36"
+                             height="36"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    {% if has_pin %}
+                        <h2 class="pin-title" id="pinTitle">Enter PIN</h2>
+                        <p class="pin-subtitle" id="pinSubtitle" style="display:none"></p>
+                    {% else %}
+                        <h2 class="pin-title" id="pinTitle">Create PIN</h2>
+                        <p class="pin-subtitle" id="pinSubtitle">Choose a 6-character alphanumeric PIN to secure your data.</p>
+                    {% endif %}
+                </div>
+                <div class="pin-body">
+                    <div class="pin-field-group" id="pinFieldGroup1">
+                        <div class="pin-field-header"
+                             id="pinFieldHeader1"
+                             style="{% if has_pin %}display:none{% endif %}">
+                            <span class="pin-field-label" id="pinFieldLabel1">PIN</span>
+                            <span class="pin-field-check" id="pinCheck1">
+                                <svg width="14"
+                                     height="14"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="3"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="pin-input-row" id="pinInputRow">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="0"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="1"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="2"
+                                   autocomplete="off">
+                            <span class="pin-digit-sep"></span>
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="3"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="4"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="5"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="pin-field-group"
+                         id="pinConfirmGroup"
+                         style="{% if has_pin %}display:none{% endif %}">
+                        <div class="pin-field-header">
+                            <span class="pin-field-label">Confirm PIN</span>
+                            <span class="pin-field-check" id="pinCheck2">
+                                <svg width="14"
+                                     height="14"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="3"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="pin-input-row" id="pinConfirmRow">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="0"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="1"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="2"
+                                   autocomplete="off">
+                            <span class="pin-digit-sep"></span>
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="3"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="4"
+                                   autocomplete="off">
+                            <input type="password"
+                                   maxlength="1"
+                                   class="pin-digit"
+                                   data-idx="5"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <p class="pin-error" id="pinError"></p>
+                    <button class="pin-submit-btn" id="pinSubmitBtn" disabled>
+                        {% if has_pin %}
+                            Unlock
+                        {% else %}
+                            Create PIN
+                        {% endif %}
+                    </button>
+                    <p class="pin-forgot"
+                       id="pinForgot"
+                       {% if not has_pin %}style="display:none"{% endif %}>
+                        <button type="button" class="pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <script src="/static/js/nav.js"></script>
+        <script>
+// App fetch wrapper — adds auth header and handles 403 pin_required.
+window.metronFetch = async function(url, options) {
+  options = options || {};
+  var h = new Headers(options.headers || {});
+  h.set('X-Requested-With', 'MetronApp');
+  var resp = await fetch(url, Object.assign({}, options, { headers: h }));
+  if (resp.status === 403 && url.indexOf('/api/pin/') !== 0) {
+    try {
+      var clone = resp.clone();
+      var body = await clone.json();
+      if (body && body.error === 'pin_required' && typeof window.checkAndPromptPin === 'function') {
+        await window.checkAndPromptPin();
+        return fetch(url, Object.assign({}, options, { headers: h }));
+      }
+    } catch(e) { /* ignore */ }
+  }
+  return resp;
+};
+        </script>
+        <script src="/static/js/portfolio-ui.js"></script>
+        <script>
+// Standalone toggle implementations for this page
+function toggleTheme() {
+  var isDark = document.body.classList.toggle('dark-theme');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  var label = document.getElementById('theme_toggle_label');
+  if (label) label.classList.toggle('toggle-on', isDark);
+}
+(function initToggles() {
+  var isDark = document.body.classList.contains('dark-theme');
+  var themeLabel = document.getElementById('theme_toggle_label');
+  if (themeLabel) themeLabel.classList.toggle('toggle-on', isDark);
+})();
+        </script>
+        <script src="/static/js/transactions.js"></script>
+        <script>
+document.addEventListener('DOMContentLoaded', async function() {
+  {% if not pin_verified %}
+  if (typeof window.checkAndPromptPin === 'function') {
+    await window.checkAndPromptPin();
+  }
+  {% endif %}
+});
+        </script>
+    </body>
+</html>

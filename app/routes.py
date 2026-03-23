@@ -1225,13 +1225,9 @@ def cas_confirm():
     cfg = SHEET_CONFIGS["mutual_funds"]
 
     try:
-        client.ensure_sheet_tab(
-            spreadsheet_id, cfg["sheet_name"], cfg["headers"]
-        )
+        client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
         # Fetch existing rows to check for aggregation
-        raw = client.fetch_sheet_data_until_blank(
-            spreadsheet_id, cfg["sheet_name"]
-        )
+        raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
     except Exception as e:
         return _sheets_error_response(e, "reading", "mutual_funds")
 
@@ -1315,9 +1311,7 @@ def cas_confirm():
                 nav_date,
             ]
             try:
-                client.update_row(
-                    spreadsheet_id, cfg["sheet_name"], row_num, values
-                )
+                client.update_row(spreadsheet_id, cfg["sheet_name"], row_num, values)
                 updated += 1
             except Exception:
                 logger.exception(
@@ -1338,19 +1332,13 @@ def cas_confirm():
                 nav_date,
             ]
             try:
-                client.append_row(
-                    spreadsheet_id, cfg["sheet_name"], values
-                )
+                client.append_row(spreadsheet_id, cfg["sheet_name"], values)
                 added += 1
             except Exception:
-                logger.exception(
-                    "Failed to add row for ISIN %s", isin
-                )
+                logger.exception("Failed to add row for ISIN %s", isin)
 
     # Refresh the sheet cache
-    _refresh_single_sheet_cache(
-        client, spreadsheet_id, google_id, "mutual_funds"
-    )
+    _refresh_single_sheet_cache(client, spreadsheet_id, google_id, "mutual_funds")
 
     # Store transactions in session for the transaction history page
     if all_transactions:
@@ -1421,9 +1409,7 @@ def transactions_page():
         )
     )
     # Must not be cached — contains user-specific transaction data
-    response.headers["Cache-Control"] = (
-        "no-store, no-cache, must-revalidate, private"
-    )
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
     response.headers["Pragma"] = "no-cache"
     return response
 
@@ -1433,9 +1419,7 @@ _cas_transactions_lock = threading.Lock()
 _cas_transactions: dict[str, list[dict]] = {}
 
 
-def _store_cas_transactions(
-    google_id: str, transactions: list[dict]
-) -> None:
+def _store_cas_transactions(google_id: str, transactions: list[dict]) -> None:
     """Store parsed CAS transactions in memory for the user."""
     with _cas_transactions_lock:
         existing = _cas_transactions.get(google_id, [])
