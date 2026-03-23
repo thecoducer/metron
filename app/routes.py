@@ -1145,6 +1145,330 @@ def remove_zerodha(account_name):
 
 
 # ---------------------------------------------------------------------------
+# CAS PDF Upload & Import (CAMS/KFintech)
+# ---------------------------------------------------------------------------
+
+
+@app_ui.route("/api/cas/upload", methods=["POST"])
+@pin_required
+def cas_upload():
+    """Parse a CAS PDF and return extracted scheme data for verification.
+
+    Accepts multipart form data with:
+      - file: The CAS PDF file
+      - password: PDF password
+    """
+    from .api.cas_parser import parse_cas_pdf, serialise_parse_result
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    pdf_file = request.files["file"]
+    if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Please upload a PDF file"}), 400
+
+    password = (request.form.get("password") or "").strip()
+    if not password:
+        return jsonify({"error": "Password is required"}), 400
+
+    file_bytes = pdf_file.read()
+    if len(file_bytes) > 10 * 1024 * 1024:  # 10 MB limit
+        return jsonify({"error": "File too large. Maximum size is 10 MB."}), 400
+
+    try:
+        result = parse_cas_pdf(file_bytes, password)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    if not result.schemes:
+        return jsonify({"error": "No mutual fund schemes found in the PDF."}), 400
+
+    return jsonify(serialise_parse_result(result))
+
+
+@app_ui.route("/api/cas/confirm", methods=["POST"])
+@pin_required
+def cas_confirm():
+    """Save verified CAS data to Google Sheets and update caches.
+
+    Expects JSON body:
+      - account: str - Account name for these holdings
+      - schemes: list of {isin, fund_name, units, avg_nav, transactions}
+
+    Aggregation logic:
+      - If same ISIN already exists with source=manual, aggregate units/cost.
+      - If same ISIN exists with source=zerodha (broker), add as new row
+        since data sources are different.
+    """
+    from .api.mf_market_data import mf_market_cache
+    from .api.user_sheets import SHEET_CONFIGS
+
+    user = _current_user()
+    assert user is not None
+    google_id = user["google_id"]
+
+    data = request.get_json(silent=True) or {}
+    account = (data.get("account") or "").strip()
+    schemes = data.get("schemes", [])
+
+    if not account:
+        return jsonify({"error": "Account name is required"}), 400
+    if not schemes:
+        return jsonify({"error": "No schemes to save"}), 400
+
+    client, spreadsheet_id, err = _get_sheets_client()
+    if err:
+        return jsonify({"error": err}), 400
+    assert client is not None
+    assert spreadsheet_id is not None
+
+    cfg = SHEET_CONFIGS["mutual_funds"]
+
+    try:
+        client.ensure_sheet_tab(
+            spreadsheet_id, cfg["sheet_name"], cfg["headers"]
+        )
+        # Fetch existing rows to check for aggregation
+        raw = client.fetch_sheet_data_until_blank(
+            spreadsheet_id, cfg["sheet_name"]
+        )
+    except Exception as e:
+        return _sheets_error_response(e, "reading", "mutual_funds")
+
+    # Build index of existing manual entries by ISIN
+    existing_manual: dict[str, dict] = {}
+    if raw and len(raw) >= 2:
+        fields = cfg["fields"]
+        for idx, row in enumerate(raw[1:], start=2):
+            if is_blank_row(row):
+                break
+            entry: dict[str, Any] = {"row_number": idx}
+            for fi, fname in enumerate(fields):
+                entry[fname] = row[fi] if fi < len(row) else ""
+            isin_val = (entry.get("isin") or "").strip().upper()
+            source = (entry.get("source") or "manual").strip()
+            # Only aggregate with manual source entries
+            if isin_val and source == "manual":
+                existing_manual[isin_val] = entry
+
+    added = 0
+    updated = 0
+    all_transactions: list[dict] = []
+
+    for scheme in schemes:
+        isin = (scheme.get("isin") or "").strip().upper()
+        fund_name = (scheme.get("fund_name") or "").strip()
+        units = float(scheme.get("units") or 0)
+        cost = float(scheme.get("cost") or 0)
+        avg_nav = round(cost / units, 4) if units > 0 else 0.0
+        transactions = scheme.get("transactions", [])
+
+        if not isin or units <= 0:
+            continue
+
+        # Look up latest NAV from MF cache
+        latest_nav = ""
+        nav_date = ""
+        cache_info = mf_market_cache.get_by_isin(isin)
+        if cache_info:
+            latest_nav = cache_info.latest_nav
+            nav_date = cache_info.nav_updated_date
+            # Use canonical name from cache if fund_name wasn't
+            # explicitly set by user
+            if not fund_name:
+                fund_name = cache_info.scheme_name
+
+        # Collect transactions for storage
+        for txn in transactions:
+            all_transactions.append(
+                {
+                    "isin": isin,
+                    "fund_name": fund_name,
+                    **txn,
+                }
+            )
+
+        # Check if same ISIN already exists as manual entry
+        existing = existing_manual.get(isin)
+        if existing:
+            # Aggregate: add units and recalculate avg NAV
+            old_units = float(existing.get("qty") or 0)
+            old_avg = float(existing.get("avg_nav") or 0)
+            new_units = old_units + units
+            new_avg = (
+                round(
+                    (old_units * old_avg + units * avg_nav) / new_units,
+                    4,
+                )
+                if new_units > 0
+                else 0.0
+            )
+            row_num = existing["row_number"]
+            values = [
+                isin,
+                fund_name or existing.get("fund_name", ""),
+                str(new_units),
+                str(new_avg),
+                account,
+                "manual",
+                latest_nav,
+                nav_date,
+            ]
+            try:
+                client.update_row(
+                    spreadsheet_id, cfg["sheet_name"], row_num, values
+                )
+                updated += 1
+            except Exception:
+                logger.exception(
+                    "Failed to update row %d for ISIN %s",
+                    row_num,
+                    isin,
+                )
+        else:
+            # Add new row
+            values = [
+                isin,
+                fund_name,
+                str(units),
+                str(avg_nav),
+                account,
+                "manual",
+                latest_nav,
+                nav_date,
+            ]
+            try:
+                client.append_row(
+                    spreadsheet_id, cfg["sheet_name"], values
+                )
+                added += 1
+            except Exception:
+                logger.exception(
+                    "Failed to add row for ISIN %s", isin
+                )
+
+    # Refresh the sheet cache
+    _refresh_single_sheet_cache(
+        client, spreadsheet_id, google_id, "mutual_funds"
+    )
+
+    # Store transactions in session for the transaction history page
+    if all_transactions:
+        _store_cas_transactions(google_id, all_transactions)
+
+    logger.info(
+        "CAS confirm: added=%d updated=%d transactions=%d",
+        added,
+        updated,
+        len(all_transactions),
+    )
+
+    # Build refreshed MF data for frontend
+    refreshed = _build_data_for_type(user, "mutual_funds")
+
+    return jsonify(
+        {
+            "status": "saved",
+            "added": added,
+            "updated": updated,
+            "has_transactions": bool(all_transactions),
+            **refreshed,
+        }
+    )
+
+
+@app_ui.route("/api/cas/transactions", methods=["GET"])
+@pin_required
+def cas_transactions():
+    """Return stored CAS transaction history for the current user."""
+    user = _current_user()
+    assert user is not None
+    google_id = user["google_id"]
+
+    transactions = _get_cas_transactions(google_id)
+    if not transactions:
+        return jsonify({"transactions": [], "has_data": False})
+
+    return jsonify({"transactions": transactions, "has_data": True})
+
+
+@app_ui.route("/transactions", methods=["GET"])
+@login_required
+def transactions_page():
+    """Serve the mutual fund transaction history page."""
+    user = _current_user()
+    if not user:
+        return redirect("/")
+
+    google_id = user.get("google_id", "")
+    pin_verified = session.get("pin_verified", False)
+
+    if pin_verified and not session_manager.get_pin(google_id):
+        session["pin_verified"] = False
+        session.modified = True
+        pin_verified = False
+
+    from .firebase_store import has_pin as _has_pin
+
+    user_has_pin = _has_pin(google_id)
+
+    response = make_response(
+        render_template(
+            "transactions.html",
+            user=user,
+            pin_verified=pin_verified,
+            has_pin=user_has_pin,
+        )
+    )
+    # Must not be cached — contains user-specific transaction data
+    response.headers["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, private"
+    )
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+# CAS transaction storage — in-memory per-user
+_cas_transactions_lock = threading.Lock()
+_cas_transactions: dict[str, list[dict]] = {}
+
+
+def _store_cas_transactions(
+    google_id: str, transactions: list[dict]
+) -> None:
+    """Store parsed CAS transactions in memory for the user."""
+    with _cas_transactions_lock:
+        existing = _cas_transactions.get(google_id, [])
+        # Merge: deduplicate by (isin, date, amount, units)
+        seen = set()
+        for t in existing:
+            key = (
+                t.get("isin"),
+                t.get("date"),
+                t.get("amount"),
+                t.get("units"),
+            )
+            seen.add(key)
+        for t in transactions:
+            key = (
+                t.get("isin"),
+                t.get("date"),
+                t.get("amount"),
+                t.get("units"),
+            )
+            if key not in seen:
+                existing.append(t)
+                seen.add(key)
+        _cas_transactions[google_id] = existing
+
+
+def _get_cas_transactions(google_id: str) -> list[dict]:
+    """Retrieve stored CAS transactions for a user."""
+    with _cas_transactions_lock:
+        return list(_cas_transactions.get(google_id, []))
+
+
+# ---------------------------------------------------------------------------
 # Manual-entry CRUD  (Google Sheets backed)
 # ---------------------------------------------------------------------------
 

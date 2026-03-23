@@ -1292,9 +1292,189 @@
                             <!-- /drawer-broker-sub -->
                         </div>
                     </section>
+                    <!-- Import from CAS PDF -->
+                    <section class="drawer-section">
+                        <h3 class="drawer-section-title">Import from CAS PDF</h3>
+                        <div class="drawer-card">
+                            <p class="drawer-card-hint">
+                                Upload your CAMS/KFintech Consolidated Account Statement (CAS) PDF to auto-import mutual fund holdings and transaction history.
+                            </p>
+                            <!-- Download instructions -->
+                            <div class="setup-guide" id="casGuide">
+                                <button type="button"
+                                        class="setup-guide-toggle"
+                                        id="casGuideToggle"
+                                        aria-expanded="false"
+                                        aria-controls="casGuideBody">
+                                    <div class="setup-guide-toggle-left">
+                                        <svg class="setup-guide-icon"
+                                             width="16"
+                                             height="16"
+                                             viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                                        </svg>
+                                        <span class="setup-guide-label">How to download your CAS PDF</span>
+                                    </div>
+                                    <svg class="setup-guide-chevron"
+                                         width="14"
+                                         height="14"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9" />
+                                    </svg>
+                                </button>
+                                <div class="setup-guide-body" id="casGuideBody">
+                                    <div class="setup-guide-inner">
+                                        <div class="setup-guide-steps">
+                                            <div class="setup-step">
+                                                <span class="setup-step-num">1</span>
+                                                <div class="setup-step-content">
+                                                    <div class="setup-step-title">Go to CAMS website</div>
+                                                    <p>
+                                                        Visit <a href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement" target="_blank" rel="noopener">camsonline.com CAS page</a>.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="setup-step">
+                                                <span class="setup-step-num">2</span>
+                                                <div class="setup-step-content">
+                                                    <div class="setup-step-title">Select statement type</div>
+                                                    <p>
+                                                        Choose <strong>Detailed</strong> statement type. Select <strong>Specific Period</strong> and pick a wide date range (e.g. Jan 2020 to today) to get full transaction history.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="setup-step">
+                                                <span class="setup-step-num">3</span>
+                                                <div class="setup-step-content">
+                                                    <div class="setup-step-title">Enter your details</div>
+                                                    <p>
+                                                        Enter your registered <strong>email</strong> and select <strong>CAMS + KFintech</strong> as the RTA. Submit the form.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="setup-step">
+                                                <span class="setup-step-num">4</span>
+                                                <div class="setup-step-content">
+                                                    <div class="setup-step-title">Download the PDF</div>
+                                                    <p>
+                                                        You'll receive the PDF on your email. The password is your <strong>PAN</strong> followed by the first 4 letters of your date of birth (DDMM). E.g. <code>ABCDE1234F0101</code>.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Upload form -->
+                            <div class="cas-upload-form" id="casUploadForm">
+                                <div class="drawer-field">
+                                    <label class="drawer-field-label" for="cas_account">Account Name</label>
+                                    <select class="drawer-field-input cas-account-select"
+                                            id="cas_account">
+                                        <option value="">-- Select or type new --</option>
+                                    </select>
+                                    <input class="drawer-field-input cas-new-account hidden"
+                                           type="text"
+                                           id="cas_new_account"
+                                           placeholder="e.g. Personal, Family"
+                                           spellcheck="false"
+                                           autocomplete="off">
+                                    <button type="button"
+                                            class="cas-toggle-new-account"
+                                            id="casToggleNewAccount"
+                                            title="Add new account name">+ New</button>
+                                </div>
+                                <div class="drawer-field">
+                                    <label class="drawer-field-label" for="cas_file">CAS PDF File</label>
+                                    <div class="cas-file-input-wrapper">
+                                        <input type="file"
+                                               id="cas_file"
+                                               accept=".pdf"
+                                               class="cas-file-input">
+                                        <div class="cas-file-label" id="casFileLabel">
+                                            <svg width="16" height="16" viewBox="0 0 24 24"
+                                                 fill="none" stroke="currentColor" stroke-width="2"
+                                                 stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="17 8 12 3 7 8"/>
+                                                <line x1="12" y1="3" x2="12" y2="15"/>
+                                            </svg>
+                                            <span>Choose PDF file</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="drawer-field">
+                                    <label class="drawer-field-label" for="cas_password">PDF Password</label>
+                                    <input class="drawer-field-input"
+                                           type="password"
+                                           id="cas_password"
+                                           placeholder="PAN + DOB (e.g. ABCDE1234F0101)"
+                                           spellcheck="false"
+                                           autocomplete="off">
+                                </div>
+                                <div class="drawer-form-actions">
+                                    <button type="button"
+                                            class="drawer-btn-save"
+                                            id="casUploadBtn">
+                                        <span class="cas-btn-text">Upload &amp; Parse</span>
+                                        <span class="cas-btn-spinner hidden"></span>
+                                    </button>
+                                    <span class="drawer-save-status" id="casUploadStatus"></span>
+                                </div>
+                                <!-- Progress bar -->
+                                <div class="cas-progress hidden" id="casProgress">
+                                    <div class="cas-progress-bar" id="casProgressBar"></div>
+                                    <span class="cas-progress-text" id="casProgressText">Uploading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </aside>
         {% endif %}
+        <!-- CAS Verification Modal -->
+        <div class="cas-modal-backdrop hidden" id="casModalBackdrop"></div>
+        <div class="cas-modal hidden" id="casModal">
+            <div class="cas-modal-header">
+                <h2 class="cas-modal-title">Verify Imported Funds</h2>
+                <button class="cas-modal-close" id="casModalClose" title="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="cas-modal-body" id="casModalBody">
+                <p class="cas-modal-hint">
+                    Review and correct the fund names below. Start typing to search from available mutual funds.
+                </p>
+                <div class="cas-modal-info" id="casModalInfo"></div>
+                <div class="cas-schemes-list" id="casSchemesListContainer"></div>
+            </div>
+            <div class="cas-modal-footer">
+                <div class="cas-modal-summary" id="casModalSummary"></div>
+                <div class="cas-modal-actions">
+                    <button type="button" class="cas-btn-secondary" id="casModalCancel">Cancel</button>
+                    <button type="button" class="cas-btn-primary" id="casModalConfirm">
+                        <span class="cas-btn-text">Confirm &amp; Import</span>
+                        <span class="cas-btn-spinner hidden"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
         <!-- App Tour -->
         <div class="app-tour-overlay" id="appTourOverlay"></div>
         <!-- Security PIN Overlay — visible by default, hidden by JS when verified -->
@@ -1525,6 +1705,7 @@ window.metronFetch = async function(url, options) {
 };
         </script>
         <script src="/static/js/portfolio-ui.js"></script>
+        <script src="/static/js/cas-import.js"></script>
         {% if initial_data_json %}<script>window.__INITIAL_DATA__ = {{ initial_data_json | safe }};</script>{% endif %}
         <script>window.__TABLE_ROW_LIMIT__ = {{ table_row_limit }};</script>
         <script src="/static/js/refresh-ui.js"></script>

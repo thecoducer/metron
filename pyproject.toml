@@ -19,6 +19,7 @@ dependencies = [
     "firebase-admin==6.4.0",
     "apscheduler>=3.11.2",
     "sentence-transformers>=5.0.0",
+    "casparser>=0.8.1",
 ]
 
 [dependency-groups]
