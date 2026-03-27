@@ -116,9 +116,9 @@ NON_EQUITY_CDN_PREFIXES: tuple[str, ...] = (
 # Mutual fund market data (mfapi.in)
 MF_API_URL = "https://api.mfapi.in/mf/latest"
 COMPANY_HOLDINGS_URL_TEMPLATE = "https://staticassets.zerodha.com/coin/scheme-portfolio/{isin}.json"
-MF_API_TIMEOUT = 90  # seconds — the response is large (~4 MB)
-MF_API_MAX_RETRIES = 3  # retry attempts on transient failures
-MF_API_RETRY_DELAY = 5  # base delay in seconds (exponential backoff: 5s, 10s)
+MF_API_TIMEOUT = 2500  # seconds — the response is large (~4 MB)
+MF_API_MAX_RETRIES = 5  # retry attempts on transient failures
+MF_API_RETRY_DELAY = 3  # base delay in seconds (exponential backoff: 3s, 6s, 12s, 24s)
 MARKET_DATA_CRON_HOUR_IST = 2  # daily refresh at 2 AM IST
 
 # External service purities (gold)

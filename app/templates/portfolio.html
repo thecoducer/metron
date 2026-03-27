@@ -596,6 +596,23 @@
                                 </svg>
                                 <span>Add</span>
                             </button>
+                            <button class="crud-add-btn"
+                                    id="mfTransactionsBtn"
+                                    onclick="location.href='/transactions'"
+                                    title="View transaction history"
+                                    style="display:none">
+                                <span>Transactions</span>
+                                <svg width="14"
+                                     height="14"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2.5"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     <div class="section-summary"
@@ -1371,7 +1388,7 @@
                                                 <div class="setup-step-content">
                                                     <div class="setup-step-title">Download the PDF</div>
                                                     <p>
-                                                        You'll receive the PDF on your email. The password is your <strong>PAN</strong> followed by the first 4 letters of your date of birth (DDMM). E.g. <code>ABCDE1234F0101</code>.
+                                                        You'll receive the PDF on your email. Open it with the <strong>password you set</strong> on the CAMS website when generating the statement.
                                                     </p>
                                                 </div>
                                             </div>
@@ -1383,19 +1400,17 @@
                             <div class="cas-upload-form" id="casUploadForm">
                                 <div class="drawer-field">
                                     <label class="drawer-field-label" for="cas_account">Account Name</label>
-                                    <select class="drawer-field-input cas-account-select" id="cas_account">
-                                        <option value="">-- Select or type new --</option>
+                                    <select class="drawer-field-input" id="cas_account">
+                                        <option value="">-- Select account --</option>
                                     </select>
-                                    <input class="drawer-field-input cas-new-account hidden"
+                                    <button type="button" class="cas-add-new-btn" id="casAddNewAccount">+ New account</button>
+                                    <input class="drawer-field-input cas-new-account"
                                            type="text"
                                            id="cas_new_account"
-                                           placeholder="e.g. Personal, Family"
+                                           placeholder="New account name (e.g. Personal, Family)"
                                            spellcheck="false"
-                                           autocomplete="off">
-                                    <button type="button"
-                                            class="cas-toggle-new-account"
-                                            id="casToggleNewAccount"
-                                            title="Add new account name">+ New</button>
+                                           autocomplete="off"
+                                           style="display:none">
                                 </div>
                                 <div class="drawer-field">
                                     <label class="drawer-field-label" for="cas_file">CAS PDF File</label>
@@ -1409,7 +1424,8 @@
                                                  stroke="currentColor"
                                                  stroke-width="2"
                                                  stroke-linecap="round"
-                                                 stroke-linejoin="round">
+                                                 stroke-linejoin="round"
+                                                 flex-shrink="0">
                                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                                 <polyline points="17 8 12 3 7 8" />
                                                 <line x1="12" y1="3" x2="12" y2="15" />
@@ -1420,23 +1436,56 @@
                                 </div>
                                 <div class="drawer-field">
                                     <label class="drawer-field-label" for="cas_password">PDF Password</label>
-                                    <input class="drawer-field-input"
-                                           type="password"
-                                           id="cas_password"
-                                           placeholder="PAN + DOB (e.g. ABCDE1234F0101)"
-                                           spellcheck="false"
-                                           autocomplete="off">
+                                    <div class="cas-pw-wrapper">
+                                        <input class="drawer-field-input"
+                                               type="password"
+                                               id="cas_password"
+                                               placeholder="Password you set on CAMS website"
+                                               spellcheck="false"
+                                               autocomplete="off">
+                                        <button type="button"
+                                                class="cas-pw-toggle"
+                                                id="casPwToggle"
+                                                title="Show / hide password"
+                                                tabindex="-1">
+                                            <svg id="casPwEye"
+                                                 width="16"
+                                                 height="16"
+                                                 viewBox="0 0 24 24"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 stroke-width="2"
+                                                 stroke-linecap="round"
+                                                 stroke-linejoin="round">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                            <svg id="casPwEyeOff"
+                                                 width="16"
+                                                 height="16"
+                                                 viewBox="0 0 24 24"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 stroke-width="2"
+                                                 stroke-linecap="round"
+                                                 stroke-linejoin="round"
+                                                 style="display:none">
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                                <line x1="1" y1="1" x2="23" y2="23" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="drawer-form-actions">
-                                    <button type="button" class="drawer-btn-save" id="casUploadBtn">
-                                        <span class="cas-btn-text">Upload &amp; Parse</span>
-                                        <span class="cas-btn-spinner hidden"></span>
-                                    </button>
+                                    <button type="button" class="drawer-btn-save" id="casUploadBtn">Upload</button>
                                     <span class="drawer-save-status" id="casUploadStatus"></span>
                                 </div>
-                                <!-- Progress bar -->
-                                <div class="cas-progress hidden" id="casProgress">
-                                    <div class="cas-progress-bar" id="casProgressBar"></div>
+                                <!-- Progress bar (hidden until upload starts) -->
+                                <div class="cas-progress" id="casProgress" style="display:none">
+                                    <div class="cas-progress-track">
+                                        <div class="cas-progress-bar" id="casProgressBar"></div>
+                                    </div>
                                     <span class="cas-progress-text" id="casProgressText">Uploading...</span>
                                 </div>
                             </div>

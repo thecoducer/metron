@@ -153,15 +153,38 @@ def fetch_and_cache_market_data() -> bool:
 
     for attempt in range(1, MF_API_MAX_RETRIES + 1):
         try:
-            response = requests.get(MF_API_URL, timeout=MF_API_TIMEOUT)
-            response.raise_for_status()
-            data = response.json()
+            # Use a fresh session per attempt to avoid stale keep-alive connections
+            # (reused connections from the pool can cause IncompleteRead mid-transfer)
+            with requests.Session() as session:
+                session.headers.update({"Connection": "close"})
+                response = session.get(MF_API_URL, timeout=MF_API_TIMEOUT)
+                response.raise_for_status()
+                # Read full body before closing session; avoids IncompleteRead on reused sockets
+                raw_bytes = response.content
+            data = __import__("json").loads(raw_bytes)
             logger.info("MF API responded: %d raw entries in %.1fs", len(data), time.monotonic() - t0)
             break
+        except (
+            requests.exceptions.ChunkedEncodingError,
+            requests.exceptions.ConnectionError,
+        ) as exc:
+            logger.warning(
+                "MF market data fetch attempt %d/%d — connection error (IncompleteRead or drop): %s",
+                attempt,
+                MF_API_MAX_RETRIES,
+                exc,
+            )
+            if attempt < MF_API_MAX_RETRIES:
+                delay = MF_API_RETRY_DELAY * (2 ** (attempt - 1))
+                logger.info("Retrying in %ds...", delay)
+                time.sleep(delay)
+            else:
+                logger.error("All %d MF market data fetch attempts failed", MF_API_MAX_RETRIES)
+                return False
         except Exception as exc:
             logger.error("MF market data fetch attempt %d/%d failed: %s", attempt, MF_API_MAX_RETRIES, exc)
             if attempt < MF_API_MAX_RETRIES:
-                delay = MF_API_RETRY_DELAY * (2 ** (attempt - 1))  # exponential backoff: 5s, 10s
+                delay = MF_API_RETRY_DELAY * (2 ** (attempt - 1))
                 logger.info("Retrying in %ds...", delay)
                 time.sleep(delay)
             else:

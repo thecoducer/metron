@@ -30,6 +30,9 @@ models/
 #Node modules
 node_modules/
 
+# Specs
+specs/
+
 # Test coverage
 .coverage
 htmlcov/

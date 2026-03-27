@@ -580,6 +580,28 @@ def mutual_funds_search():
     return jsonify(mf_market_cache.search_names(q))
 
 
+@app_ui.route("/api/mutual_funds/isin", methods=["GET"])
+@login_required
+def mutual_funds_isin():
+    """Return the ISIN and full scheme name for an exact fund name.
+
+    Query params:
+      name (str): Exact scheme name as stored in the mfapi.in cache.
+
+    Returns JSON: {isin: str|null, scheme_name: str|null}
+    """
+    from .api.mf_market_data import mf_market_cache
+
+    name = request.args.get("name", "").strip()
+    if not name:
+        return jsonify({"isin": None, "scheme_name": None})
+    isin = mf_market_cache.get_isin_for_name(name)
+    if not isin:
+        return jsonify({"isin": None, "scheme_name": None})
+    info = mf_market_cache.get_by_isin(isin)
+    return jsonify({"isin": isin, "scheme_name": info.scheme_name if info else name})
+
+
 @app_ui.route("/api/sips_data", methods=["GET"])
 @pin_required
 def sips_data():
@@ -1172,8 +1194,8 @@ def cas_upload():
         return jsonify({"error": "Password is required"}), 400
 
     file_bytes = pdf_file.read()
-    if len(file_bytes) > 10 * 1024 * 1024:  # 10 MB limit
-        return jsonify({"error": "File too large. Maximum size is 10 MB."}), 400
+    if len(file_bytes) > 15 * 1024 * 1024:  # 15 MB limit
+        return jsonify({"error": "File too large. Maximum size is 15 MB."}), 400
 
     try:
         result = parse_cas_pdf(file_bytes, password)
@@ -1195,10 +1217,11 @@ def cas_confirm():
       - account: str - Account name for these holdings
       - schemes: list of {isin, fund_name, units, avg_nav, transactions}
 
-    Aggregation logic:
-      - If same ISIN already exists with source=manual, aggregate units/cost.
-      - If same ISIN exists with source=zerodha (broker), add as new row
-        since data sources are different.
+    Re-upload logic:
+      - All CAMS rows for this account are deleted first, then replaced with
+        fresh data. This prevents double-counting on re-upload.
+      - Only rows with source="cams" for the matching account are removed.
+        Rows from other sources (manual, zerodha, etc.) are untouched.
     """
     from .api.mf_market_data import mf_market_cache
     from .api.user_sheets import SHEET_CONFIGS
@@ -1226,37 +1249,46 @@ def cas_confirm():
 
     try:
         client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
-        # Fetch existing rows to check for aggregation
         raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
     except Exception as e:
         return _sheets_error_response(e, "reading", "mutual_funds")
 
-    # Build index of existing manual entries by ISIN
-    existing_manual: dict[str, dict] = {}
+    # Find existing cams rows for this account and delete them
+    rows_to_delete: list[int] = []
     if raw and len(raw) >= 2:
         fields = cfg["fields"]
         for idx, row in enumerate(raw[1:], start=2):
             if is_blank_row(row):
                 break
-            entry: dict[str, Any] = {"row_number": idx}
+            entry: dict[str, Any] = {}
             for fi, fname in enumerate(fields):
                 entry[fname] = row[fi] if fi < len(row) else ""
-            isin_val = (entry.get("isin") or "").strip().upper()
-            source = (entry.get("source") or "manual").strip()
-            # Only aggregate with manual source entries
-            if isin_val and source == "manual":
-                existing_manual[isin_val] = entry
+            row_source = (entry.get("source") or "").strip()
+            row_account = (entry.get("account") or "").strip()
+            if row_source == "cams" and row_account == account:
+                rows_to_delete.append(idx)
 
-    added = 0
-    updated = 0
+    if rows_to_delete:
+        try:
+            client.batch_delete_rows(spreadsheet_id, cfg["sheet_name"], rows_to_delete)
+            logger.info(
+                "CAS confirm: deleted %d stale cams rows for account=%s",
+                len(rows_to_delete),
+                account,
+            )
+        except Exception:
+            logger.exception("Failed to delete stale cams rows for account=%s", account)
+
+    # Build and append all new rows
+    new_rows: list[list[Any]] = []
     all_transactions: list[dict] = []
 
     for scheme in schemes:
         isin = (scheme.get("isin") or "").strip().upper()
         fund_name = (scheme.get("fund_name") or "").strip()
         units = float(scheme.get("units") or 0)
-        cost = float(scheme.get("cost") or 0)
-        avg_nav = round(cost / units, 4) if units > 0 else 0.0
+        avg_nav_raw = scheme.get("avg_nav")
+        avg_nav = round(float(avg_nav_raw), 4) if avg_nav_raw is not None else 0.0
         transactions = scheme.get("transactions", [])
 
         if not isin or units <= 0:
@@ -1269,96 +1301,56 @@ def cas_confirm():
         if cache_info:
             latest_nav = cache_info.latest_nav
             nav_date = cache_info.nav_updated_date
-            # Use canonical name from cache if fund_name wasn't
-            # explicitly set by user
             if not fund_name:
                 fund_name = cache_info.scheme_name
 
-        # Collect transactions for storage
         for txn in transactions:
-            all_transactions.append(
-                {
-                    "isin": isin,
-                    "fund_name": fund_name,
-                    **txn,
-                }
-            )
+            all_transactions.append({"isin": isin, "fund_name": fund_name, **txn})
 
-        # Check if same ISIN already exists as manual entry
-        existing = existing_manual.get(isin)
-        if existing:
-            # Aggregate: add units and recalculate avg NAV
-            old_units = float(existing.get("qty") or 0)
-            old_avg = float(existing.get("avg_nav") or 0)
-            new_units = old_units + units
-            new_avg = (
-                round(
-                    (old_units * old_avg + units * avg_nav) / new_units,
-                    4,
-                )
-                if new_units > 0
-                else 0.0
-            )
-            row_num = existing["row_number"]
-            values = [
-                isin,
-                fund_name or existing.get("fund_name", ""),
-                str(new_units),
-                str(new_avg),
-                account,
-                "manual",
-                latest_nav,
-                nav_date,
-            ]
-            try:
-                client.update_row(spreadsheet_id, cfg["sheet_name"], row_num, values)
-                updated += 1
-            except Exception:
-                logger.exception(
-                    "Failed to update row %d for ISIN %s",
-                    row_num,
-                    isin,
-                )
-        else:
-            # Add new row
-            values = [
+        new_rows.append(
+            [
                 isin,
                 fund_name,
                 str(units),
                 str(avg_nav),
                 account,
-                "manual",
+                "cams",
                 latest_nav,
                 nav_date,
             ]
-            try:
-                client.append_row(spreadsheet_id, cfg["sheet_name"], values)
-                added += 1
-            except Exception:
-                logger.exception("Failed to add row for ISIN %s", isin)
+        )
+
+    added = 0
+    if new_rows:
+        try:
+            client.batch_append_rows(spreadsheet_id, cfg["sheet_name"], new_rows)
+            added = len(new_rows)
+        except Exception:
+            logger.exception("Failed to append cams rows for account=%s", account)
+            return jsonify({"error": "Failed to save funds to Google Sheets"}), 500
 
     # Refresh the sheet cache
     _refresh_single_sheet_cache(client, spreadsheet_id, google_id, "mutual_funds")
 
-    # Store transactions in session for the transaction history page
+    # Store transactions for the transaction history page
     if all_transactions:
-        _store_cas_transactions(google_id, all_transactions)
+        _store_cas_transactions(google_id, account, all_transactions)
 
     logger.info(
-        "CAS confirm: added=%d updated=%d transactions=%d",
+        "CAS confirm: deleted=%d added=%d transactions=%d account=%s",
+        len(rows_to_delete),
         added,
-        updated,
         len(all_transactions),
+        account,
     )
 
-    # Build refreshed MF data for frontend
     refreshed = _build_data_for_type(user, "mutual_funds")
 
     return jsonify(
         {
             "status": "saved",
             "added": added,
-            "updated": updated,
+            "updated": len(rows_to_delete),
             "has_transactions": bool(all_transactions),
             **refreshed,
         }
@@ -1373,7 +1365,11 @@ def cas_transactions():
     assert user is not None
     google_id = user["google_id"]
 
-    transactions = _get_cas_transactions(google_id)
+    all_txns = _get_cas_transactions(google_id)
+    transactions = [
+        t for t in all_txns
+        if t.get("type") not in ("STAMP_DUTY_TAX", "STT_TAX")
+    ]
     if not transactions:
         return jsonify({"transactions": [], "has_data": False})
 
@@ -1419,31 +1415,16 @@ _cas_transactions_lock = threading.Lock()
 _cas_transactions: dict[str, list[dict]] = {}
 
 
-def _store_cas_transactions(google_id: str, transactions: list[dict]) -> None:
-    """Store parsed CAS transactions in memory for the user."""
+def _store_cas_transactions(
+    google_id: str, account: str, transactions: list[dict]
+) -> None:
+    """Store CAS transactions for the user, replacing any existing ones for this account."""
     with _cas_transactions_lock:
         existing = _cas_transactions.get(google_id, [])
-        # Merge: deduplicate by (isin, date, amount, units)
-        seen = set()
-        for t in existing:
-            key = (
-                t.get("isin"),
-                t.get("date"),
-                t.get("amount"),
-                t.get("units"),
-            )
-            seen.add(key)
-        for t in transactions:
-            key = (
-                t.get("isin"),
-                t.get("date"),
-                t.get("amount"),
-                t.get("units"),
-            )
-            if key not in seen:
-                existing.append(t)
-                seen.add(key)
-        _cas_transactions[google_id] = existing
+        # Drop old transactions for this account, then append the fresh ones.
+        kept = [t for t in existing if t.get("account") != account]
+        tagged = [{"account": account, **t} for t in transactions]
+        _cas_transactions[google_id] = kept + tagged
 
 
 def _get_cas_transactions(google_id: str) -> list[dict]:

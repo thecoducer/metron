@@ -177,6 +177,7 @@ def serialise_parse_result(result: CASParseResult) -> dict[str, Any]:
                 "folio": s.folio,
                 "amc": s.amc,
                 "units": s.units,
+                "avg_nav": _compute_avg_nav(s.transactions, s.cost, s.units),
                 "cost": s.cost,
                 "current_value": s.current_value,
                 "nav": s.nav,
@@ -198,6 +199,27 @@ def serialise_parse_result(result: CASParseResult) -> dict[str, Any]:
             for s in result.schemes
         ],
     }
+
+
+def _compute_avg_nav(transactions: list[CASTransaction], cost: float, close_units: float) -> float:
+    """Compute the average cost per unit, matching what CAMS prints in the PDF.
+
+    Two strategies are used depending on whether the scheme has redemptions:
+
+    - No redemptions: ``sum(purchase_amount) / sum(purchase_units)`` — purchase
+      amounts from casparser exclude stamp duty, so this matches CAMS exactly.
+    - Has redemptions: ``cost / close_units`` — casparser reads ``cost`` directly
+      from the PDF text (CAMS's own computed remaining cost), so dividing by the
+      remaining units recovers the correct average for complex histories.
+    """
+    has_redemptions = any((t.units or 0.0) < 0 for t in transactions)
+
+    if has_redemptions:
+        return round(cost / close_units, 4) if close_units > 0 else 0.0
+
+    total_amount = sum(t.amount for t in transactions if (t.units or 0.0) > 0 and (t.amount or 0.0) > 0)
+    total_units = sum(t.units for t in transactions if (t.units or 0.0) > 0)  # type: ignore[misc]
+    return round(total_amount / total_units, 4) if total_units > 0 else 0.0
 
 
 def _safe_float(value: Any) -> float:
