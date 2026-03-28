@@ -12,6 +12,7 @@ config/firebase-credentials.json
 config/google-oauth-credentials.json
 config/zerodha-token-secret.txt
 config/flask-secret-key.txt
+.cloudflared/
 
 # Firebase (not needed in Docker image)
 firebase.json
