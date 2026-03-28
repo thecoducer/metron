@@ -1,0 +1,211 @@
+/* =============================================
+   Metron Footer
+   ============================================= */
+
+.mf-footer {
+  margin-top: 64px;
+  background: #f5f5f5;
+  width: 100%;
+  position: relative;
+}
+
+.mf-footer::before {
+  content: '';
+  position: absolute;
+  top: -48px;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, #f5f5f5);
+  pointer-events: none;
+}
+
+/* ── Footer Content ──────────────────────────── */
+.mf-content {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 0.8fr;
+  gap: 40px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 24px 32px;
+}
+
+.mf-brand__name {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.mf-brand__tagline {
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 12px;
+}
+
+.mf-brand__desc {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 320px;
+}
+
+.mf-col-title {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555;
+  margin: 0 0 14px;
+}
+
+.mf-links,
+.mf-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mf-links a,
+.mf-connect a {
+  font-size: 13px;
+  color: #888;
+  text-decoration: none;
+  transition: color 0.2s;
+  line-height: 1.4;
+}
+
+.mf-links a:hover,
+.mf-connect a:hover {
+  color: #111;
+}
+
+.mf-gh-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-right: 4px;
+  fill: currentColor;
+}
+
+/* ── Footer Bottom ───────────────────────────── */
+.mf-bottom {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.mf-love {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+.mf-heart {
+  color: #e25555;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.mf-love a {
+  text-decoration: none;
+}
+
+.mf-love a:hover .mf-credit {
+  filter: brightness(1.15);
+}
+
+.mf-credit {
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.mf-credit--claude {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Dark Theme ──────────────────────────────── */
+body.dark-theme .mf-footer {
+  background: #0f0f0f;
+}
+
+body.dark-theme .mf-footer::before {
+  background: linear-gradient(to bottom, transparent, #0f0f0f);
+}
+
+body.dark-theme .mf-brand__name {
+  color: #e5e5e5;
+}
+
+body.dark-theme .mf-brand__tagline {
+  color: #666;
+}
+
+body.dark-theme .mf-brand__desc {
+  color: #777;
+}
+
+body.dark-theme .mf-col-title {
+  color: #999;
+}
+
+body.dark-theme .mf-links a,
+body.dark-theme .mf-connect a {
+  color: #666;
+}
+
+body.dark-theme .mf-links a:hover,
+body.dark-theme .mf-connect a:hover {
+  color: #e5e5e5;
+}
+
+body.dark-theme .mf-bottom {
+  border-top-color: #222;
+}
+
+body.dark-theme .mf-love {
+  color: #666;
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 768px) {
+  .mf-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    padding: 32px 20px 24px;
+  }
+
+  .mf-brand {
+    grid-column: 1 / -1;
+  }
+
+  .mf-bottom {
+    padding: 14px 20px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mf-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 28px 16px 20px;
+  }
+
+  .mf-bottom {
+    padding: 12px 16px 16px;
+  }
+}

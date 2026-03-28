@@ -917,23 +917,8 @@
                     </div>
                 </div>
             </div>
-            <footer class="site-footer-dashboard">
-                <div class="footer-legal-links">
-                    <a href="/privacy">Privacy Policy</a>
-                    <span class="footer-dot"></span>
-                    <a href="/terms">Terms &amp; Conditions</a>
-                    <span class="footer-dot"></span>
-                    <a href="/contact">Contact Us</a>
-                    <span class="footer-dot"></span>
-                    <a href="/health">Health</a>
-                </div>
-                <div class="made-with-love">
-                    <p>
-                        Made with <span class="heart">♥</span> by <a href="https://github.com/thecoducer" target="_blank" rel="noopener"><span class="credit">Mayukh</span></a> &amp; <a href="https://claude.ai" target="_blank" rel="noopener"><span class="credit claude">Claude</span></a>
-                    </p>
-                </div>
-            </footer>
         </div>
+        {% include 'partials/footer.html' %}
         {% if user %}
             {% include 'partials/settings_drawer.html' %}
         {% endif %}
