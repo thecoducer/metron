@@ -967,25 +967,17 @@ function renderTable(transactions) {
   const paginationInfo = txnPagination.paginate(transactions);
   const pageItems = paginationInfo.pageData;
 
-  // Use precomputed FIFO cost basis from API
-  const fifoCost = apiData.fifo_cost_map || {};
-
   tableBody.innerHTML = pageItems.map(t => {
     const typeClass = isPurchase(t) ? 'txn-type-buy' : isRedemption(t) ? 'txn-type-sell' : 'txn-type-other';
     const typeLabel = isPurchase(t) ? 'Buy' : isRedemption(t) ? 'Sell' : (t.type || '-');
     const amtClass = isPurchase(t) ? '' : isRedemption(t) ? 'txn-amount-negative' : '';
 
     let plBadge = '';
-    const key = t.isin + '|' + t.date + '|' + t.amount;
-    const costBasis = fifoCost[key];
-    if (isRedemption(t) && costBasis !== undefined && t.amount) {
-      const sellAmt = Math.abs(t.amount);
-      const pl = sellAmt - costBasis;
-      const plPct = costBasis > 0 ? (pl / costBasis * 100) : 0;
-      const isGain = pl >= 0;
+    if (isRedemption(t) && t.pl_amount !== undefined) {
+      const isGain = t.pl_amount >= 0;
       plBadge = '<span class="txn-pl-badge ' + (isGain ? 'txn-pl-gain' : 'txn-pl-loss') + '" title="P&L based on FIFO cost basis">' +
-        (isGain ? '+' : '') + Formatter.formatCurrency(pl, 0) +
-        ' (' + (isGain ? '+' : '') + plPct.toFixed(1) + '%)' +
+        (isGain ? '+' : '') + Formatter.formatCurrency(t.pl_amount, 0) +
+        ' (' + (isGain ? '+' : '') + t.pl_pct.toFixed(1) + '%)' +
       '</span>';
     }
 
@@ -1014,7 +1006,8 @@ let _cachedTableTransactions = [];
 
 // ── Helpers ──
 function isPurchase(t) {
-  return (t.type || '').includes('PURCHASE');
+  return (t.type || '').includes('PURCHASE') ||
+         (t.type || '').includes('SWITCH_IN');
 }
 function isRedemption(t) {
   return (t.type || '').includes('REDEMPTION') ||

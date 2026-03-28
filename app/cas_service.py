@@ -357,7 +357,7 @@ _EXCLUDED_TYPES = frozenset(("STAMP_DUTY_TAX", "STT_TAX"))
 
 def _is_purchase(t: dict) -> bool:
     tx_type = t.get("type") or ""
-    return "PURCHASE" in tx_type
+    return "PURCHASE" in tx_type or "SWITCH_IN" in tx_type
 
 
 def _is_redemption(t: dict) -> bool:
@@ -400,9 +400,8 @@ def _compute_remaining_cost_basis(transactions: list[dict]) -> float:
         for t in txns:
             amount = abs(t.get("amount") or 0)
             units = abs(t.get("units") or 0)
-            tx_type = t.get("type") or ""
 
-            if _is_purchase(t) or "SWITCH_IN" in tx_type:
+            if _is_purchase(t):
                 if units > 0:
                     cost_basis += amount
                     holding_units += units
@@ -436,20 +435,22 @@ def _compute_period(transactions: list[dict]) -> dict[str, Any]:
     }
 
 
-def _build_fifo_cost_map(transactions: list[dict]) -> dict[str, float]:
-    """Build FIFO cost basis for each sell transaction.
+def _attach_fifo_pnl(transactions: list[dict]) -> None:
+    """Attach FIFO-based P&L to each sell transaction in-place.
 
-    Returns dict keyed by ``isin|date|amount``.
+    Adds ``pl_amount`` and ``pl_pct`` fields to redemption transactions.
+    Each account's FIFO queue is tracked independently.
     """
-    by_fund: dict[str, list[dict]] = {}
+    by_acct_fund: dict[str, list[dict]] = {}
     sorted_txns = sorted(transactions, key=lambda t: t.get("date") or "")
     for t in sorted_txns:
         isin = t.get("isin")
         if isin:
-            by_fund.setdefault(isin, []).append(t)
+            acct = t.get("account") or ""
+            key = f"{acct}|{isin}"
+            by_acct_fund.setdefault(key, []).append(t)
 
-    cost_map: dict[str, float] = {}
-    for isin, txns in by_fund.items():
+    for _group_key, txns in by_acct_fund.items():
         queue: list[dict[str, float]] = []
         for t in txns:
             units = t.get("units") or 0
@@ -467,10 +468,11 @@ def _build_fifo_cost_map(transactions: list[dict]) -> dict[str, float]:
                     remaining -= take
                     if lot["units"] <= 0.0001:
                         queue.pop(0)
-                if remaining <= 0.0001:
-                    key = f"{isin}|{t.get('date')}|{t.get('amount')}"
-                    cost_map[key] = round(cost_basis, 2)
-    return cost_map
+                if remaining <= 0.0001 and cost_basis > 0:
+                    sell_amt = abs(t.get("amount") or 0)
+                    pl = sell_amt - cost_basis
+                    t["pl_amount"] = round(pl, 2)
+                    t["pl_pct"] = round(pl / cost_basis * 100, 1)
 
 
 def _compute_monthly_buy_sell(
@@ -564,7 +566,7 @@ def get_transaction_data(
     # Precompute all analytics from the full (account-filtered) set
     summary = _compute_summary(transactions, schemes)
     period = _compute_period(transactions)
-    fifo_cost_map = _build_fifo_cost_map(transactions)
+    _attach_fifo_pnl(transactions)
     monthly_buy_sell = _compute_monthly_buy_sell(transactions)
     cumulative_timeline = _compute_cumulative_timeline(transactions)
     heatmap = _compute_heatmap(transactions)
@@ -580,7 +582,6 @@ def get_transaction_data(
         "accounts": accounts,
         "summary": summary,
         "period": period,
-        "fifo_cost_map": fifo_cost_map,
         "monthly_buy_sell": monthly_buy_sell,
         "cumulative_timeline": cumulative_timeline,
         "heatmap": heatmap,
