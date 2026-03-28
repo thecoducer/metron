@@ -531,12 +531,8 @@ def sheets_list_rows(
     from .api.user_sheets import SHEET_CONFIGS
 
     cfg = SHEET_CONFIGS[sheet_type]
-    client.ensure_sheet_tab(
-        spreadsheet_id, cfg["sheet_name"], cfg["headers"]
-    )
-    raw = client.fetch_sheet_data_until_blank(
-        spreadsheet_id, cfg["sheet_name"]
-    )
+    client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
+    raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
 
     if not raw or len(raw) < 2:
         return []
@@ -578,15 +574,9 @@ def sheets_add_row(
     _normalize_date_values(cfg["fields"], values)
     _apply_field_defaults(cfg, values, nse_isin, sheet_type)
 
-    client.ensure_sheet_tab(
-        spreadsheet_id, cfg["sheet_name"], cfg["headers"]
-    )
-    row_num = client.append_row(
-        spreadsheet_id, cfg["sheet_name"], values
-    )
-    _refresh_single_sheet_cache(
-        client, spreadsheet_id, google_id, sheet_type
-    )
+    client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
+    row_num = client.append_row(spreadsheet_id, cfg["sheet_name"], values)
+    _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
 
     if sheet_type in ("stocks", "etfs"):
         _fetch_uncached_manual_ltps(user, symbol)
@@ -627,12 +617,8 @@ def sheets_update_row(
     _normalize_date_values(cfg["fields"], values)
     _apply_field_defaults(cfg, values, nse_isin, sheet_type)
 
-    client.update_row(
-        spreadsheet_id, cfg["sheet_name"], row_number, values
-    )
-    _refresh_single_sheet_cache(
-        client, spreadsheet_id, google_id, sheet_type
-    )
+    client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)
+    _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
 
     result: dict[str, Any] = {"status": "updated"}
     refreshed = _build_data_for_type(user, sheet_type)
@@ -656,12 +642,8 @@ def sheets_delete_row(
     from .api.user_sheets import SHEET_CONFIGS
 
     cfg = SHEET_CONFIGS[sheet_type]
-    client.delete_row(
-        spreadsheet_id, cfg["sheet_name"], row_number
-    )
-    _refresh_single_sheet_cache(
-        client, spreadsheet_id, google_id, sheet_type
-    )
+    client.delete_row(spreadsheet_id, cfg["sheet_name"], row_number)
+    _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
 
     result: dict[str, Any] = {"status": "deleted"}
     refreshed = _build_data_for_type(user, sheet_type)
@@ -670,9 +652,7 @@ def sheets_delete_row(
     return result
 
 
-def _validate_and_cache_symbol(
-    sheet_type: str, symbol: str
-) -> str:
+def _validate_and_cache_symbol(sheet_type: str, symbol: str) -> str:
     """Validate stock/ETF symbol against NSE and cache its LTP.
 
     Returns the ISIN if found, empty string otherwise.
@@ -686,9 +666,7 @@ def _validate_and_cache_symbol(
 
     quote = _validate_nse_symbol(symbol)
     if not quote:
-        raise ValueError(
-            f"Symbol {symbol} doesn't exist on exchange."
-        )
+        raise ValueError(f"Symbol {symbol} doesn't exist on exchange.")
     manual_ltp_cache.put(symbol, quote)
     return quote.get("isin", "")
 

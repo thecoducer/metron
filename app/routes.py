@@ -711,9 +711,7 @@ def exposure_data():
     stocks_and_etfs = _build_stocks_data(user)
     mf_data = _build_mf_data(user)
 
-    payload, status_code = exposure_service.get_or_start_analysis(
-        google_id, stocks_and_etfs, mf_data
-    )
+    payload, status_code = exposure_service.get_or_start_analysis(google_id, stocks_and_etfs, mf_data)
     return _exposure_json_response(payload), status_code
 
 
@@ -731,9 +729,7 @@ def exposure_refresh():
     stocks_and_etfs = _build_stocks_data(user)
     mf_data = _build_mf_data(user)
 
-    payload, status_code = exposure_service.refresh_analysis(
-        google_id, stocks_and_etfs, mf_data
-    )
+    payload, status_code = exposure_service.refresh_analysis(google_id, stocks_and_etfs, mf_data)
     return _exposure_json_response(payload), status_code
 
 
@@ -1144,9 +1140,7 @@ def cas_confirm():
     assert spreadsheet_id is not None
 
     try:
-        result = cas_service.confirm_import(
-            client, spreadsheet_id, google_id, account, schemes, user
-        )
+        result = cas_service.confirm_import(client, spreadsheet_id, google_id, account, schemes, user)
     except Exception as e:
         return _sheets_error_response(e, "saving", "mutual_funds")
 
@@ -1166,9 +1160,7 @@ def cas_transactions():
     per_page = int(request.args.get("per_page", 50))
     account = request.args.get("account") or None
 
-    return jsonify(
-        cas_service.get_transaction_data(google_id, page, per_page, account)
-    )
+    return jsonify(cas_service.get_transaction_data(google_id, page, per_page, account))
 
 
 @app_ui.route("/mutual-funds/transactions", methods=["GET"])
@@ -1254,9 +1246,7 @@ def sheets_add(sheet_type):
     data = request.get_json(silent=True) or {}
 
     try:
-        result = sheets_add_row(
-            client, spreadsheet_id, sheet_type, data, google_id, user
-        )
+        result = sheets_add_row(client, spreadsheet_id, sheet_type, data, google_id, user)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as e:
@@ -1290,8 +1280,13 @@ def sheets_update(sheet_type, row_number):
 
     try:
         result = sheets_update_row(
-            client, spreadsheet_id, sheet_type, row_number,
-            data, google_id, user,
+            client,
+            spreadsheet_id,
+            sheet_type,
+            row_number,
+            data,
+            google_id,
+            user,
         )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -1325,8 +1320,12 @@ def sheets_delete(sheet_type, row_number):
 
     try:
         result = sheets_delete_row(
-            client, spreadsheet_id, sheet_type, row_number,
-            google_id, user,
+            client,
+            spreadsheet_id,
+            sheet_type,
+            row_number,
+            google_id,
+            user,
         )
     except Exception as e:
         return _sheets_error_response(e, "deleting", sheet_type)
