@@ -11,6 +11,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import cas_service, exposure_service
 from .cache import manual_ltp_cache, market_cache, portfolio_cache, user_sheets_cache
+from .telemetry import (
+    record_auth_event,
+    record_error,
+    record_sheets_operation,
+)
 from .constants import HTTP_ACCEPTED, HTTP_CONFLICT, PORTFOLIO_TABLE_ROW_LIMIT
 from .fetchers import (
     _fetch_manual_entries,  # noqa: F401 — re-exported for test imports
@@ -26,6 +31,7 @@ from .fetchers import (
 from .firebase_store import reset_zerodha_data, verify_user_pin
 from .logging_config import logger
 from .middleware import app_only, login_required, pin_required, protected_api
+from .telemetry import init_telemetry
 from .services import (
     _build_data_for_type,  # noqa: F401 — re-exported for test imports
     _build_fd_data,
@@ -84,6 +90,9 @@ app_ui.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") != "development",
 )
+
+# OpenTelemetry instrumentation (logs, traces, metrics → OpenObserve)
+init_telemetry(app_ui)
 
 
 # ---------------------------------------------------------------------------
@@ -290,10 +299,12 @@ def google_callback():
         # PIN is not yet verified at this point — the frontend will prompt
         session.pop("pin_verified", None)
 
+        record_auth_event("google_login", success=True)
         return redirect("/")
 
     except Exception as e:
         logger.exception("Google OAuth callback failed: %s", e)
+        record_auth_event("google_login", success=False)
         return render_template("callback_error.html"), 500
 
 
@@ -324,6 +335,7 @@ def auth_logout():
         logger.info("User logout")
         session_manager.clear_pin(gid)
     session.clear()
+    record_auth_event("logout", success=True)
     return jsonify({"status": "logged_out"})
 
 
@@ -404,6 +416,7 @@ def pin_verify():
 
     # Success — clear rate-limit state
     pin_rate_limiter.record_success(google_id)
+    record_auth_event("pin_verify", success=True)
     logger.info("PIN verified successfully")
 
     # Store PIN in server memory and mark session as verified
@@ -522,6 +535,7 @@ def zerodha_callback():
         logger.warning("Zerodha callback: no account authenticated")
         return render_template("callback_error.html")
 
+    record_auth_event("zerodha_login", success=True)
     logger.info("Zerodha login succeeded")
 
     auth_accounts = [acc for acc in accounts if session_manager.is_valid(google_id, acc["name"])]
@@ -1220,8 +1234,10 @@ def sheets_list(sheet_type):
     try:
         rows = sheets_list_rows(client, spreadsheet_id, sheet_type)
     except Exception as e:
+        record_sheets_operation("list", sheet_type, success=False)
         return _sheets_error_response(e, "listing", sheet_type)
 
+    record_sheets_operation("list", sheet_type, success=True)
     return jsonify(rows)
 
 
@@ -1248,10 +1264,13 @@ def sheets_add(sheet_type):
     try:
         result = sheets_add_row(client, spreadsheet_id, sheet_type, data, google_id, user)
     except ValueError as exc:
+        record_sheets_operation("add", sheet_type, success=False)
         return jsonify({"error": str(exc)}), 400
     except Exception as e:
+        record_sheets_operation("add", sheet_type, success=False)
         return _sheets_error_response(e, "adding", sheet_type)
 
+    record_sheets_operation("add", sheet_type, success=True)
     return jsonify(result)
 
 
@@ -1289,10 +1308,13 @@ def sheets_update(sheet_type, row_number):
             user,
         )
     except ValueError as exc:
+        record_sheets_operation("update", sheet_type, success=False)
         return jsonify({"error": str(exc)}), 400
     except Exception as e:
+        record_sheets_operation("update", sheet_type, success=False)
         return _sheets_error_response(e, "updating", sheet_type)
 
+    record_sheets_operation("update", sheet_type, success=True)
     return jsonify(result)
 
 
@@ -1328,6 +1350,8 @@ def sheets_delete(sheet_type, row_number):
             user,
         )
     except Exception as e:
+        record_sheets_operation("delete", sheet_type, success=False)
         return _sheets_error_response(e, "deleting", sheet_type)
 
+    record_sheets_operation("delete", sheet_type, success=True)
     return jsonify(result)

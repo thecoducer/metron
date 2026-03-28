@@ -1,0 +1,13 @@
+tunnel: metron-tunnel
+
+protocol: http2
+ha-connections: 4
+max-fetch-size: 5242880
+loglevel: info
+
+ingress:
+  - hostname: metron.thecoducer.com
+    service: http://app:8000
+  - hostname: metron-logs.thecoducer.com
+    service: http://signoz:8080
+  - service: http_status:200

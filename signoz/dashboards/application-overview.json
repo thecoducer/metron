@@ -1,0 +1,373 @@
+{
+  "title": "Metron - Application Overview",
+  "description": "HTTP request rates, latencies, error rates, and active requests for the Metron portfolio tracker",
+  "tags": ["metron", "application"],
+  "layout": [
+    {"h": 3, "i": "request_rate", "w": 6, "x": 0, "y": 0},
+    {"h": 3, "i": "error_rate", "w": 6, "x": 6, "y": 0},
+    {"h": 3, "i": "p50_latency", "w": 4, "x": 0, "y": 3},
+    {"h": 3, "i": "p95_latency", "w": 4, "x": 4, "y": 3},
+    {"h": 3, "i": "p99_latency", "w": 4, "x": 8, "y": 3},
+    {"h": 3, "i": "active_requests", "w": 6, "x": 0, "y": 6},
+    {"h": 3, "i": "requests_by_route", "w": 6, "x": 6, "y": 6},
+    {"h": 3, "i": "requests_by_status", "w": 6, "x": 0, "y": 9},
+    {"h": 3, "i": "slowest_routes", "w": 6, "x": 6, "y": 9}
+  ],
+  "widgets": [
+    {
+      "id": "request_rate",
+      "title": "Request Rate (req/s)",
+      "description": "Total HTTP requests per second",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "http_requests_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "expression": "A",
+              "disabled": false,
+              "legend": "Requests/s",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "error_rate",
+      "title": "Error Rate (5xx)",
+      "description": "HTTP 5xx error rate",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "http_requests_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "items": [
+                  {
+                    "key": {
+                      "key": "http.status_code",
+                      "type": "tag",
+                      "dataType": "string"
+                    },
+                    "op": ">=",
+                    "value": "500"
+                  }
+                ],
+                "op": "AND"
+              },
+              "expression": "A",
+              "disabled": false,
+              "legend": "5xx Errors/s",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "p50_latency",
+      "title": "P50 Latency",
+      "description": "Median request latency",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "p50",
+              "aggregateAttribute": {
+                "key": "http_request_duration_seconds",
+                "type": "Histogram",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "p50",
+              "spaceAggregation": "p50",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "expression": "A",
+              "disabled": false,
+              "legend": "P50 (s)",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "p95_latency",
+      "title": "P95 Latency",
+      "description": "95th percentile request latency",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "p95",
+              "aggregateAttribute": {
+                "key": "http_request_duration_seconds",
+                "type": "Histogram",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "p95",
+              "spaceAggregation": "p95",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "expression": "A",
+              "disabled": false,
+              "legend": "P95 (s)",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "p99_latency",
+      "title": "P99 Latency",
+      "description": "99th percentile request latency",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "p99",
+              "aggregateAttribute": {
+                "key": "http_request_duration_seconds",
+                "type": "Histogram",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "p99",
+              "spaceAggregation": "p99",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "expression": "A",
+              "disabled": false,
+              "legend": "P99 (s)",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "active_requests",
+      "title": "Active In-Flight Requests",
+      "description": "Currently processing HTTP requests",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "latest",
+              "aggregateAttribute": {
+                "key": "http_requests_active",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "latest",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "expression": "A",
+              "disabled": false,
+              "legend": "Active",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "requests_by_route",
+      "title": "Requests by Route",
+      "description": "Request count grouped by HTTP route",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "http_requests_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "groupBy": [
+                {
+                  "key": "http.route",
+                  "type": "tag",
+                  "dataType": "string"
+                }
+              ],
+              "expression": "A",
+              "disabled": false,
+              "legend": "{{http.route}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "requests_by_status",
+      "title": "Requests by Status Code",
+      "description": "Request count grouped by HTTP status code",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "http_requests_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "groupBy": [
+                {
+                  "key": "http.status_code",
+                  "type": "tag",
+                  "dataType": "string"
+                }
+              ],
+              "expression": "A",
+              "disabled": false,
+              "legend": "{{http.status_code}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "slowest_routes",
+      "title": "Slowest Routes (P95)",
+      "description": "P95 latency by route — identify bottlenecks",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "p95",
+              "aggregateAttribute": {
+                "key": "http_request_duration_seconds",
+                "type": "Histogram",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "p95",
+              "spaceAggregation": "p95",
+              "functions": [],
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "groupBy": [
+                {
+                  "key": "http.route",
+                  "type": "tag",
+                  "dataType": "string"
+                }
+              ],
+              "expression": "A",
+              "disabled": false,
+              "legend": "{{http.route}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    }
+  ]
+}

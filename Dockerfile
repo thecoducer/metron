@@ -2,15 +2,9 @@ FROM python:3.12-slim
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Install cloudflared for Cloudflare Tunnel
+# curl needed for container healthcheck
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
-    ARCH=$(dpkg --print-architecture) && \
-    curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}" \
-        -o /usr/local/bin/cloudflared && \
-    chmod +x /usr/local/bin/cloudflared && \
-    apt-get purge -y curl && \
-    apt-get autoremove -y && \
+    apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -22,16 +16,13 @@ RUN uv sync --group prod --no-dev --frozen
 # Copy application code (secrets excluded via .dockerignore)
 COPY . .
 
-# Gunicorn listens on this port; must match cloudflared tunnel config
 ENV PORT=8000
-
 ENV OAUTHLIB_INSECURE_TRANSPORT=0
 ENV OAUTHLIB_RELAX_TOKEN_SCOPE=1
 
-# Tunnel name (override with -e TUNNEL_NAME=your-tunnel)
-ENV TUNNEL_NAME=metron-tunnel
+HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -fs http://localhost:${PORT}/health || exit 1
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+EXPOSE ${PORT}
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["uv", "run", "gunicorn", "wsgi:app", "-c", "gunicorn.conf.py"]

@@ -13,6 +13,11 @@ config/google-oauth-credentials.json
 config/zerodha-token-secret.txt
 config/flask-secret-key.txt
 .cloudflared/
+docker-compose.yml
+start-signoz.sh
+signoz/
+logs/
+bin/
 
 # Firebase (not needed in Docker image)
 firebase.json

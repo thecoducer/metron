@@ -1,6 +1,8 @@
 import logging
 import os
 import time
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 # Shared logger for the project. Modules can import this `logger` to avoid
 # defining `logging.getLogger(__name__)` in every file. This logger uses a
@@ -56,6 +58,21 @@ def configure(level: int | None = None, fmt: str | None = None) -> None:
 
     # Ensure our shared logger inherits configuration
     logger.setLevel(level)
+
+    # File handler — write to logs/ directory if it exists
+    _project_root = Path(__file__).resolve().parent.parent
+    _log_dir = _project_root / "logs"
+    if _log_dir.is_dir():
+        file_handler = RotatingFileHandler(
+            _log_dir / "metron.log",
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=5,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(level)
+        root.addHandler(file_handler)
+
     # Reduce noisy HTTP request logs from Flask's development server (Werkzeug)
     # by default; keep them at WARNING so normal request lines aren't logged
     # at INFO level unless the app or environment configures it otherwise.

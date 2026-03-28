@@ -1,0 +1,281 @@
+{
+  "title": "Metron - External APIs & Integrations",
+  "description": "Monitor external API calls (Zerodha, Google Sheets, Yahoo Finance, IBJA), portfolio fetches, and broker sync operations",
+  "tags": ["metron", "integrations"],
+  "layout": [
+    {"h": 3, "i": "ext_api_rate", "w": 6, "x": 0, "y": 0},
+    {"h": 3, "i": "ext_api_errors", "w": 6, "x": 6, "y": 0},
+    {"h": 3, "i": "ext_api_latency", "w": 6, "x": 0, "y": 3},
+    {"h": 3, "i": "ext_api_latency_by_api", "w": 6, "x": 6, "y": 3},
+    {"h": 3, "i": "portfolio_fetches", "w": 6, "x": 0, "y": 6},
+    {"h": 3, "i": "portfolio_fetch_duration", "w": 6, "x": 6, "y": 6},
+    {"h": 3, "i": "sheets_ops", "w": 6, "x": 0, "y": 9},
+    {"h": 3, "i": "broker_syncs", "w": 6, "x": 6, "y": 9}
+  ],
+  "widgets": [
+    {
+      "id": "ext_api_rate",
+      "title": "External API Call Rate",
+      "description": "Calls per second to external APIs grouped by API name",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "external_api_calls_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "filters": {"items": [], "op": "AND"},
+              "groupBy": [{"key": "api.name", "type": "tag", "dataType": "string"}],
+              "expression": "A",
+              "disabled": false,
+              "legend": "{{api.name}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "ext_api_errors",
+      "title": "External API Errors",
+      "description": "Failed external API calls by API name",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "external_api_errors_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "filters": {"items": [], "op": "AND"},
+              "groupBy": [{"key": "api.name", "type": "tag", "dataType": "string"}],
+              "expression": "A",
+              "disabled": false,
+              "legend": "{{api.name}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "ext_api_latency",
+      "title": "External API P95 Latency",
+      "description": "95th percentile latency across all external APIs",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "p95",
+              "aggregateAttribute": {
+                "key": "external_api_duration_seconds",
+                "type": "Histogram",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "p95",
+              "spaceAggregation": "p95",
+              "filters": {"items": [], "op": "AND"},
+              "expression": "A",
+              "disabled": false,
+              "legend": "P95 (s)",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "ext_api_latency_by_api",
+      "title": "External API Latency by Service",
+      "description": "P95 latency grouped by external API",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "p95",
+              "aggregateAttribute": {
+                "key": "external_api_duration_seconds",
+                "type": "Histogram",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "p95",
+              "spaceAggregation": "p95",
+              "filters": {"items": [], "op": "AND"},
+              "groupBy": [{"key": "api.name", "type": "tag", "dataType": "string"}],
+              "expression": "A",
+              "disabled": false,
+              "legend": "{{api.name}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "portfolio_fetches",
+      "title": "Portfolio Fetch Rate",
+      "description": "Portfolio data fetches from broker APIs",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "portfolio_fetches_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "filters": {"items": [], "op": "AND"},
+              "groupBy": [{"key": "fetch.success", "type": "tag", "dataType": "string"}],
+              "expression": "A",
+              "disabled": false,
+              "legend": "success={{fetch.success}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "portfolio_fetch_duration",
+      "title": "Portfolio Fetch Duration",
+      "description": "Time to fetch portfolio data from broker",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "p95",
+              "aggregateAttribute": {
+                "key": "portfolio_fetch_duration_seconds",
+                "type": "Histogram",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "p95",
+              "spaceAggregation": "p95",
+              "filters": {"items": [], "op": "AND"},
+              "expression": "A",
+              "disabled": false,
+              "legend": "P95 (s)",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "sheets_ops",
+      "title": "Google Sheets Operations",
+      "description": "CRUD operations on Google Sheets by type and operation",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "sheets_operations_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "filters": {"items": [], "op": "AND"},
+              "groupBy": [
+                {"key": "sheets.operation", "type": "tag", "dataType": "string"},
+                {"key": "sheets.type", "type": "tag", "dataType": "string"}
+              ],
+              "expression": "A",
+              "disabled": false,
+              "legend": "{{sheets.operation}} {{sheets.type}}",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "broker_syncs",
+      "title": "Broker Sync Operations",
+      "description": "Broker-to-Sheets sync operation count",
+      "panelTypes": "graph",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "aggregateOperator": "rate",
+              "aggregateAttribute": {
+                "key": "broker_sync_total",
+                "type": "Sum",
+                "dataType": "float64",
+                "isColumn": false
+              },
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "filters": {"items": [], "op": "AND"},
+              "expression": "A",
+              "disabled": false,
+              "legend": "Syncs/s",
+              "reduceTo": "last"
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    }
+  ]
+}

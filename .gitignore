@@ -35,6 +35,12 @@ node_modules/
 
 # Test coverage
 .coverage
+.coverage.*
 htmlcov/
 .pytest_cache/
 coverage.xml
+
+# Logs & observability data
+logs/
+!logs/.gitkeep
+bin/
