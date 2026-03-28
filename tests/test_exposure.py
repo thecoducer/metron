@@ -717,8 +717,8 @@ class TestBuildExposureData(unittest.TestCase):
         self.assertNotIn("", called_isins)
 
     @patch("app.api.exposure._batch_fetch_holdings")
-    def test_cdn_sector_trusted_over_classifier(self, mock_batch):
-        """CDN sector is used as-is when present, classifier not invoked."""
+    def test_cdn_sector_used_when_present(self, mock_batch):
+        """CDN sector is used as-is when present."""
         mf = self._mf("INF001", "Fund A")
         mock_batch.return_value = {
             "INF001": [
@@ -736,8 +736,8 @@ class TestBuildExposureData(unittest.TestCase):
         self.assertEqual(result.companies[0].sector, "Finance")
 
     @patch("app.api.exposure._batch_fetch_holdings")
-    def test_classifier_keeps_cdn_sector_when_low_confidence(self, mock_batch):
-        """Low-confidence classification keeps original CDN sector."""
+    def test_cdn_sector_preserved_for_known_companies(self, mock_batch):
+        """CDN sector is preserved when available."""
         mf = self._mf("INF001", "Fund A")
         mock_batch.return_value = {
             "INF001": [
