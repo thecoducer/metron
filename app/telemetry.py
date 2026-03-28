@@ -46,9 +46,7 @@ def init_telemetry(app: Flask) -> None:
         _setup_log_export()
         logger.info("OpenTelemetry instrumentation initialized")
     except Exception:
-        logger.exception(
-            "Failed to initialize OpenTelemetry — continuing without telemetry"
-        )
+        logger.exception("Failed to initialize OpenTelemetry — continuing without telemetry")
 
 
 def _setup_tracing(app: Flask) -> None:
@@ -57,7 +55,7 @@ def _setup_tracing(app: Flask) -> None:
         OTLPSpanExporter,
     )
     from opentelemetry.instrumentation.flask import FlaskInstrumentor
-    from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+    from opentelemetry.sdk.resources import SERVICE_NAME, Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
@@ -88,7 +86,7 @@ def _setup_metrics(app: Flask) -> None:
     )
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-    from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+    from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 
     service = os.environ.get("OTEL_SERVICE_NAME", "metron")
     endpoint = os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"]
@@ -98,9 +96,7 @@ def _setup_metrics(app: Flask) -> None:
     exporter = OTLPMetricExporter(
         endpoint=f"{endpoint}/v1/metrics",
     )
-    reader = PeriodicExportingMetricReader(
-        exporter, export_interval_millis=30_000
-    )
+    reader = PeriodicExportingMetricReader(exporter, export_interval_millis=30_000)
     provider = MeterProvider(resource=resource, metric_readers=[reader])
     metrics.set_meter_provider(provider)
 
@@ -184,17 +180,11 @@ def _setup_metrics(app: Flask) -> None:
 
     @app.after_request
     def _after(response):  # type: ignore[no-untyped-def]
-        duration = time.perf_counter() - getattr(
-            g, "_otel_start", time.perf_counter()
-        )
+        duration = time.perf_counter() - getattr(g, "_otel_start", time.perf_counter())
         endpoint_name = request.endpoint or "unknown"
         attrs = {
             "http.method": request.method,
-            "http.route": (
-                request.url_rule.rule
-                if request.url_rule
-                else request.path
-            ),
+            "http.route": (request.url_rule.rule if request.url_rule else request.path),
             "http.status_code": response.status_code,
             "http.endpoint": endpoint_name,
         }
@@ -217,9 +207,7 @@ def record_external_api_call(
         return
     attrs = {"api.name": api_name, "api.success": str(success)}
     _meter.create_counter("external_api_calls_total").add(1, attrs)
-    _meter.create_histogram("external_api_duration_seconds").record(
-        duration, attrs
-    )
+    _meter.create_histogram("external_api_duration_seconds").record(duration, attrs)
     if not success:
         _meter.create_counter("external_api_errors_total").add(1, attrs)
 
@@ -259,9 +247,7 @@ def record_portfolio_fetch(
         "fetch.success": str(success),
     }
     _meter.create_counter("portfolio_fetches_total").add(1, attrs)
-    _meter.create_histogram("portfolio_fetch_duration_seconds").record(
-        duration, attrs
-    )
+    _meter.create_histogram("portfolio_fetch_duration_seconds").record(duration, attrs)
 
 
 def record_sheets_operation(
@@ -295,7 +281,7 @@ def _setup_log_export() -> None:
     )
     from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
     from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-    from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+    from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 
     service = os.environ.get("OTEL_SERVICE_NAME", "metron")
     endpoint = os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"]

@@ -18,17 +18,13 @@ Pipeline
    remaining near-duplicates that normalisation missed (e.g.
    ``"TATA CONSULTANCY SERV LT"`` ↔ ``"TATA CONSULTANCY SERVICES
    LIMITED"``).
-4. **Classify** — use BART-MNLI zero-shot classification to assign
-   each company a sub-industry label (e.g. ``"Banking"``,
-   ``"Insurance"``).  High-confidence labels replace CDN sectors;
-   low-confidence results keep the original CDN sector.  This splits
-   companies that share the same cluster and instrument type but are
-   different businesses (e.g. ``"HDFC Bank"`` vs
-   ``"HDFC Life Insurance"``).
+4. **Sector** — use the CDN-provided sector for each company.
+   Companies without a CDN sector (e.g. direct stock holdings)
+   are labelled ``"Unknown"``.
 5. **Display name** — pick a clean, mixed-case representative for
-   each (cluster, instrument_type, sub_industry) group.
+   each (cluster, instrument_type, sector) group.
 6. **Aggregate** — sum holdings per (cluster, instrument_type,
-   sub_industry) and compute portfolio percentages.  Sector labels
+   sector) and compute portfolio percentages.  Sector labels
    are also clustered.
 
 Non-equity CDN rows (TREPS, CBLO, net-receivable entries, etc.) are
@@ -46,7 +42,6 @@ import requests
 from cachetools import LRUCache
 
 from ..constants import (
-    COMPANY_CLASSIFICATION_THRESHOLD,
     COMPANY_HOLDINGS_URL_TEMPLATE,
     HOLDINGS_FETCH_MAX_WORKERS,
     HOLDINGS_FETCH_TIMEOUT,
@@ -54,11 +49,6 @@ from ..constants import (
     NON_EQUITY_CDN_PREFIXES,
 )
 from ..logging_config import logger
-from .company_classifier import (
-    get_company_classifier,
-    get_sector_labels,
-    update_sector_labels,
-)
 from .entity_matcher import get_entity_matcher
 from .nse_equity import nse_equity_cache
 
@@ -528,10 +518,6 @@ def build_exposure_data(
         logger.info("No company-level data for user=%s", google_id[:8])
         return None
 
-    # Collect unique CDN sectors and update the growing labels file.
-    cdn_sectors = {e.sector for e in raw_entries}
-    update_sector_labels(cdn_sectors)
-
     # ==================================================================
     # Step 2: Normalise all names.
     # ==================================================================
@@ -557,13 +543,11 @@ def build_exposure_data(
         name_to_cluster[raw_name] = clusters[norm_map[raw_name]]
 
     # ==================================================================
-    # Step 4: Determine sub-industry for each company.
+    # Step 4: Determine sector for each company.
     #
-    # Trust the CDN sector when present — it is the authoritative
-    # source.  Only invoke the BART-MNLI classifier for companies
-    # that have no CDN sector (e.g. direct stock holdings).
+    # Use the CDN sector when present.  Companies without a CDN
+    # sector (e.g. direct stock holdings) are labelled "Unknown".
     # ==================================================================
-    t2 = time.monotonic()
     display_map = {rn: _display_name(rn) for rn in unique_raw_names}
 
     # Map each display name → its most common CDN sector.
@@ -577,25 +561,6 @@ def build_exposure_data(
     for display, votes in display_sector_votes.items():
         display_to_cdn_sector[display] = max(votes, key=lambda k: votes[k])
 
-    # Classify only companies missing a CDN sector.
-    needs_classification = [d for d, s in display_to_cdn_sector.items() if not s]
-    classifications: dict[str, tuple[str, float]] = {}
-    if needs_classification:
-        all_labels = get_sector_labels()
-        if all_labels:
-            try:
-                classifier = get_company_classifier()
-                classifications = classifier.classify_batch(needs_classification, labels=all_labels)
-            except Exception as exc:
-                logger.warning("Classification unavailable, using CDN sectors only: %s", exc)
-
-    logger.info(
-        "⏱ Classification: %.1fs (%d classified, %d used CDN sector)",
-        time.monotonic() - t2,
-        len(classifications),
-        len(display_to_cdn_sector) - len(needs_classification),
-    )
-
     def _effective_sector(raw_name: str, cdn_sector: str) -> str:
         if cdn_sector:
             return cdn_sector
@@ -605,16 +570,10 @@ def build_exposure_data(
         voted = display_to_cdn_sector.get(display, "")
         if voted:
             return voted
-        # Last resort: classifier result for companies with no
-        # CDN sector at all (e.g. direct stocks).
-        if display in classifications:
-            label, confidence = classifications[display]
-            if confidence >= COMPANY_CLASSIFICATION_THRESHOLD:
-                return label
         return "Unknown"
 
     # ==================================================================
-    # Step 5: Group by (cluster, instrument_type, sub_industry) and
+    # Step 5: Group by (cluster, instrument_type, sector) and
     #         pick a clean display name for each group.
     # ==================================================================
     # Build a per-entry sector lookup so we can determine the group key.
@@ -622,9 +581,9 @@ def build_exposure_data(
     group_members: dict[tuple[str, str, str], list[str]] = {}
     for idx, entry in enumerate(raw_entries):
         cluster_key = name_to_cluster[entry.raw_name]
-        sub_industry = _effective_sector(entry.raw_name, entry.sector)
-        entry_sector[idx] = sub_industry
-        group = (cluster_key, entry.instrument_type, sub_industry)
+        sector = _effective_sector(entry.raw_name, entry.sector)
+        entry_sector[idx] = sector
+        group = (cluster_key, entry.instrument_type, sector)
         group_members.setdefault(group, []).append(entry.raw_name)
 
     display_for_group: dict[tuple[str, str, str], str] = {
@@ -632,13 +591,13 @@ def build_exposure_data(
     }
 
     # ==================================================================
-    # Step 6: Aggregate holdings by (cluster, instrument, sub_industry).
+    # Step 6: Aggregate holdings by (cluster, instrument, sector).
     # ==================================================================
     company_map: dict[tuple[str, str, str], CompanyHolding] = {}
     for idx, entry in enumerate(raw_entries):
         cluster_key = name_to_cluster[entry.raw_name]
-        sub_industry = entry_sector[idx]
-        key = (cluster_key, entry.instrument_type, sub_industry)
+        sector = entry_sector[idx]
+        key = (cluster_key, entry.instrument_type, sector)
         if key in company_map:
             holding = company_map[key]
             holding.holding_amount += entry.amount
@@ -647,7 +606,7 @@ def build_exposure_data(
         else:
             company_map[key] = CompanyHolding(
                 company_name=display_for_group[key],
-                sector=sub_industry,
+                sector=sector,
                 instrument_type=entry.instrument_type,
                 holding_amount=entry.amount,
                 percentage_of_portfolio=0.0,

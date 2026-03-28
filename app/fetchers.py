@@ -182,9 +182,7 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
 
             from .telemetry import record_external_api_call
 
-            record_external_api_call(
-                "google_sheets", _elapsed, success=True
-            )
+            record_external_api_call("google_sheets", _elapsed, success=True)
 
             from .api.google_auth import persist_refreshed_credentials
 
@@ -198,9 +196,7 @@ def prefetch_all_user_sheets(user, *, track_state: bool = False, ensure_tabs: bo
 
             from .telemetry import record_external_api_call
 
-            record_external_api_call(
-                "google_sheets", _elapsed, success=False
-            )
+            record_external_api_call("google_sheets", _elapsed, success=False)
             if "RefreshError" in _exc_type or "InvalidGrantError" in _exc_type:
                 logger.warning(
                     "Sheets batch-fetch FAILED after %.1fs: "
@@ -290,17 +286,13 @@ def _batch_fetch_quotes(symbols: list) -> dict:
         )
         from .telemetry import record_external_api_call
 
-        record_external_api_call(
-            "yahoo_finance", time.monotonic() - t0, success=True
-        )
+        record_external_api_call("yahoo_finance", time.monotonic() - t0, success=True)
         return result
     except Exception:
         logger.exception("Error in batch LTP fetch")
         from .telemetry import record_external_api_call
 
-        record_external_api_call(
-            "yahoo_finance", time.monotonic() - t0, success=False
-        )
+        record_external_api_call("yahoo_finance", time.monotonic() - t0, success=False)
         return {}
 
 
@@ -427,14 +419,10 @@ def fetch_portfolio_data(google_id: str, accounts: list | None = None) -> None:
         logger.exception("Error fetching portfolio: %s", e)
         portfolio_cache.set(google_id, connected_accounts=set())
         error = str(e)
-        record_portfolio_fetch(
-            time.monotonic() - t0, len(accounts), success=False
-        )
+        record_portfolio_fetch(time.monotonic() - t0, len(accounts), success=False)
     finally:
         if not error:
-            record_portfolio_fetch(
-                time.monotonic() - t0, len(accounts), success=True
-            )
+            record_portfolio_fetch(time.monotonic() - t0, len(accounts), success=True)
         state_manager.set_portfolio_updated(google_id=google_id, error=error)
         portfolio_cache.clear_fetch_in_progress(google_id)
 

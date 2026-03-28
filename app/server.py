@@ -110,14 +110,6 @@ def main() -> None:
         except Exception as exc:
             logger.warning("SentenceTransformer model load failed: %s", exc)
 
-        try:
-            from .api.company_classifier import get_company_classifier
-
-            get_company_classifier()
-            logger.info("BART-MNLI classifier loaded")
-        except Exception as exc:
-            logger.warning("BART-MNLI classifier load failed: %s", exc)
-
         logger.info("Servers ready. Press CTRL+C to stop.")
 
         # Block until shutdown signal

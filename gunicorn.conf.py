@@ -95,11 +95,3 @@ def post_fork(server, worker):
         server.log.info("SentenceTransformer model loaded in worker %s", worker.pid)
     except Exception as exc:
         server.log.warning("SentenceTransformer model load failed: %s", exc)
-
-    try:
-        from app.api.company_classifier import get_company_classifier
-
-        get_company_classifier()
-        server.log.info("BART-MNLI classifier loaded in worker %s", worker.pid)
-    except Exception as exc:
-        server.log.warning("BART-MNLI classifier load failed: %s", exc)

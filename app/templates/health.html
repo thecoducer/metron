@@ -788,19 +788,6 @@
                 c.mf_schemes.entries > 0 ? 'ok' : 'error',
                 c.mf_schemes.entries > 0 ? 'Ready' : 'Empty',
                 fmtNum(c.mf_schemes.entries) + ' entries', null),
-
-            cacheRow('Classification',
-                c.classification_cache.last_modified,
-                c.classification_cache.entries > 0 ? 'ok' : 'warn',
-                c.classification_cache.entries > 0 ? 'Ready' : 'Empty',
-                c.classification_cache.entries + ' entries',
-                c.classification_cache.disk_size_kb + ' KB on disk'),
-
-            cacheRow('Sector Labels',
-                c.sector_labels.last_modified,
-                c.sector_labels.count > 0 ? 'ok' : 'warn',
-                c.sector_labels.count > 0 ? 'Ready' : 'Empty',
-                c.sector_labels.count + ' labels', null),
         ];
         document.getElementById('cacheTable').innerHTML = rows.join('');
     }
@@ -822,7 +809,6 @@
     function renderStatus(data) {
         var c = data.caches;
         var coreOk  = c.nse_equity.entries > 0 && c.mf_schemes.entries > 0;
-        var mlReady = c.classification_cache.entries > 0 && c.sector_labels.count > 0;
 
         var banner = document.getElementById('statusBanner');
         var dot    = document.getElementById('statusDot');
@@ -831,14 +817,10 @@
         banner.className = 'status-banner';
         dot.className    = 'status-dot';
 
-        if (coreOk && mlReady) {
+        if (coreOk) {
             banner.classList.add('ok');
             dot.classList.add('ok');
             text.textContent = 'All systems operational';
-        } else if (coreOk) {
-            banner.classList.add('warn');
-            dot.classList.add('warn');
-            text.textContent = 'Systems partially ready — ML caches cold';
         } else {
             banner.classList.add('error');
             dot.classList.add('error');

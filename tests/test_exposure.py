@@ -411,22 +411,6 @@ class TestBuildExposureData(unittest.TestCase):
         self._mock_get_matcher = p1.start()
         self.addCleanup(p1.stop)
 
-        # Mock the company classifier — pass through CDN sector (low confidence).
-        mock_classifier = MagicMock()
-        mock_classifier.classify_batch.side_effect = lambda names, labels=None: {n: ("Unknown", 0.1) for n in names}
-        p2 = patch("app.api.exposure.get_company_classifier", return_value=mock_classifier)
-        self._mock_get_classifier = p2.start()
-        self.addCleanup(p2.stop)
-
-        # Mock sector labels and update function.
-        _stub_labels = ["Finance", "Technology", "Banking", "Insurance"]
-        p3 = patch("app.api.exposure.get_sector_labels", return_value=_stub_labels)
-        p3.start()
-        self.addCleanup(p3.stop)
-        p4 = patch("app.api.exposure.update_sector_labels")
-        p4.start()
-        self.addCleanup(p4.stop)
-
     def _mf(self, isin, fund_name, qty=100.0, nav=50.0):
         return {"isin": isin, "fund": fund_name, "quantity": qty, "last_price": nav}
 
@@ -579,18 +563,13 @@ class TestBuildExposureData(unittest.TestCase):
     @patch("app.api.exposure.nse_equity_cache")
     @patch("app.api.exposure._batch_fetch_holdings")
     def test_direct_stock_merged_via_canonical_name(self, mock_batch, mock_nse_cache):
-        """NSE canonical name resolution merges 'HDFCBANK' with 'HDFC Bank Ltd.' from a fund."""
-        from app.api.nse_equity import NSEEquityInfo
+        """NSE canonical name resolution merges 'HDFCBANK' with 'HDFC Bank Ltd.' from a fund.
 
-        # The direct stock has no CDN sector, so it gets classified.
-        # The MF holding has a CDN sector that is used directly.
-        # The classifier assigns the same CDN sector label for the
-        # direct stock so both entries merge into one row.
-        mock_classifier = MagicMock()
-        mock_classifier.classify_batch.side_effect = lambda names, labels=None: {
-            n: ("Finance - Banks - Private Sector", 0.95) for n in names
-        }
-        self._mock_get_classifier.return_value = mock_classifier
+        The direct stock has no CDN sector so it inherits the voted CDN sector
+        from the MF entry for the same display name, allowing the two entries
+        to merge into one row.
+        """
+        from app.api.nse_equity import NSEEquityInfo
 
         mock_nse_cache.get.return_value = NSEEquityInfo(
             symbol="HDFCBANK",
@@ -612,7 +591,10 @@ class TestBuildExposureData(unittest.TestCase):
         stock = self._stock("HDFCBANK", qty=1, price=6244.0)
         result = build_exposure_data("uid", [stock], [mf])
         self.assertIsNotNone(result)
-        # 8% of 5000 (=400) + 6244 = 6644; both normalise to "HDFC BANK LIMITED"
+        # Both normalise to "HDFC BANK LIMITED".  The direct stock
+        # inherits "Finance - Banks - Private Sector" via CDN sector
+        # voting on the display name.
+        # 8% of 5000 (=400) + 6244 = 6644
         self.assertEqual(len(result.companies), 1)
         self.assertAlmostEqual(result.companies[0].holding_amount, 400.0 + 6244.0, places=0)
         self.assertIn("Direct", result.companies[0].funds)
@@ -774,13 +756,9 @@ class TestBuildExposureData(unittest.TestCase):
 
     @patch("app.api.exposure.nse_equity_cache")
     @patch("app.api.exposure._batch_fetch_holdings")
-    def test_classifier_used_when_cdn_sector_missing(self, mock_batch, mock_nse_cache):
-        """Classifier is invoked for direct stocks that have no CDN sector."""
+    def test_direct_stock_without_cdn_sector_gets_unknown(self, mock_batch, mock_nse_cache):
+        """Direct stocks without a CDN sector are labelled 'Unknown'."""
         from app.api.nse_equity import NSEEquityInfo
-
-        mock_classifier = MagicMock()
-        mock_classifier.classify_batch.side_effect = lambda names, labels=None: {n: ("Banking", 0.95) for n in names}
-        self._mock_get_classifier.return_value = mock_classifier
 
         mock_nse_cache.get.return_value = NSEEquityInfo(
             symbol="HDFCBANK",
@@ -792,8 +770,7 @@ class TestBuildExposureData(unittest.TestCase):
         mock_batch.return_value = {}
         result = build_exposure_data("uid", [stock], [])
         self.assertIsNotNone(result)
-        # Classifier should assign "Banking" since no CDN sector.
-        self.assertEqual(result.companies[0].sector, "Banking")
+        self.assertEqual(result.companies[0].sector, "Unknown")
 
 
 if __name__ == "__main__":

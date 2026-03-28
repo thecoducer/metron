@@ -95,10 +95,6 @@ HOLDINGS_FETCH_MAX_WORKERS = 10  # max concurrent holdings fetch threads
 SEMANTIC_MATCH_THRESHOLD = 0.75  # cosine similarity for SentenceTransformer entity clustering
 SENTENCE_TRANSFORMER_MODEL_PATH = "models/all-MiniLM-L6-v2"  # local model weights (no network calls)
 
-# Zero-shot company classification (BART-MNLI)
-BART_MNLI_MODEL_PATH = "models/bart-large-mnli"  # local model weights (~1.5 GB)
-COMPANY_CLASSIFICATION_THRESHOLD = 0.5  # min confidence to use model label over CDN sector
-
 # CDN row names that are cash/repo instruments, not equities — excluded from exposure.
 # Checked as upper-cased prefixes against the normalised company name.
 NON_EQUITY_CDN_PREFIXES: tuple[str, ...] = (

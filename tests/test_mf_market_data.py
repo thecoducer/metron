@@ -1,5 +1,6 @@
 """Tests for MF market data cache and fetcher (app/api/mf_market_data.py)."""
 
+import json
 from unittest.mock import MagicMock, patch
 
 from app.api.mf_market_data import MFMarketCache, _process_mf_api_response, fetch_and_cache_market_data
@@ -189,12 +190,14 @@ class TestFetchAndCacheMarketData:
     def test_successful_fetch_populates_cache(self):
         raw = [_make_raw_item(1, "Axis Bluechip", isin_growth="INF846K01DP8", nav="42.5", date="20-Mar-2026")]
         mock_resp = MagicMock()
-        mock_resp.json.return_value = raw
+        mock_resp.content = json.dumps(raw).encode()
         mock_resp.raise_for_status.return_value = None
 
         from app.api.mf_market_data import mf_market_cache
 
-        with patch("requests.get", return_value=mock_resp):
+        with patch("requests.Session") as MockSession:
+            mock_session = MockSession.return_value.__enter__.return_value
+            mock_session.get.return_value = mock_resp
             result = fetch_and_cache_market_data()
 
         assert result is True
@@ -202,7 +205,9 @@ class TestFetchAndCacheMarketData:
 
     def test_all_retries_exhausted_returns_false(self):
         """Fails on every attempt → returns False after MF_API_MAX_RETRIES tries."""
-        with patch("requests.get", side_effect=ConnectionError("unreachable")), patch("time.sleep"):
+        with patch("requests.Session") as MockSession, patch("time.sleep"):
+            mock_session = MockSession.return_value.__enter__.return_value
+            mock_session.get.side_effect = ConnectionError("unreachable")
             result = fetch_and_cache_market_data()
         assert result is False
 
@@ -210,7 +215,7 @@ class TestFetchAndCacheMarketData:
         """Fails twice, succeeds on the third attempt → returns True."""
         raw = [_make_raw_item(1, "Axis Bluechip", isin_growth="INF846K01DP8")]
         good_resp = MagicMock()
-        good_resp.json.return_value = raw
+        good_resp.content = json.dumps(raw).encode()
         good_resp.raise_for_status.return_value = None
 
         call_count = {"n": 0}
@@ -221,7 +226,9 @@ class TestFetchAndCacheMarketData:
                 raise ConnectionError("transient error")
             return good_resp
 
-        with patch("requests.get", side_effect=side_effect), patch("time.sleep"):
+        with patch("requests.Session") as MockSession, patch("time.sleep"):
+            mock_session = MockSession.return_value.__enter__.return_value
+            mock_session.get.side_effect = side_effect
             result = fetch_and_cache_market_data()
 
         assert result is True
@@ -231,7 +238,9 @@ class TestFetchAndCacheMarketData:
         mock_resp = MagicMock()
         mock_resp.raise_for_status.side_effect = Exception("503 Service Unavailable")
 
-        with patch("requests.get", return_value=mock_resp), patch("time.sleep"):
+        with patch("requests.Session") as MockSession, patch("time.sleep"):
+            mock_session = MockSession.return_value.__enter__.return_value
+            mock_session.get.return_value = mock_resp
             result = fetch_and_cache_market_data()
         assert result is False
 
@@ -239,9 +248,11 @@ class TestFetchAndCacheMarketData:
         """An empty result (all schemes filtered) is not an error."""
         raw = [_make_raw_item(1, "Fund", None, None)]
         mock_resp = MagicMock()
-        mock_resp.json.return_value = raw
+        mock_resp.content = json.dumps(raw).encode()
         mock_resp.raise_for_status.return_value = None
 
-        with patch("requests.get", return_value=mock_resp):
+        with patch("requests.Session") as MockSession:
+            mock_session = MockSession.return_value.__enter__.return_value
+            mock_session.get.return_value = mock_resp
             result = fetch_and_cache_market_data()
         assert result is True

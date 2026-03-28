@@ -11,11 +11,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import cas_service, exposure_service
 from .cache import manual_ltp_cache, market_cache, portfolio_cache, user_sheets_cache
-from .telemetry import (
-    record_auth_event,
-    record_error,
-    record_sheets_operation,
-)
 from .constants import HTTP_ACCEPTED, HTTP_CONFLICT, PORTFOLIO_TABLE_ROW_LIMIT
 from .fetchers import (
     _fetch_manual_entries,  # noqa: F401 — re-exported for test imports
@@ -31,7 +26,6 @@ from .fetchers import (
 from .firebase_store import reset_zerodha_data, verify_user_pin
 from .logging_config import logger
 from .middleware import app_only, login_required, pin_required, protected_api
-from .telemetry import init_telemetry
 from .services import (
     _build_data_for_type,  # noqa: F401 — re-exported for test imports
     _build_fd_data,
@@ -50,6 +44,11 @@ from .services import (
     sheets_delete_row,
     sheets_list_rows,
     sheets_update_row,
+)
+from .telemetry import (
+    init_telemetry,
+    record_auth_event,
+    record_sheets_operation,
 )
 from .utils import (
     _collect_process_metrics,
@@ -109,7 +108,6 @@ def health_page():
 @app_ui.route("/api/health", methods=["GET"])
 def health_api():
     """Return system and cache metrics as JSON. No user data or PII."""
-    from .api.company_classifier import classifier_stats
     from .api.mf_market_data import mf_market_cache
     from .api.nse_equity import nse_equity_cache
 
@@ -117,10 +115,6 @@ def health_api():
 
     nse_status = nse_equity_cache.status
     mf_status = mf_market_cache.status
-
-    clf = classifier_stats()
-    clf_cache = clf["classification_cache"]
-    sectors = clf["sector_labels"]
 
     return jsonify(
         {
@@ -138,15 +132,6 @@ def health_api():
                     "last_refreshed": mf_status["last_run"]
                     if mf_status["last_run"] == "never"
                     else _fmt_ist(mf_market_cache._last_refreshed_at),
-                },
-                "classification_cache": {
-                    "entries": clf_cache["entries"],
-                    "disk_size_kb": clf_cache["disk_size_kb"],
-                    "last_modified": _fmt_ist(clf_cache["last_modified"]),
-                },
-                "sector_labels": {
-                    "count": sectors["count"],
-                    "last_modified": _fmt_ist(sectors["last_modified"]),
                 },
             },
         }
