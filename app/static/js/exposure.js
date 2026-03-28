@@ -439,6 +439,7 @@
   const refreshUI = new RefreshUI('exposureRefreshBtn', 'exposureStatusTag', 'exposureStatusText');
   let lastPortfolioUpdatedAt = null;
   let relativeStatusTimer = null;
+  let _disposed = false;
 
   // ─── Refresh header visibility ─────────────────────────
 
@@ -514,12 +515,15 @@
   }
 
   function pollForData() {
+    if (_disposed) return;
     window.metronFetch('/api/exposure/data')
       .then(function(r) {
+        if (_disposed) return;
         const status = r.status;
         return r.json().then(function(data) { return { status: status, data: data }; });
       })
       .then(function(result) {
+        if (_disposed || !result) return;
         if (result.status === 202) {
           setTimeout(pollForData, POLL_INTERVAL);
           return;
@@ -565,5 +569,9 @@
   // Expose for use by the DOMContentLoaded handler in the template
   window.loadExposureData = loadExposureData;
   window.refreshExposure = refreshExposure;
+  window.cleanupExposure = function() {
+    _disposed = true;
+    if (relativeStatusTimer) clearInterval(relativeStatusTimer);
+  };
 
 })();

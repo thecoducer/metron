@@ -14,10 +14,11 @@ header {
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  padding: 14px 0;
-  margin: -32px -32px 40px;
-  padding-left: 32px;
-  padding-right: 32px;
+  padding: 14px 32px;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-top: -32px;
+  margin-bottom: 40px;
   z-index: 200;
   flex-wrap: nowrap;
 }
@@ -217,7 +218,7 @@ header > div {
   background: #fafafa;
   z-index: 9999;
   transform: translateX(-100%);
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  transition: transform .35s var(--ease-out);
   display: flex;
   flex-direction: column;
   box-shadow: 8px 0 32px rgb(0,0,0,.08);
@@ -871,6 +872,55 @@ body.dark-theme .tour-badge {
   color: #0a0a0a;
 }
 
+/* ── Desktop sidebar mode ─────────────────────────────── */
+
+@media (width > 1024px) {
+  /* Sidebar replaces overlay drawer */
+  .nav-drawer {
+    width: 240px;
+    max-width: none;
+    z-index: 300;
+    box-shadow: none;
+    border-right: 1px solid rgb(0, 0, 0, 0.06);
+  }
+
+  /* No backdrop overlay on desktop for nav drawer */
+  #navDrawerBackdrop {
+    display: none !important;
+  }
+
+  /* Hide drawer close button — hamburger toggles */
+  .nav-drawer .drawer-header {
+    display: none;
+  }
+
+  /* Smooth body shift */
+  body {
+    transition: margin-left .3s cubic-bezier(.4, 0, .2, 1);
+  }
+
+  body.sidebar-open {
+    margin-left: 240px;
+  }
+
+  /* Smooth header adjustment */
+  header {
+    transition:
+      width .3s cubic-bezier(.4, 0, .2, 1),
+      margin-left .3s cubic-bezier(.4, 0, .2, 1);
+  }
+
+  body.sidebar-open header {
+    width: calc(100vw - 240px);
+    margin-left: calc(-50vw + 50% + 120px);
+  }
+
+  /* Dark theme sidebar border */
+  body.dark-theme .nav-drawer {
+    border-right-color: rgb(255, 255, 255, 0.07);
+  }
+}
+
 /* ── Mobile overrides ─────────────────────────────────── */
 
 @media (width <= 480px) {
@@ -886,4 +936,22 @@ body.dark-theme .tour-badge {
   .user-dropdown {
     right: -4px;
   }
+}
+
+/* ── SPA progress bar ─────────────────────────────────── */
+
+.spa-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: linear-gradient(90deg, #2dd4bf 0%, #0d9488 100%);
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+}
+
+body.dark-theme .spa-progress {
+  background: linear-gradient(90deg, #2dd4bf 0%, #5eead4 100%);
 }

@@ -67,6 +67,17 @@ _prefetch_all_user_sheets = prefetch_all_user_sheets
 
 app_ui = _create_flask_app("ui_server", enable_static=True)
 
+# Static asset cache-busting: version string computed once at startup.
+# Changes on every server restart, invalidating browser and CDN caches.
+_static_version = str(int(time.time()))
+
+
+@app_ui.context_processor
+def _inject_static_version() -> dict[str, str]:
+    """Make ``v`` available in all templates for cache-busting URLs."""
+    return {"v": _static_version}
+
+
 # Trust proxy headers from Render / load balancers so request.url_root
 # correctly reports https:// instead of http://.
 app_ui.wsgi_app = ProxyFix(app_ui.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -171,14 +182,14 @@ def _sync_spreadsheet_id():
 def _set_cache_headers(response):
     """Set Cache-Control headers for Cloudflare edge + browser caching.
 
-    - Static assets (/static/*): public, 1-hour browser + edge cache.
+    - Static assets (/static/*): immutable, 1-year cache. Safe because all
+      static URLs include a ?v=<git-hash> cache-buster that changes on deploy.
     - Everything else (HTML pages, API): private, no-store so Cloudflare
       never caches auth-dependent or dynamic responses.
     """
     if request.path.startswith("/static/"):
-        # Only add if not already set by a specific route handler
-        if "Cache-Control" not in response.headers:
-            response.headers["Cache-Control"] = "public, max-age=3600"
+        # Versioned URLs (?v=<hash>) guarantee freshness — cache aggressively.
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     else:
         # Never let Cloudflare cache HTML or API responses.
         # Skip if a route already set an explicit Cache-Control (e.g. no-cache on SW).

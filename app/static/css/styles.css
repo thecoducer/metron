@@ -2,6 +2,16 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ── Fluid UI: shared easing tokens ──────────────────── */
+:root {
+  /* Spring-approximating overshoot curve for interactive pops */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Smooth deceleration for layout / position moves */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Standard Material-style curve */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -34,7 +44,7 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   background-image: radial-gradient(circle, #d1d1d1 1px, transparent 1px);
   background-size: 24px 24px;
   opacity: 0.35;
@@ -54,7 +64,6 @@ body::after {
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 1;
 }
 
 
@@ -459,7 +468,9 @@ h1 {
   cursor: pointer;
   font-weight: 500;
   font-size: 13px;
-  transition: all 0.2s ease;
+  transition: background 0.2s var(--ease-standard),
+              transform 0.25s var(--ease-spring),
+              box-shadow 0.2s var(--ease-standard);
   box-shadow: 0 1px 2px rgb(0,0,0,.06);
   font-family: Inter, sans-serif;
   letter-spacing: -.01em;
@@ -472,7 +483,7 @@ h1 {
 }
 
 .btn:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.97);
 }
 
 /* ============ REFRESH BUTTON ============ */
@@ -513,7 +524,7 @@ h1 {
   flex-shrink: 0;
   width: 13px;
   height: 13px;
-  transition: transform 0.5s cubic-bezier(.4, 0, .2, 1);
+  transition: transform 0.5s var(--ease-spring);
 }
 
 .refresh-btn:hover .refresh-icon {
@@ -533,6 +544,7 @@ h1 {
   opacity: 0.45;
   cursor: not-allowed;
   pointer-events: none;
+  transition: opacity 0.2s var(--ease-standard);
 }
 
 .refresh-btn.loading .refresh-icon {
@@ -581,7 +593,7 @@ body.dark-theme .refresh-btn:active {
   border: 1px solid #ebebeb;
   font-family: Inter, sans-serif;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s var(--ease-spring);
 }
 
 /* Group toggle buttons together */
@@ -617,11 +629,31 @@ body.dark-theme .theme-toggle:hover {
   margin-bottom: 60px;
 }
 
+/* ── Fluid UI: staggered card entrance (Principle 9) ─── */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .snap-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
 }
+
+/* Fluid UI: stagger snap-card entrances via nth-child */
+.snap-card:nth-child(1) { --i: 0; }
+.snap-card:nth-child(2) { --i: 1; }
+.snap-card:nth-child(3) { --i: 2; }
+.snap-card:nth-child(4) { --i: 3; }
+.snap-card:nth-child(5) { --i: 4; }
+.snap-card:nth-child(6) { --i: 5; }
 
 .snap-card {
   border-radius: 8px;
@@ -632,6 +664,7 @@ body.dark-theme .theme-toggle:hover {
   transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   font-family: Inter, sans-serif;
   min-width: 0;
+  animation: card-enter 0.4s var(--ease-out) calc(var(--i, 0) * 50ms) both;
 }
 
 .snap-card:hover {
@@ -700,12 +733,14 @@ body.dark-theme .theme-toggle:hover {
   font-size: 12px;
   font-weight: 700;
   color: #444;
+  transition: color 0.3s var(--ease-standard);
 }
 
 .snap-card-pct {
   font-size: 10.5px;
   font-weight: 600;
   color: #777;
+  transition: color 0.3s var(--ease-standard);
 }
 
 body.dark-theme .snap-card {
@@ -886,7 +921,7 @@ body.dark-theme .snap-card-alloc {
 
 .section-summary-chevron {
   color: #999;
-  transition: transform 0.3s cubic-bezier(.4,0,.2,1), color 0.2s ease;
+  transition: transform 0.35s var(--ease-spring), color 0.2s var(--ease-standard);
   flex-shrink: 0;
   margin-left: 4px;
 }
@@ -938,19 +973,25 @@ body.dark-theme .snap-card-alloc {
   margin-bottom: 48px;
 }
 
+/* Fluid UI: stagger category card entrances via nth-child */
+.summary-cards > .card:nth-child(1) { --i: 0; }
+.summary-cards > .card:nth-child(2) { --i: 1; }
+.summary-cards > .card:nth-child(3) { --i: 2; }
+
 /* --- Base card --- */
 .card {
   background: color-mix(in srgb, var(--accent-color, #37352f) 4%, rgb(255,255,255,.94));
   border-radius: 16px;
   box-shadow: 0 1px 3px rgb(0,0,0,.04), inset 0 1px 0 rgb(255,255,255,.6);
   border: 1px solid color-mix(in srgb, var(--accent-color, #37352f) 8%, rgb(235,235,235,.7));
-  transition: background 0.3s cubic-bezier(.4,0,.2,1),
-              border-color 0.3s cubic-bezier(.4,0,.2,1),
-              box-shadow 0.3s cubic-bezier(.4,0,.2,1),
-              transform 0.3s cubic-bezier(.4,0,.2,1);
+  transition: background 0.3s var(--ease-standard),
+              border-color 0.3s var(--ease-standard),
+              box-shadow 0.3s var(--ease-standard),
+              transform 0.35s var(--ease-spring);
   position: relative;
   overflow: hidden;
   z-index: 1;
+  animation: card-enter 0.45s var(--ease-out) calc(var(--i, 0) * 60ms) both;
 }
 
 .card::after {
@@ -1118,6 +1159,7 @@ body.dark-theme .snap-card-alloc {
   font-weight: 700;
   font-family: Inter, sans-serif;
   line-height: 1;
+  transition: color 0.3s var(--ease-standard);
 }
 
 .overview-pct {
@@ -1126,6 +1168,7 @@ body.dark-theme .snap-card-alloc {
   font-family: Inter, sans-serif;
   opacity: 0.85;
   line-height: 1;
+  transition: color 0.3s var(--ease-standard);
 }
 
 /* ============ CATEGORY CARDS (3 per row) ============ */
@@ -1199,6 +1242,7 @@ body.dark-theme .snap-card-alloc {
   font-size: 15px;
   font-weight: 700;
   font-family: Inter, sans-serif;
+  transition: color 0.3s var(--ease-standard);
 }
 
 .category-pct {
@@ -1206,6 +1250,7 @@ body.dark-theme .snap-card-alloc {
   font-weight: 600;
   font-family: Inter, sans-serif;
   opacity: 0.8;
+  transition: color 0.3s var(--ease-standard);
 }
 
 /* Category card accent colors (top border) */
@@ -1271,8 +1316,8 @@ body.dark-theme .snap-card-alloc {
 .gold-breakdown-drawer {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.35s cubic-bezier(.4,0,.2,1), opacity 0.25s ease,
-              margin-top 0.35s cubic-bezier(.4,0,.2,1), margin-bottom 0.35s cubic-bezier(.4,0,.2,1);
+  transition: max-height 0.4s var(--ease-out), opacity 0.3s var(--ease-standard),
+              margin-top 0.4s var(--ease-out), margin-bottom 0.4s var(--ease-out);
   opacity: 0;
   margin-top: -8px;
   margin-bottom: 0;
@@ -1414,6 +1459,22 @@ body.dark-theme #gold_summary.drawer-open .gold-chevron {
 }
 
 /* ---------- privacy mode blurring ---------- */
+/* Fluid UI: smooth privacy blur transition for table cells */
+table#stocksTable td:first-child,
+table#etfTable td:first-child,
+table#mfTable td:first-child,
+table#physicalGoldTable td:first-child,
+table[aria-label="SIPs table"] td:first-child,
+table#silverETFTable td:first-child,
+.breakdown-segment .breakdown-current,
+.breakdown-segment .breakdown-pl span,
+.allocation-pct,
+.snap-card-current,
+.snap-card-pl,
+.snap-card-pct {
+  transition: filter 0.25s var(--ease-standard);
+}
+
 body.privacy-mode table#stocksTable td:first-child,
 body.privacy-mode table#etfTable td:first-child,
 body.privacy-mode table#mfTable td:first-child,
@@ -2179,6 +2240,7 @@ body.privacy-mode .allocation-pct {
 }
 
 .pagination-buttons button:disabled {
+  transition: opacity 0.2s var(--ease-standard);
   opacity: 0.35;
   cursor: not-allowed;
 }
@@ -4019,6 +4081,10 @@ body.privacy-mode #physicalGoldTable tbody tr td:nth-child(7) {
   visibility: visible;
 }
 
+#drawerBackdrop {
+  z-index: 9998;
+}
+
 .settings-drawer {
   position: fixed;
   top: 0;
@@ -4029,7 +4095,7 @@ body.privacy-mode #physicalGoldTable tbody tr td:nth-child(7) {
   background: #fafafa;
   z-index: 9999;
   transform: translateX(100%);
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  transition: transform .35s var(--ease-out);
   display: flex;
   flex-direction: column;
   box-shadow: -8px 0 32px rgb(0,0,0,.08);
@@ -4358,7 +4424,7 @@ body.privacy-mode #physicalGoldTable tbody tr td:nth-child(7) {
 }
 .drawer-btn-save:hover { background: #333; }
 .drawer-btn-save:active { transform: scale(.97); }
-.drawer-btn-save:disabled { opacity: .5; cursor: not-allowed; }
+.drawer-btn-save:disabled { opacity: .5; cursor: not-allowed; transition: opacity 0.15s var(--ease-standard); }
 
 .drawer-btn-cancel {
   padding: 9px 20px;
@@ -4911,7 +4977,7 @@ body.dark-theme .setup-guide-footer svg {
   z-index: 10001;
   display: flex; flex-direction: column;
   font-family: Inter, sans-serif;
-  animation: cas-modal-in .2s ease both;
+  animation: cas-modal-in .25s var(--ease-out) both;
 }
 
 @keyframes cas-modal-in {
@@ -6626,6 +6692,7 @@ select.crud-input {
 }
 
 .crud-btn:disabled {
+  transition: opacity 0.15s var(--ease-standard);
   opacity: .55;
   cursor: not-allowed;
   transform: none;
@@ -6701,7 +6768,7 @@ select.crud-input {
   text-align: center;
   box-shadow: 0 20px 60px rgb(0, 0, 0, 0.15), 0 0 0 1px rgb(0, 0, 0, 0.04);
   transform: scale(0.92) translateY(10px);
-  transition: transform .25s cubic-bezier(.16, 1, .3, 1);
+  transition: transform .3s var(--ease-spring);
   font-family: Inter, sans-serif;
 }
 
@@ -6778,6 +6845,7 @@ select.crud-input {
 .crud-ddlg-confirm:disabled {
   opacity: 0.7;
   cursor: default;
+  transition: opacity 0.15s var(--ease-standard);
 }
 
 /* ── Toast notifications ────────────────────────────────────── */
@@ -6805,7 +6873,7 @@ select.crud-input {
   pointer-events: auto;
   transform: translateX(120%);
   opacity: 0;
-  transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .25s ease;
+  transition: transform .35s var(--ease-spring), opacity .25s var(--ease-standard);
 }
 
 .crud-toast.show {
@@ -6848,8 +6916,9 @@ select.crud-input {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  transition: border-color .15s, color .15s, background .15s, box-shadow .15s;
+  transition: border-color .15s var(--ease-standard), color .15s var(--ease-standard), background .15s var(--ease-standard), box-shadow .15s var(--ease-standard);
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .crud-add-btn:hover {
@@ -7544,7 +7613,7 @@ body.dark-theme .crud-suggest-item.active {
   display: flex;
   flex-direction: column;
   transform: translateY(100%);
-  transition: transform .38s cubic-bezier(.32,.72,0,1);
+  transition: transform .4s var(--ease-out);
   will-change: transform;
 }
 
@@ -8794,4 +8863,73 @@ body.dark-theme .pin-reset-confirm:hover:not(:disabled) {
   .pin-field-group { margin-bottom: 16px; }
   .pin-reset-content { width: 340px; }
   .pin-icon, .pin-reset-icon { width: 56px; height: 56px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FLUID UI: Prefers-reduced-motion
+   Principle 10 — every visual flourish above is subordinate
+   to the user's motion preference. Strip spatial transforms
+   and keyframe animations; keep instantaneous opacity fades.
+   ══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.15s !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Allow opacity-only fades so content doesn't teleport */
+  .drawer-backdrop,
+  .crud-drawer-backdrop,
+  .crud-delete-backdrop,
+  .crud-toast,
+  .cas-modal-backdrop,
+  .pin-overlay {
+    transition-property: opacity, visibility !important;
+    transition-duration: 0.15s !important;
+  }
+
+  /* Drawers and modals appear instantly (no slide/scale) */
+  .settings-drawer,
+  .crud-drawer,
+  .nav-drawer,
+  .cas-modal {
+    transition: none !important;
+  }
+
+  /* Disable hover lift on cards */
+  .card:hover,
+  .snap-card:hover,
+  .breakdown-segment:hover {
+    transform: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FLUID UI: Input-method responsive (Principle 6)
+   Separate hover-only effects so touch devices aren't penalised.
+   ══════════════════════════════════════════════════════════════ */
+@media (hover: none) {
+  .btn:hover,
+  .card:hover,
+  .snap-card:hover,
+  .refresh-btn:hover,
+  .section-summary--expandable:hover,
+  .breakdown-segment:hover,
+  th.sortable-header:hover {
+    /* Reset hover-only decorations on touch devices */
+    box-shadow: inherit;
+    transform: none;
+    background: inherit;
+  }
+}
+
+@media (pointer: coarse) {
+  /* Larger touch targets for coarse pointers */
+  .btn { min-height: 44px; }
+  .refresh-btn { min-height: 44px; padding: 10px 16px 10px 14px; }
+  th.sortable-header { min-height: 44px; }
 }

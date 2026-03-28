@@ -9,6 +9,7 @@ class Nifty50App {
     this.nifty50SortOrder = 'default';
     this.nifty50Pagination = new PaginationManager(50, 1);
     this.lastNifty50UpdatedAt = null;
+    this._disposed = false;
   }
 
   async init() {
@@ -146,7 +147,9 @@ class Nifty50App {
     const POLL_INTERVAL = 2000;
     const MAX_POLLS = 90;
     for (let i = 0; i < MAX_POLLS; i++) {
+      if (this._disposed) return {};
       await new Promise(r => setTimeout(r, POLL_INTERVAL));
+      if (this._disposed) return {};
       const status = await this._fetchStatus();
       if (!this._isStatusUpdating(status)) return status;
     }
@@ -328,6 +331,7 @@ class Nifty50App {
   }
 
   cleanup() {
+    this._disposed = true;
     if (this.relativeStatusTimer) clearInterval(this.relativeStatusTimer);
   }
 }

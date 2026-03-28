@@ -26,6 +26,7 @@ class PortfolioApp {
     this.lastPortfolioUpdatedAt = null;
     this.relativeStatusTimer = null;
     this.searchTimeout = null;
+    this._disposed = false;
   }
 
   async init() {
@@ -720,7 +721,9 @@ class PortfolioApp {
     }
 
     for (let i = 0; i < MAX_POLLS; i++) {
+      if (this._disposed) return prev;
       await new Promise(r => setTimeout(r, POLL_INTERVAL));
+      if (this._disposed) return prev;
       const status = await this._fetchStatus();
 
       // Detect per-source transitions from 'updating' → terminal.
@@ -795,7 +798,9 @@ class PortfolioApp {
     if (status?.manual_ltp_state === 'updating') {
       Log.info('App', 'Manual LTP fetch in progress — polling for completion');
       for (let i = 0; i < MAX_POLLS; i++) {
+        if (this._disposed) return;
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        if (this._disposed) return;
         const s = await this._fetchStatus();
         if (s.manual_ltp_state !== 'updating') {
           Log.info('App', 'Manual LTPs ready — refreshing portfolio data');
@@ -1428,11 +1433,17 @@ window.switchFDTab = function(tabName) {
   }
 };
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize app when DOM is ready (or immediately on SPA navigation)
+function _bootstrapPortfolio() {
   const app = new PortfolioApp();
-  window.portfolioApp = app; // Expose app globally for toggle function
+  window.portfolioApp = app;
   app.init();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _bootstrapPortfolio);
+} else {
+  _bootstrapPortfolio();
+}
 
 export default PortfolioApp;

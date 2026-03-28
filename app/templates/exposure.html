@@ -8,9 +8,9 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
               rel="stylesheet">
-        <link rel="stylesheet" href="/static/css/styles.css">
-        <link rel="stylesheet" href="/static/css/nav-header.css">
-        <link rel="stylesheet" href="/static/css/exposure.css">
+        <link rel="stylesheet" href="/static/css/styles.css?v={{ v }}">
+        <link rel="stylesheet" href="/static/css/nav-header.css?v={{ v }}">
+        <link rel="stylesheet" href="/static/css/exposure.css?v={{ v }}">
         <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
         <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
         <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
@@ -593,7 +593,8 @@
         </div>
         <!-- Nav Drawer -->
         {% include 'partials/nav_drawer.html' %}
-        <script src="/static/js/nav.js"></script>
+        <script src="/static/js/nav.js?v={{ v }}"></script>
+        <script src="/static/js/router.js?v={{ v }}"></script>
         <script>
 // App fetch wrapper — adds the required auth header and handles 403 pin_required.
 window.metronFetch = async function(url, options) {
@@ -614,7 +615,7 @@ window.metronFetch = async function(url, options) {
   return resp;
 };
         </script>
-        <script src="/static/js/portfolio-ui.js"></script>
+        <script src="/static/js/portfolio-ui.js?v={{ v }}"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
         <script>
 // ─── Standalone toggle implementations (subset of app.js for this page) ───
@@ -658,21 +659,21 @@ function toggleCompactFormat() {
   if (compactLabel) compactLabel.classList.toggle('toggle-on', localStorage.getItem('metron_compact') === '1');
 })();
         </script>
-        <script type="module" src="/static/js/utils.js"></script>
-        <script src="/static/js/refresh-ui.js"></script>
-        <script src="/static/js/exposure.js"></script>
+        <script type="module" src="/static/js/utils.js?v={{ v }}"></script>
+        <script src="/static/js/refresh-ui.js?v={{ v }}"></script>
+        <script src="/static/js/exposure.js?v={{ v }}"></script>
         <script>
-document.addEventListener('DOMContentLoaded', async function() {
+(async function() {
   {% if not pin_verified %}
   if (typeof window.checkAndPromptPin === 'function') {
     await window.checkAndPromptPin();
   }
   {% endif %}
   window.loadExposureData();
-});
+})();
         </script>
-        <link rel="stylesheet" href="/static/css/pwa-install.css">
-        <script src="/static/js/pwa-install.js"></script>
+        <link rel="stylesheet" href="/static/css/pwa-install.css?v={{ v }}">
+        <script src="/static/js/pwa-install.js?v={{ v }}"></script>
         <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
     </body>
 </html>

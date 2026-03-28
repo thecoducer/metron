@@ -187,10 +187,11 @@ body.dark-theme .exposure-status-tag {
   border-radius: 16px;
   padding: 20px 22px;
   box-shadow: 0 1px 3px rgb(0,0,0,.04), inset 0 1px 0 rgb(255,255,255,.6);
-  transition: background 0.3s cubic-bezier(.4,0,.2,1),
-              border-color 0.3s cubic-bezier(.4,0,.2,1),
-              box-shadow 0.3s cubic-bezier(.4,0,.2,1),
-              transform 0.3s cubic-bezier(.4,0,.2,1);
+  transition: background 0.3s var(--ease-standard),
+              border-color 0.3s var(--ease-standard),
+              box-shadow 0.3s var(--ease-standard),
+              transform 0.35s var(--ease-spring);
+  animation: card-enter 0.45s var(--ease-out) calc(var(--i, 0) * 60ms) both;
 }
 
 .exposure-card::after {
@@ -221,11 +222,11 @@ body.dark-theme .exposure-status-tag {
   opacity: 0.12;
 }
 
-/* Per-card accent colors */
-.exposure-card:nth-child(1) { --accent-color: #3b82f6; }
-.exposure-card:nth-child(2) { --accent-color: #8b5cf6; }
-.exposure-card:nth-child(3) { --accent-color: #06b6d4; }
-.exposure-card:nth-child(4) { --accent-color: #f59e0b; }
+/* Per-card accent colors + stagger index */
+.exposure-card:nth-child(1) { --accent-color: #3b82f6; --i: 0; }
+.exposure-card:nth-child(2) { --accent-color: #8b5cf6; --i: 1; }
+.exposure-card:nth-child(3) { --accent-color: #06b6d4; --i: 2; }
+.exposure-card:nth-child(4) { --accent-color: #f59e0b; --i: 3; }
 
 .exposure-card-label {
   font-size: 0.7rem;

@@ -8,8 +8,8 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
               rel="stylesheet">
-        <link rel="stylesheet" href="/static/css/styles.css">
-        <link rel="stylesheet" href="/static/css/nav-header.css">
+        <link rel="stylesheet" href="/static/css/styles.css?v={{ v }}">
+        <link rel="stylesheet" href="/static/css/nav-header.css?v={{ v }}">
         <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
         <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
         <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
@@ -19,8 +19,8 @@
         <meta name="apple-mobile-web-app-status-bar-style"
               content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Metron">
-        <link rel="modulepreload" href="/static/js/app.js">
-        <link rel="modulepreload" href="/static/js/crud-manager.js">
+        <link rel="modulepreload" href="/static/js/app.js?v={{ v }}">
+        <link rel="modulepreload" href="/static/js/crud-manager.js?v={{ v }}">
     </head>
     <body{% if not pin_verified %} style=\"overflow:hidden\"{% endif %}>
         <script>
@@ -405,10 +405,10 @@
                                     <span>New transactions imported! View them here</span>
                                     <div class="mf-txn-nudge-caret"></div>
                                 </div>
-                                <button class="crud-add-btn mf-txn-btn"
-                                        id="mfTransactionsBtn"
-                                        onclick="location.href='/mutual-funds/transactions'"
-                                        title="View transaction history">
+                                <a class="crud-add-btn mf-txn-btn"
+                                   id="mfTransactionsBtn"
+                                   href="/mutual-funds/transactions"
+                                   title="View transaction history">
                                     <svg width="14"
                                          height="14"
                                          viewBox="0 0 24 24"
@@ -435,7 +435,7 @@
                                          stroke-linejoin="round">
                                         <path d="M5 12h14M12 5l7 7-7 7" />
                                     </svg>
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -1129,7 +1129,8 @@
                 </div>
             </div>
         </div>
-        <script src="/static/js/nav.js"></script>
+        <script src="/static/js/nav.js?v={{ v }}"></script>
+        <script src="/static/js/router.js?v={{ v }}"></script>
         <script>
 // App fetch wrapper — single source for the API identification header.
 // Intercepts 403 pin_required responses and shows PIN overlay.
@@ -1151,14 +1152,14 @@ window.metronFetch = async function(url, options) {
   return resp;
 };
         </script>
-        <script src="/static/js/portfolio-ui.js"></script>
-        <script src="/static/js/cas-import.js"></script>
+        <script src="/static/js/portfolio-ui.js?v={{ v }}"></script>
+        <script type="module" src="/static/js/cas-import.js?v={{ v }}"></script>
         {% if initial_data_json %}<script>window.__INITIAL_DATA__ = {{ initial_data_json | safe }};</script>{% endif %}
         <script>window.__TABLE_ROW_LIMIT__ = {{ table_row_limit }};</script>
-        <script src="/static/js/refresh-ui.js"></script>
-        <script type="module" src="/static/js/app.js"></script>
-        <link rel="stylesheet" href="/static/css/pwa-install.css">
-        <script src="/static/js/pwa-install.js"></script>
+        <script src="/static/js/refresh-ui.js?v={{ v }}"></script>
+        <script type="module" src="/static/js/app.js?v={{ v }}"></script>
+        <link rel="stylesheet" href="/static/css/pwa-install.css?v={{ v }}">
+        <script src="/static/js/pwa-install.js?v={{ v }}"></script>
         <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
         <!-- Nav Drawer -->
         {% include 'partials/nav_drawer.html' %}

@@ -10,7 +10,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
               rel="stylesheet">
-        <link rel="stylesheet" href="/static/css/landing.css">
+        <link rel="stylesheet" href="/static/css/landing.css?v={{ v }}">
         <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
         <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
         <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
@@ -934,8 +934,8 @@
         </div>
         <!-- Footer -->
         {% include 'partials/footer.html' %}
-        <link rel="stylesheet" href="/static/css/pwa-install.css">
-        <script src="/static/js/pwa-install.js"></script>
+        <link rel="stylesheet" href="/static/css/pwa-install.css?v={{ v }}">
+        <script src="/static/js/pwa-install.js?v={{ v }}"></script>
         <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
     </body>
 </html>

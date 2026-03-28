@@ -8,8 +8,8 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
               rel="stylesheet">
-        <link rel="stylesheet" href="/static/css/styles.css">
-        <link rel="stylesheet" href="/static/css/nav-header.css">
+        <link rel="stylesheet" href="/static/css/styles.css?v={{ v }}">
+        <link rel="stylesheet" href="/static/css/nav-header.css?v={{ v }}">
         <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
         <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
         <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
@@ -19,8 +19,8 @@
         <meta name="apple-mobile-web-app-status-bar-style"
               content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Metron">
-        <link rel="preload" href="/static/js/nifty50.js" as="script">
-        <link rel="modulepreload" href="/static/js/index-ticker.js">
+        <link rel="preload" href="/static/js/nifty50.js?v={{ v }}" as="script">
+        <link rel="modulepreload" href="/static/js/index-ticker.js?v={{ v }}">
     </head>
     <body>
         <script>
@@ -109,10 +109,11 @@
             <div class="footer-note">Data sources: NSE, Yahoo Finance</div>
         </div>
         {% include 'partials/footer.html' %}
-        <script src="/static/js/nav.js"></script>
-        <script type="module" src="/static/js/nifty50.js"></script>
-        <link rel="stylesheet" href="/static/css/pwa-install.css">
-        <script src="/static/js/pwa-install.js"></script>
+        <script src="/static/js/nav.js?v={{ v }}"></script>
+        <script src="/static/js/router.js?v={{ v }}"></script>
+        <script type="module" src="/static/js/nifty50.js?v={{ v }}"></script>
+        <link rel="stylesheet" href="/static/css/pwa-install.css?v={{ v }}">
+        <script src="/static/js/pwa-install.js?v={{ v }}"></script>
         <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}</script>
         <!-- Nav Drawer -->
         {% include 'partials/nav_drawer.html' %}

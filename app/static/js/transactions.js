@@ -1016,7 +1016,7 @@ function isRedemption(t) {
 
 // ── Responsive chart resize ──
 let resizeTimeout;
-window.addEventListener('resize', () => {
+function _txnResizeHandler() {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
     if (allTransactions.length) {
@@ -1029,7 +1029,8 @@ window.addEventListener('resize', () => {
       renderUnitsChart();
     }
   }, 250);
-});
+}
+window.addEventListener('resize', _txnResizeHandler);
 
 // ── Public reload (called from cas-import.js after import) ──
 window.reloadTransactions = async function() {
@@ -1048,11 +1049,22 @@ window.reloadTransactions = async function() {
 };
 
 // ── Re-render charts on theme toggle ──
-new MutationObserver(() => {
+const _txnThemeObserver = new MutationObserver(() => {
   if (allTransactions.length) {
     renderAll();
   }
-}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+});
+_txnThemeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+// ── Cleanup (called by SPA router on navigation away) ──
+window.cleanupTransactions = function() {
+  window.removeEventListener('resize', _txnResizeHandler);
+  clearTimeout(resizeTimeout);
+  _txnThemeObserver.disconnect();
+  delete window.reloadTransactions;
+  delete window.txnGoToPage;
+  delete window.changeTxnPageSize;
+};
 
 // ── Boot ──
 init();

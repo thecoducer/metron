@@ -30,18 +30,18 @@ function closeSettingsDrawer() {
   document.body.style.overflow = '';
 }
 
-// Close drawer on Escape key
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeSettingsDrawer();
-});
-
-// Open settings drawer when Enter/Space pressed on login banner
-document.addEventListener('keydown', function(e) {
-  if ((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.id === 'loginBanner') {
-    e.preventDefault();
-    openSettingsDrawer();
-  }
-});
+// Close drawer on Escape key / open on login-banner Enter/Space.
+// Guarded so SPA re-execution doesn't stack duplicate listeners.
+if (!window._portfolioUiKeydownBound) {
+  window._portfolioUiKeydownBound = true;
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeSettingsDrawer();
+    if ((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.id === 'loginBanner') {
+      e.preventDefault();
+      openSettingsDrawer();
+    }
+  });
+}
 
 // ─── Drawer Zerodha Accounts ──────────────────────────────────
 

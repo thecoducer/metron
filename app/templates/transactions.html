@@ -8,9 +8,9 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
               rel="stylesheet">
-        <link rel="stylesheet" href="/static/css/styles.css">
-        <link rel="stylesheet" href="/static/css/nav-header.css">
-        <link rel="stylesheet" href="/static/css/transactions.css">
+        <link rel="stylesheet" href="/static/css/styles.css?v={{ v }}">
+        <link rel="stylesheet" href="/static/css/nav-header.css?v={{ v }}">
+        <link rel="stylesheet" href="/static/css/transactions.css?v={{ v }}">
         <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
         <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
         <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
@@ -400,7 +400,8 @@
             {% include 'partials/settings_drawer.html' %}
         {% endif %}
         {% include 'partials/nav_drawer.html' %}
-        <script src="/static/js/nav.js"></script>
+        <script src="/static/js/nav.js?v={{ v }}"></script>
+        <script src="/static/js/router.js?v={{ v }}"></script>
         <script>
 // App fetch wrapper — adds auth header and handles 403 pin_required.
 window.metronFetch = async function(url, options) {
@@ -421,8 +422,8 @@ window.metronFetch = async function(url, options) {
   return resp;
 };
         </script>
-        <script src="/static/js/portfolio-ui.js"></script>
-        <script src="/static/js/cas-import.js"></script>
+        <script src="/static/js/portfolio-ui.js?v={{ v }}"></script>
+        <script type="module" src="/static/js/cas-import.js?v={{ v }}"></script>
         <script>
 // Standalone toggle implementations for this page
 function toggleTheme() {
@@ -437,8 +438,8 @@ function toggleTheme() {
   if (themeLabel) themeLabel.classList.toggle('toggle-on', isDark);
 })();
         </script>
-        <script type="module" src="/static/js/utils.js"></script>
-        <script type="module" src="/static/js/transactions.js"></script>
+        <script type="module" src="/static/js/utils.js?v={{ v }}"></script>
+        <script type="module" src="/static/js/transactions.js?v={{ v }}"></script>
         <script>
 // Info popup for transaction data source
 (function() {
