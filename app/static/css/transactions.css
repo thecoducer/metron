@@ -167,7 +167,7 @@
 }
 
 .txn-card-value {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--text-primary, #111);
@@ -176,7 +176,7 @@
 
 .txn-card-sub {
   display: block;
-  font-size: 0.65rem;
+  font-size: 13px;
   color: #aaa;
   margin-top: 6px;
   letter-spacing: .01em;

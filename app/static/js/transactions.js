@@ -306,7 +306,8 @@ function renderAreaChart(container, labels, values, lineColor, fillColor, opts) 
   }
 
   let xLabels = '';
-  const step = Math.max(1, Math.floor(labels.length / 6));
+  const maxXLabels = Math.max(2, Math.min(6, Math.floor(chartW / 70)));
+  const step = Math.max(1, Math.floor(labels.length / maxXLabels));
   for (let i = 0; i < labels.length; i += step) {
     const x = xScale(i);
     xLabels += `<text x="${x}" y="${H - 6}" class="txn-chart-label" text-anchor="middle">${xFmt(labels[i])}</text>`;
@@ -508,9 +509,16 @@ function renderAllocationChart() {
     allocationChart.innerHTML = '<div class="txn-chart-empty">No data</div>';
     return;
   }
-  const data = allSchemes
-    .filter(s => s.cost > 0)
-    .map((s, i) => ({ name: s.fund_name || s.isin, value: s.cost, color: chartColor(i) }))
+  // Aggregate by ISIN to avoid duplicates across accounts
+  const byIsin = new Map();
+  allSchemes.filter(s => s.cost > 0).forEach(s => {
+    const key = s.isin || s.fund_name;
+    const existing = byIsin.get(key);
+    if (existing) { existing.value += s.cost; }
+    else { byIsin.set(key, { name: s.fund_name || s.isin, value: s.cost }); }
+  });
+  const data = Array.from(byIsin.values())
+    .map((d, i) => ({ ...d, color: chartColor(i) }))
     .sort((a, b) => b.value - a.value);
   if (!data.length) { allocationChart.innerHTML = '<div class="txn-chart-empty">No data</div>'; return; }
 
@@ -590,8 +598,24 @@ function renderNavCompareChart() {
     return;
   }
 
-  const schemes = allSchemes
-    .filter(s => s.avg_nav && s.latest_nav)
+  // Aggregate by ISIN to avoid duplicates across accounts
+  const navByIsin = new Map();
+  allSchemes.filter(s => s.avg_nav && s.latest_nav).forEach(s => {
+    const key = s.isin || s.fund_name;
+    const existing = navByIsin.get(key);
+    if (existing) {
+      const totalUnits = existing.units + (s.units || 0);
+      if (totalUnits > 0) {
+        existing.avg_nav = (existing.avg_nav * existing.units + s.avg_nav * (s.units || 0)) / totalUnits;
+      }
+      existing.units = totalUnits;
+      existing.cost = (existing.cost || 0) + (s.cost || 0);
+      existing.latest_nav = s.latest_nav;
+    } else {
+      navByIsin.set(key, { ...s });
+    }
+  });
+  const schemes = Array.from(navByIsin.values())
     .sort((a, b) => (b.cost || 0) - (a.cost || 0))
     .slice(0, 10);
 

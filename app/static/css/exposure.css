@@ -191,7 +191,6 @@ body.dark-theme .exposure-status-tag {
               border-color 0.3s var(--ease-standard),
               box-shadow 0.3s var(--ease-standard),
               transform 0.35s var(--ease-spring);
-  animation: card-enter 0.45s var(--ease-out) calc(var(--i, 0) * 60ms) both;
 }
 
 .exposure-card::after {
@@ -222,11 +221,11 @@ body.dark-theme .exposure-status-tag {
   opacity: 0.12;
 }
 
-/* Per-card accent colors + stagger index */
-.exposure-card:nth-child(1) { --accent-color: #3b82f6; --i: 0; }
-.exposure-card:nth-child(2) { --accent-color: #8b5cf6; --i: 1; }
-.exposure-card:nth-child(3) { --accent-color: #06b6d4; --i: 2; }
-.exposure-card:nth-child(4) { --accent-color: #f59e0b; --i: 3; }
+/* Per-card accent colors */
+.exposure-card:nth-child(1) { --accent-color: #3b82f6; }
+.exposure-card:nth-child(2) { --accent-color: #8b5cf6; }
+.exposure-card:nth-child(3) { --accent-color: #06b6d4; }
+.exposure-card:nth-child(4) { --accent-color: #f59e0b; }
 
 .exposure-card-label {
   font-size: 0.7rem;
@@ -238,7 +237,7 @@ body.dark-theme .exposure-status-tag {
 }
 
 .exposure-card-value {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--text-primary, #111);
@@ -246,7 +245,7 @@ body.dark-theme .exposure-status-tag {
 }
 
 .exposure-card-sub {
-  font-size: 0.72rem;
+  font-size: 13px;
   color: #aaa;
   margin-top: 6px;
   letter-spacing: -0.005em;

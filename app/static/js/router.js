@@ -232,11 +232,7 @@
     document.querySelectorAll('.nav-drawer-link').forEach(function(link) {
       var href = link.getAttribute('href');
       var active = false;
-      if (path === '/' || path === '/mutual-funds/transactions') {
-        active = href === '/';
-      } else {
-        active = href === path;
-      }
+      active = href === path;
       link.classList.toggle('active', active);
     });
   }

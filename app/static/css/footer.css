@@ -142,10 +142,6 @@ body.dark-theme .mf-footer {
   background: #0f0f0f;
 }
 
-body.dark-theme .mf-footer::before {
-  background: linear-gradient(to bottom, transparent, #0f0f0f);
-}
-
 body.dark-theme .mf-brand__name {
   color: #e5e5e5;
 }

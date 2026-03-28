@@ -1,0 +1,207 @@
+{#
+  PIN Screen Partial
+  ──────────────────
+  Security PIN overlay + PIN reset confirmation dialog.
+  Expects: pin_verified, has_pin, user (from parent template context).
+#}
+<!-- Security PIN Overlay -->
+<div class="pin-overlay"
+     id="pinOverlay"
+     style="{% if pin_verified %}display:none{% else %}display:flex{% endif %}">
+    <div class="pin-content">
+        <div class="pin-brand">metron</div>
+        {% if user %}
+            <div class="pin-greeting">
+                <span class="pin-greeting-name">Hi, {{ user.name or 'there' }}</span>
+                <span class="pin-greeting-email">{{ user.email }}</span>
+            </div>
+        {% endif %}
+        <div class="pin-header">
+            <div class="pin-icon">
+                <svg width="36"
+                     height="36"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.5"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+            </div>
+            {% if has_pin %}
+                <h2 class="pin-title" id="pinTitle">Enter PIN</h2>
+                <p class="pin-subtitle" id="pinSubtitle" style="display:none"></p>
+            {% else %}
+                <h2 class="pin-title" id="pinTitle">Create PIN</h2>
+                <p class="pin-subtitle" id="pinSubtitle">
+                    Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored — remember it carefully.
+                </p>
+            {% endif %}
+        </div>
+        <div class="pin-body">
+            <!-- PIN field group -->
+            <div class="pin-field-group" id="pinFieldGroup1">
+                <div class="pin-field-header"
+                     id="pinFieldHeader1"
+                     style="{% if has_pin %}display:none{% endif %}">
+                    <span class="pin-field-label" id="pinFieldLabel1">PIN</span>
+                    <span class="pin-field-check" id="pinCheck1">
+                        <svg width="14"
+                             height="14"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="3"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    </span>
+                </div>
+                <div class="pin-input-row" id="pinInputRow">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="0"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="1"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="2"
+                           autocomplete="off">
+                    <span class="pin-digit-sep"></span>
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="3"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="4"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="5"
+                           autocomplete="off">
+                </div>
+            </div>
+            <!-- Confirm PIN field group (setup mode) -->
+            <div class="pin-field-group"
+                 id="pinConfirmGroup"
+                 style="{% if has_pin %}display:none{% endif %}">
+                <div class="pin-field-header">
+                    <span class="pin-field-label">Confirm PIN</span>
+                    <span class="pin-field-check" id="pinCheck2">
+                        <svg width="14"
+                             height="14"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="3"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    </span>
+                </div>
+                <div class="pin-input-row" id="pinConfirmRow">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="0"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="1"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="2"
+                           autocomplete="off">
+                    <span class="pin-digit-sep"></span>
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="3"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="4"
+                           autocomplete="off">
+                    <input type="password"
+                           maxlength="1"
+                           class="pin-digit"
+                           data-idx="5"
+                           autocomplete="off">
+                </div>
+            </div>
+            <p class="pin-info"
+               id="pinInfo"
+               style="{% if has_pin %}display:none{% endif %}">
+                Letters and numbers allowed &nbsp;·&nbsp; a–z, A–Z, 0–9
+            </p>
+            <div class="pin-error" id="pinError"></div>
+            <div class="pin-footer-links"
+                 id="pinFooterLinks"
+                 style="{% if not has_pin %}display:none{% endif %}">
+                <button class="pin-text-btn pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
+                <span class="pin-footer-sep">·</span>
+                <button class="pin-text-btn pin-logout-btn" id="pinLogoutBtn">Logout</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- PIN Reset Confirmation Dialog -->
+<div class="pin-reset-dialog" id="pinResetDialog" style="display:none">
+    <div class="pin-reset-content">
+        <div class="pin-brand">metron</div>
+        <div class="pin-reset-header">
+            <div class="pin-reset-icon">
+                <svg width="32"
+                     height="32"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.5"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+            </div>
+            <h3 class="pin-reset-title">Reset PIN?</h3>
+            <p class="pin-reset-desc">
+                This will permanently delete all stored credentials and sessions. You'll need to re-add your accounts and set a new PIN.
+            </p>
+        </div>
+        <div class="pin-reset-body">
+            <div class="pin-reset-field-group">
+                <p class="pin-reset-prompt">
+                    Type <strong>reset</strong> below to confirm
+                </p>
+                <input type="text"
+                       class="pin-reset-input"
+                       id="pinResetInput"
+                       placeholder="reset"
+                       autocomplete="off"
+                       spellcheck="false">
+            </div>
+            <div class="pin-reset-actions">
+                <button class="pin-reset-cancel" id="pinResetCancel">Cancel</button>
+                <button class="pin-reset-confirm" id="pinResetConfirm" disabled>Reset Everything</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -643,48 +643,68 @@ body.dark-theme .theme-toggle:hover {
 
 .snap-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
 }
 
-/* Fluid UI: stagger snap-card entrances via nth-child */
-.snap-card:nth-child(1) { --i: 0; }
-.snap-card:nth-child(2) { --i: 1; }
-.snap-card:nth-child(3) { --i: 2; }
-.snap-card:nth-child(4) { --i: 3; }
-.snap-card:nth-child(5) { --i: 4; }
-.snap-card:nth-child(6) { --i: 5; }
-
 .snap-card {
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--card-color, #888) 5%, white);
-  border: 1px solid color-mix(in srgb, var(--card-color, #888) 10%, rgb(0, 0, 0, 0.06));
-  padding: 10px 12px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card-color, #888) 4%, rgb(255,255,255,.94));
+  border: 1px solid color-mix(in srgb, var(--card-color, #888) 8%, rgb(235,235,235,.7));
+  padding: 20px 22px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgb(0,0,0,.04), inset 0 1px 0 rgb(255,255,255,.6);
+  transition: background 0.3s var(--ease-standard),
+              border-color 0.3s var(--ease-standard),
+              box-shadow 0.3s var(--ease-standard),
+              transform 0.35s var(--ease-spring);
   font-family: Inter, sans-serif;
   min-width: 0;
-  animation: card-enter 0.4s var(--ease-out) calc(var(--i, 0) * 50ms) both;
+}
+
+.snap-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(135deg, var(--card-color, transparent), color-mix(in srgb, var(--card-color, transparent) 60%, transparent));
+  opacity: 0.07;
+  z-index: 0;
+}
+
+.snap-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .snap-card:hover {
-  background: color-mix(in srgb, var(--card-color, #888) 9%, white);
-  border-color: color-mix(in srgb, var(--card-color, #888) 18%, rgb(0, 0, 0, 0.08));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, #888) 12%, transparent);
+  background: color-mix(in srgb, var(--card-color, #888) 5%, rgb(255,255,255,.97));
+  border-color: color-mix(in srgb, var(--card-color, #888) 12%, rgb(235,235,235,.7));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, #888) 5%, transparent), 0 1px 3px rgb(0,0,0,.03), inset 0 1px 0 rgb(255,255,255,.7);
+  transform: translateY(-1px);
+}
+
+.snap-card:hover::after {
+  opacity: 0.12;
 }
 
 .snap-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 7px;
+  margin-bottom: 10px;
 }
 
 .snap-card-name {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: #888;
 }
 
@@ -698,11 +718,12 @@ body.dark-theme .theme-toggle:hover {
 }
 
 .snap-card-current {
-  font-size: 15px;
+  font-size: 1.4rem;
   font-weight: 700;
-  color: #222;
-  letter-spacing: -0.02em;
-  margin-bottom: 6px;
+  color: #111;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 8px;
 }
 
 .snap-card-row {
@@ -720,7 +741,7 @@ body.dark-theme .theme-toggle:hover {
 }
 
 .snap-card-invested {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: #777;
 }
@@ -730,32 +751,41 @@ body.dark-theme .theme-toggle:hover {
 }
 
 .snap-card-pl {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: #444;
   transition: color 0.3s var(--ease-standard);
 }
 
 .snap-card-pct {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 600;
   color: #777;
   transition: color 0.3s var(--ease-standard);
 }
 
 body.dark-theme .snap-card {
-  background: color-mix(in srgb, var(--card-color, #888) 8%, #1e1e1e);
-  border: 1px solid color-mix(in srgb, var(--card-color, #888) 14%, rgb(255, 255, 255, 0.04));
+  background: color-mix(in srgb, var(--card-color, #888) 4%, rgb(18,18,18,.95));
+  border: 1px solid color-mix(in srgb, var(--card-color, #888) 8%, rgb(45,45,45,.7));
+  box-shadow: 0 1px 3px rgb(0,0,0,.2), inset 0 1px 0 rgb(255,255,255,.02);
+}
+
+body.dark-theme .snap-card::after {
+  opacity: 0.16;
 }
 
 body.dark-theme .snap-card:hover {
-  background: color-mix(in srgb, var(--card-color, #888) 13%, #1e1e1e);
-  border-color: color-mix(in srgb, var(--card-color, #888) 22%, rgb(255, 255, 255, 0.06));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, #888) 15%, transparent);
+  background: color-mix(in srgb, var(--card-color, #888) 6%, rgb(24,24,24,.97));
+  border-color: color-mix(in srgb, var(--card-color, #888) 14%, rgb(50,50,50,.7));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, #888) 8%, transparent), 0 1px 3px rgb(0,0,0,.2), inset 0 1px 0 rgb(255,255,255,.03);
+}
+
+body.dark-theme .snap-card:hover::after {
+  opacity: 0.14;
 }
 
 body.dark-theme .snap-card-current {
-  color: #e2e2e2;
+  color: #e5e5e5;
 }
 
 body.dark-theme .snap-card-name {
@@ -783,15 +813,15 @@ body.dark-theme .snap-card-alloc {
 @media (width <= 540px) {
   .snap-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 10px;
   }
 
   .snap-card {
-    padding: 8px 10px;
+    padding: 16px 18px;
   }
 
   .snap-card-current {
-    font-size: 13px;
+    font-size: 1.2rem;
   }
 }
 
@@ -851,7 +881,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .section-summary-value {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: #111;
   letter-spacing: -0.02em;
@@ -859,7 +889,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .section-summary-invested {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: #999;
   display: flex;
@@ -893,13 +923,13 @@ body.dark-theme .snap-card-alloc {
 }
 
 .section-summary-pl > span:first-child {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   font-family: Inter, sans-serif;
 }
 
 .section-summary-pct {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   font-family: Inter, sans-serif;
   opacity: 0.8;
@@ -991,7 +1021,6 @@ body.dark-theme .snap-card-alloc {
   position: relative;
   overflow: hidden;
   z-index: 1;
-  animation: card-enter 0.45s var(--ease-out) calc(var(--i, 0) * 60ms) both;
 }
 
 .card::after {
@@ -1125,7 +1154,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .overview-current {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 700;
   color: #111;
   font-family: Inter, sans-serif;
@@ -1134,7 +1163,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .overview-invested {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 500;
   color: #999;
   font-family: Inter, sans-serif;
@@ -1155,7 +1184,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .overview-pl {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   font-family: Inter, sans-serif;
   line-height: 1;
@@ -1163,7 +1192,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .overview-pct {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   font-family: Inter, sans-serif;
   opacity: 0.85;
@@ -1191,7 +1220,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .category-current {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: #111;
   font-family: Inter, sans-serif;
@@ -1200,7 +1229,7 @@ body.dark-theme .snap-card-alloc {
 }
 
 .category-invested {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: #999;
   font-family: Inter, sans-serif;
@@ -1239,14 +1268,14 @@ body.dark-theme .snap-card-alloc {
 }
 
 .category-pl > span:first-child {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   font-family: Inter, sans-serif;
   transition: color 0.3s var(--ease-standard);
 }
 
 .category-pct {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   font-family: Inter, sans-serif;
   opacity: 0.8;
@@ -2817,11 +2846,11 @@ body.dark-theme .nav-date-sub {
   }
 
   .overview-current {
-    font-size: 26px;
+    font-size: 30px;
   }
 
   .overview-invested {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .overview-metrics {
@@ -2843,11 +2872,11 @@ body.dark-theme .nav-date-sub {
   }
 
   .overview-pl {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .overview-pct {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   /* Summary cards */
@@ -2863,19 +2892,19 @@ body.dark-theme .nav-date-sub {
   }
 
   .category-current {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .category-invested {
-    font-size: 12px;
-  }
-
-  .category-pl > span:first-child {
     font-size: 13px;
   }
 
+  .category-pl > span:first-child {
+    font-size: 15px;
+  }
+
   .category-pct {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .allocation-pct {
@@ -3019,11 +3048,11 @@ body.dark-theme .nav-date-sub {
 
   /* Stack overview tickers vertically on very small screens */
   .overview-current {
-    font-size: 22px;
+    font-size: 26px;
   }
 
   .overview-invested {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .overview-primary {
@@ -3031,11 +3060,11 @@ body.dark-theme .nav-date-sub {
   }
 
   .overview-pl {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .overview-pct {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .summary-cards {
@@ -7442,10 +7471,6 @@ select.crud-field-select:focus {
   .section-wrapper:has(.crud-empty-cta-row) .table-scroll-wrapper {
     display: none;
   }
-
-  .section-wrapper:has(.crud-empty-cta-row) .section-summary {
-    display: none;
-  }
 }
 
 .crud-empty-cta {
@@ -8108,18 +8133,46 @@ body.dark-theme .pin-overlay {
 /* ── Metron brand mark ── */
 
 .pin-brand {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(0, 0, 0, 0.18);
-  margin-bottom: 44px;
+  margin-bottom: 28px;
   font-family: inherit;
   user-select: none;
 }
 
 body.dark-theme .pin-brand {
   color: rgb(255, 255, 255, 0.18);
+}
+
+.pin-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 32px;
+}
+
+.pin-greeting-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: -0.01em;
+}
+
+.pin-greeting-email {
+  font-size: 12px;
+  color: rgb(0, 0, 0, 0.35);
+  letter-spacing: 0.01em;
+}
+
+body.dark-theme .pin-greeting-name {
+  color: rgb(255, 255, 255, 0.8);
+}
+
+body.dark-theme .pin-greeting-email {
+  color: rgb(255, 255, 255, 0.3);
 }
 
 .pin-content {
@@ -8914,11 +8967,8 @@ body.dark-theme .pin-reset-confirm:hover:not(:disabled) {
    ══════════════════════════════════════════════════════════════ */
 @media (hover: none) {
   .btn:hover,
-  .card:hover,
-  .snap-card:hover,
   .refresh-btn:hover,
   .section-summary--expandable:hover,
-  .breakdown-segment:hover,
   th.sortable-header:hover {
     /* Reset hover-only decorations on touch devices */
     box-shadow: inherit;
@@ -8930,6 +8980,5 @@ body.dark-theme .pin-reset-confirm:hover:not(:disabled) {
 @media (pointer: coarse) {
   /* Larger touch targets for coarse pointers */
   .btn { min-height: 44px; }
-  .refresh-btn { min-height: 44px; padding: 10px 16px 10px 14px; }
   th.sortable-header { min-height: 44px; }
 }

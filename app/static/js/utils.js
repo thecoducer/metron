@@ -2,15 +2,13 @@
 
 class Formatter {
   // Global state for compact format preference
-  static isCompactFormat = true; // Default to compact view
+  static isCompactFormat = false;
 
   /**
    * Initialize compact format preference from localStorage
    */
   static initCompactFormat() {
-    const saved = localStorage.getItem('compactFormat');
-    // If nothing saved, default to true (compact), otherwise use saved value
-    this.isCompactFormat = saved === null ? true : saved === 'true';
+    this.isCompactFormat = localStorage.getItem('metron_compact') === '1';
   }
 
   /**
@@ -18,7 +16,7 @@ class Formatter {
    */
   static toggleCompactFormat() {
     this.isCompactFormat = !this.isCompactFormat;
-    localStorage.setItem('compactFormat', this.isCompactFormat.toString());
+    localStorage.setItem('metron_compact', this.isCompactFormat ? '1' : '0');
     return this.isCompactFormat;
   }
 

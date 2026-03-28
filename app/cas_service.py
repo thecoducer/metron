@@ -90,15 +90,20 @@ def _get_sync_lock(google_id: str) -> threading.Lock:
 
 def _txn_to_row(t: dict) -> list[Any]:
     """Convert a transaction dict to a sheet row."""
+
+    def _num(key: str) -> str:
+        v = t.get(key)
+        return str(v) if v is not None else ""
+
     return [
         t.get("isin") or "",
         t.get("fund_name") or "",
         t.get("date") or "",
         t.get("type") or "",
-        str(t.get("amount") or ""),
-        str(t.get("units") or ""),
-        str(t.get("nav") or ""),
-        str(t.get("balance") or ""),
+        _num("amount"),
+        _num("units"),
+        _num("nav"),
+        _num("balance"),
         t.get("account") or "",
     ]
 
