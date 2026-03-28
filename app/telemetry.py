@@ -71,7 +71,7 @@ def _setup_tracing(app: Flask) -> None:
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
 
-    FlaskInstrumentor().instrument_app(
+    FlaskInstrumentor().instrument_app(  # pyrefly: ignore[missing-attribute]
         app,
         excluded_urls="health,healthz,static",
     )
