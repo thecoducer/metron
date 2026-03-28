@@ -388,37 +388,55 @@
                                 </svg>
                                 <span>Add</span>
                             </button>
-                            <button class="crud-add-btn mf-txn-btn"
-                                    id="mfTransactionsBtn"
-                                    onclick="location.href='/mutual-funds/transactions'"
-                                    title="View transaction history">
-                                <svg width="14"
-                                     height="14"
-                                     viewBox="0 0 24 24"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     stroke-width="2.5"
-                                     stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-                                    <path d="M14 2v6h6" />
-                                    <path d="M16 13H8" />
-                                    <path d="M16 17H8" />
-                                    <path d="M10 9H8" />
-                                </svg>
-                                <span>Transactions</span>
-                                <svg class="mf-txn-arrow"
-                                     width="12"
-                                     height="12"
-                                     viewBox="0 0 24 24"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     stroke-width="2.5"
-                                     stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                            </button>
+                            <div class="mf-txn-nudge-wrap">
+                                <div class="mf-txn-nudge hidden" id="mfTxnNudge">
+                                    <svg width="14"
+                                         height="14"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 16v-4" />
+                                        <path d="M12 8h.01" />
+                                    </svg>
+                                    <span>New transactions imported! View them here</span>
+                                    <div class="mf-txn-nudge-caret"></div>
+                                </div>
+                                <button class="crud-add-btn mf-txn-btn"
+                                        id="mfTransactionsBtn"
+                                        onclick="location.href='/mutual-funds/transactions'"
+                                        title="View transaction history">
+                                    <svg width="14"
+                                         height="14"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                                        <path d="M14 2v6h6" />
+                                        <path d="M16 13H8" />
+                                        <path d="M16 17H8" />
+                                        <path d="M10 9H8" />
+                                    </svg>
+                                    <span>Transactions</span>
+                                    <svg class="mf-txn-arrow"
+                                         width="12"
+                                         height="12"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="section-summary"

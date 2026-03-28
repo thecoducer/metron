@@ -537,6 +537,7 @@
       // Refresh MF table (portfolio page)
       if (typeof window.portfolioApp?.updateData === 'function') {
         window.portfolioApp.updateData();
+        showTxnNudge();
       }
 
       // Refresh transaction data (transactions page)
@@ -592,6 +593,20 @@
       toast.classList.remove('show');
       toast.addEventListener('transitionend', () => toast.remove(), { once: true });
     }, 4000);
+  }
+
+  // ── Transaction nudge (portfolio page only) ──
+  function showTxnNudge() {
+    const nudge = document.getElementById('mfTxnNudge');
+    if (!nudge) return;
+    nudge.classList.remove('hidden', 'fade-out');
+    // Force reflow so the pop animation replays
+    void nudge.offsetWidth;
+    nudge.style.animation = '';
+    setTimeout(() => {
+      nudge.classList.add('fade-out');
+      setTimeout(() => nudge.classList.add('hidden'), 450);
+    }, 5000);
   }
 
   // ── Helpers ──

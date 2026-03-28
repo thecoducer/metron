@@ -663,6 +663,9 @@ def confirm_import(
     _refresh_single_sheet_cache(client, spreadsheet_id, google_id, "mutual_funds")
 
     if all_transactions:
+        # Hydrate cache from sheet first so other accounts' data is
+        # preserved (handles server-restart → import scenario).
+        ensure_transactions_loaded(google_id)
         tagged = store_transactions(google_id, account, all_transactions, scheme_sums)
         start_txn_sync_thread(google_id, account, tagged)
 
