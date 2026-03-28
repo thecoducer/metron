@@ -20,7 +20,6 @@ from app.api.user_sheets import (
     SIPS_SHEET_NAME,
     STOCKS_HEADERS,
     STOCKS_SHEET_NAME,
-    _format_headers,
     create_portfolio_sheet,
 )
 
@@ -56,7 +55,7 @@ class TestSheetConstants(unittest.TestCase):
 
 class TestSheetConfigs(unittest.TestCase):
     def test_all_types_present(self):
-        expected_types = {"stocks", "etfs", "mutual_funds", "sips", "physical_gold", "fixed_deposits"}
+        expected_types = {"stocks", "etfs", "mutual_funds", "sips", "physical_gold", "fixed_deposits", "transactions"}
         self.assertEqual(set(SHEET_CONFIGS.keys()), expected_types)
 
     def test_each_config_has_required_keys(self):
@@ -72,17 +71,16 @@ class TestSheetConfigs(unittest.TestCase):
 
 class TestAllSheets(unittest.TestCase):
     def test_count(self):
-        self.assertEqual(len(ALL_SHEETS), 6)
+        self.assertEqual(len(ALL_SHEETS), 7)
 
     def test_unique_indices(self):
         indices = [idx for _, _, idx in ALL_SHEETS]
-        self.assertEqual(len(set(indices)), 6)
+        self.assertEqual(len(set(indices)), 7)
 
 
 class TestCreatePortfolioSheet(unittest.TestCase):
-    @patch("app.api.user_sheets._format_headers")
     @patch("app.api.user_sheets.google_build")
-    def test_create_and_populate(self, mock_build, mock_format):
+    def test_create_and_populate(self, mock_build):
         mock_service = Mock()
         mock_build.return_value = mock_service
 
@@ -102,11 +100,9 @@ class TestCreatePortfolioSheet(unittest.TestCase):
         self.assertEqual(result, "new_sheet_id")
         mock_build.assert_called_once_with("sheets", "v4", credentials=creds)
         mock_service.spreadsheets.return_value.create.assert_called_once()
-        mock_format.assert_called_once()
 
-    @patch("app.api.user_sheets._format_headers")
     @patch("app.api.user_sheets.google_build")
-    def test_default_title(self, mock_build, mock_format):
+    def test_default_title(self, mock_build):
         mock_service = Mock()
         mock_build.return_value = mock_service
         mock_create = Mock()
@@ -121,45 +117,6 @@ class TestCreatePortfolioSheet(unittest.TestCase):
         call_args = mock_service.spreadsheets.return_value.create.call_args
         body = call_args[1]["body"]
         self.assertEqual(body["properties"]["title"], "Metron")
-
-
-class TestFormatHeaders(unittest.TestCase):
-    def test_format_headers_applies_bold(self):
-        mock_service = Mock()
-
-        # Mock get (returns sheet properties)
-        mock_meta = Mock()
-        mock_meta.execute.return_value = {
-            "sheets": [
-                {"properties": {"title": "Gold", "sheetId": 0}},
-                {"properties": {"title": "FixedDeposits", "sheetId": 1}},
-            ]
-        }
-        mock_service.spreadsheets.return_value.get.return_value = mock_meta
-
-        # Mock batchUpdate
-        mock_batch = Mock()
-        mock_batch.execute.return_value = {}
-        mock_service.spreadsheets.return_value.batchUpdate.return_value = mock_batch
-
-        _format_headers(mock_service, "sid")
-        mock_service.spreadsheets.return_value.batchUpdate.assert_called_once()
-
-    def test_format_headers_no_matching_sheets(self):
-        mock_service = Mock()
-        mock_meta = Mock()
-        mock_meta.execute.return_value = {
-            "sheets": [
-                {"properties": {"title": "UnknownSheet", "sheetId": 99}},
-            ]
-        }
-        mock_service.spreadsheets.return_value.get.return_value = mock_meta
-        mock_batch = Mock()
-        mock_batch.execute.return_value = {}
-        mock_service.spreadsheets.return_value.batchUpdate.return_value = mock_batch
-        # Should not call batchUpdate when no sheets match
-        _format_headers(mock_service, "sid")
-        mock_service.spreadsheets.return_value.batchUpdate.assert_not_called()
 
 
 if __name__ == "__main__":

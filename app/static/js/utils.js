@@ -172,6 +172,22 @@ class Formatter {
   }
 
   /**
+   * Format YYYY-MM or YYYY-MM-DD to short label like "Jan 24".
+   * Useful for chart axis labels.
+   * @param {string} d - Date string in YYYY-MM or YYYY-MM-DD format
+   * @returns {string} Short month-year label
+   */
+  static formatMonthShort(d) {
+    if (!d) return '';
+    const parts = d.split('-');
+    if (parts.length >= 2) {
+      const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return months[parseInt(parts[1])] + ' ' + parts[0].substring(2);
+    }
+    return d;
+  }
+
+  /**
    * Format a date string to relative format (today, yesterday, X days ago, or date)
    * @param {string} dateStr - Date string to format
    * @param {boolean} isPastDate - If true, shows "X days ago", if false shows "In X days"
@@ -357,6 +373,21 @@ function isSilverInstrument(symbol) {
   return SILVER_PREFIXES.some(prefix => symbol.startsWith(prefix));
 }
 
+/**
+ * Generate a visually distinct color using golden-angle hue spacing.
+ * Adapts to dark/light theme automatically.
+ * @param {number} index - Color index
+ * @returns {string} HSL color string
+ */
+const GOLDEN_ANGLE = 137.508;
+function chartColor(index) {
+  const hue = (index * GOLDEN_ANGLE) % 360;
+  const dark = document.body.classList.contains('dark-theme');
+  const sat = dark ? '42%' : '45%';
+  const lum = dark ? '58%' : '52%';
+  return 'hsl(' + hue + ',' + sat + ',' + lum + ')';
+}
+
 
 /**
  * Fetch wrapper that attaches the app identification header.
@@ -396,5 +427,46 @@ async function metronFetch(url, options = {}) {
 window.Formatter = Formatter;
 window.Calculator = Calculator;
 window.metronFetch = metronFetch;
+window.chartColor = chartColor;
 
-export { Formatter, Calculator, isGoldInstrument, isSGBInstrument, isSilverInstrument, metronFetch };
+// ── Shared formatting helpers (used by transactions, exposure, etc.) ──
+
+
+
+
+
+/**
+ * Escape HTML entities in a string.
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/**
+ * Escape a string for use in HTML attributes.
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeAttr(str) {
+  return str.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+/**
+ * Truncate string with ellipsis.
+ * @param {string} str
+ * @param {number} len
+ * @returns {string}
+ */
+function truncate(str, len) {
+  return str.length > len ? str.substring(0, len) + '...' : str;
+}
+
+window.escapeHtml = escapeHtml;
+window.escapeAttr = escapeAttr;
+window.truncate = truncate;
+
+export { Formatter, Calculator, chartColor, escapeHtml, escapeAttr, truncate, isGoldInstrument, isSGBInstrument, isSilverInstrument, metronFetch };

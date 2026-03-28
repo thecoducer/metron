@@ -1,0 +1,71 @@
+{#
+  Nav Drawer Partial
+  ──────────────────
+  Slide-out navigation menu opened by the hamburger button.
+  Active link is auto-detected from request.path.
+#}
+<div class="drawer-backdrop" id="navDrawerBackdrop"></div>
+<aside class="nav-drawer" id="navDrawer" aria-label="Navigation">
+    <div class="drawer-header">
+        <h2 class="drawer-title">Menu</h2>
+        <button class="drawer-close" id="navDrawerClose" title="Close">
+            <svg width="20"
+                 height="20"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+                <path d="M18 6L6 18" />
+                <path d="M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+    <div class="drawer-body">
+        <nav class="nav-drawer-links">
+            <a href="/"
+               class="nav-drawer-link {{ 'active' if request.path in ['/', '/transactions'] }}">
+                <svg class="nav-drawer-link-icon"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2.2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <span>Portfolio</span>
+            </a>
+            <a href="/exposure"
+               class="nav-drawer-link {{ 'active' if request.path == '/exposure' }}">
+                <svg class="nav-drawer-link-icon"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2.2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a10 10 0 0 1 0 20" />
+                    <path d="M2 12h20" />
+                    <path d="M12 2c-2.76 4.48-2.76 13.52 0 20" />
+                </svg>
+                <span>What You Actually Own</span>
+            </a>
+            <a href="/nifty50"
+               class="nav-drawer-link {{ 'active' if request.path == '/nifty50' }}">
+                <svg class="nav-drawer-link-icon"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2.2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+                </svg>
+                <span>Nifty 50</span>
+            </a>
+        </nav>
+    </div>
+</aside>

@@ -32,6 +32,9 @@
   const modalConfirm = document.getElementById('casModalConfirm');
   const modalCancel = document.getElementById('casModalCancel');
   const modalClose = document.getElementById('casModalClose');
+  const confirmBackdrop = document.getElementById('casConfirmBackdrop');
+  const confirmStay = document.getElementById('casConfirmStay');
+  const confirmDiscard = document.getElementById('casConfirmDiscard');
 
   if (!uploadBtn || !modal) return;
 
@@ -95,6 +98,13 @@
   if (newAccountInput) {
     newAccountInput.addEventListener('input', clearStatus);
   }
+
+  // ── Enter key triggers upload ──
+  [passwordInput, newAccountInput].forEach(el => {
+    if (el) el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); uploadBtn.click(); }
+    });
+  });
 
   function getSelectedAccount() {
     if (newAccountMode) return newAccountInput?.value?.trim();
@@ -338,9 +348,18 @@
     setupAutocomplete(card.querySelector('.cas-scheme-input'), card.querySelector('.cas-suggest-list'));
   }
 
+  function showConfirmDialog() {
+    confirmBackdrop?.classList.remove('hidden');
+  }
+
+  function hideConfirmDialog() {
+    confirmBackdrop?.classList.add('hidden');
+  }
+
   function closeModal(force = false) {
     if (!force && modalOpen) {
-      if (!window.confirm('Close verification screen? Any unconfirmed changes will be lost.')) return;
+      showConfirmDialog();
+      return;
     }
     modalOpen = false;
     parsedData = null;
@@ -348,6 +367,12 @@
     modalBackdrop.classList.add('hidden');
     document.body.style.overflow = '';
   }
+
+  confirmStay?.addEventListener('click', hideConfirmDialog);
+  confirmDiscard?.addEventListener('click', () => {
+    hideConfirmDialog();
+    closeModal(true);
+  });
 
   modalClose?.addEventListener('click', () => closeModal());
   modalCancel?.addEventListener('click', () => closeModal());
@@ -380,11 +405,15 @@
     const showIsinError = msg => {
       const errSpan = input.closest('.cas-scheme-name-field')?.querySelector('.cas-isin-error-msg');
       if (errSpan) { errSpan.textContent = msg; errSpan.style.display = ''; }
+      const card = input.closest('.cas-scheme-card');
+      if (card) card.classList.add('cas-scheme-isin-error');
     };
 
     const clearIsinError = () => {
       const errSpan = input.closest('.cas-scheme-name-field')?.querySelector('.cas-isin-error-msg');
       if (errSpan) { errSpan.textContent = ''; errSpan.style.display = 'none'; }
+      const card = input.closest('.cas-scheme-card');
+      if (card) card.classList.remove('cas-scheme-isin-error');
     };
 
     const select = async (text) => {
@@ -450,6 +479,13 @@
   modalConfirm?.addEventListener('click', async () => {
     if (!parsedData) return;
 
+    // Block submit if any ISIN errors exist
+    const errorCards = schemesContainer.querySelectorAll('.cas-scheme-isin-error');
+    if (errorCards.length) {
+      errorCards[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     const account = parsedData._account;
     const schemes = parsedData.schemes
       .map((scheme, idx) => {
@@ -464,10 +500,9 @@
           avg_nav: avgNavInput ? parseFloat(avgNavInput.value) || 0 : (scheme.avg_nav || round4(scheme.cost / scheme.units)),
           transactions: scheme.transactions,
         };
-      })
-      .filter(s => s.units > 0);
+      });
 
-    if (!schemes.length) {
+    if (!schemes.filter(s => s.units > 0).length) {
       alert('No active funds to import.');
       return;
     }
@@ -499,13 +534,14 @@
         'success'
       );
 
-      // Reveal the Transactions button now that we have transaction data
-      const txnBtn = document.getElementById('mfTransactionsBtn');
-      if (txnBtn) txnBtn.style.display = '';
-
-      // Refresh MF table
+      // Refresh MF table (portfolio page)
       if (typeof window.portfolioApp?.updateData === 'function') {
         window.portfolioApp.updateData();
+      }
+
+      // Refresh transaction data (transactions page)
+      if (typeof window.reloadTransactions === 'function') {
+        window.reloadTransactions();
       }
 
     } catch {

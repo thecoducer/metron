@@ -5,20 +5,19 @@ import os
 import secrets
 import threading
 import time
-from typing import Any
 
 from flask import jsonify, make_response, redirect, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from .api.google_sheets_client import is_blank_row
+from . import cas_service, exposure_service
 from .cache import manual_ltp_cache, market_cache, portfolio_cache, user_sheets_cache
 from .constants import HTTP_ACCEPTED, HTTP_CONFLICT, PORTFOLIO_TABLE_ROW_LIMIT
 from .fetchers import (
     _fetch_manual_entries,  # noqa: F401 — re-exported for test imports
-    _fetch_uncached_manual_ltps,
+    _fetch_uncached_manual_ltps,  # noqa: F401 — re-exported for test imports
     _fetch_user_sheets_data,  # noqa: F401 — re-exported for test imports
     _get_sheets_client,
-    _validate_nse_symbol,
+    _validate_nse_symbol,  # noqa: F401 — re-exported for test imports
     prefetch_all_user_sheets,
 )
 from .fetchers import (
@@ -28,8 +27,7 @@ from .firebase_store import reset_zerodha_data, verify_user_pin
 from .logging_config import logger
 from .middleware import app_only, login_required, pin_required, protected_api
 from .services import (
-    _autofill_mf_nav_from_cache,
-    _build_data_for_type,
+    _build_data_for_type,  # noqa: F401 — re-exported for test imports
     _build_fd_data,
     _build_gold_data,
     _build_mf_data,
@@ -37,13 +35,15 @@ from .services import (
     _build_status_response,
     _build_stocks_data,
     _enrich_manual_entries_with_ltp,  # noqa: F401 — re-exported for test imports
-    _refresh_single_sheet_cache,
-    _serialise_exposure,
+    _refresh_single_sheet_cache,  # noqa: F401 — re-exported for test imports
     ensure_user_loaded,
     get_authenticated_accounts,
     get_user_accounts,
     session_manager,
-    state_manager,
+    sheets_add_row,
+    sheets_delete_row,
+    sheets_list_rows,
+    sheets_update_row,
 )
 from .utils import (
     _collect_process_metrics,
@@ -53,7 +53,6 @@ from .utils import (
     _fmt_ist,
     _is_google_auth_error,  # noqa: F401 — re-exported for test imports
     _json_response,
-    _normalize_date_values,
     _sheets_error_response,
     pin_rate_limiter,
 )
@@ -680,6 +679,7 @@ def all_data():
     user = _current_user()
     assert user is not None
     google_id = user["google_id"]
+
     payload = {
         "stocks": _build_stocks_data(user),
         "mfHoldings": _build_mf_data(user),
@@ -704,61 +704,17 @@ def exposure_data():
     so the sync Gunicorn worker is free to serve other requests.  The
     frontend polls until the result is ready.
     """
-    from .api.exposure import ExposureResult, build_exposure_data, exposure_cache
-
     user = _current_user()
     assert user is not None
     google_id = user["google_id"]
 
-    # 1. Serve from cache if warm.
-    cached = exposure_cache.get(google_id)
-    if cached:
-        return _exposure_json_response(_serialise_exposure(cached))
-
-    # 2. If a previous analysis completed with no result, report no data.
-    if exposure_cache.has_no_data(google_id):
-        payload = {"has_data": False, "companies": [], "sector_totals": {}, "total_portfolio_value": 0}
-        return _exposure_json_response(payload)
-
-    # 3. If analysis is already running, tell the client to wait.
-    if exposure_cache.is_in_progress(google_id):
-        return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
-
-    # 4. Gather portfolio data (reads from in-memory caches, fast).
     stocks_and_etfs = _build_stocks_data(user)
     mf_data = _build_mf_data(user)
 
-    if not stocks_and_etfs and not mf_data:
-        payload = {"has_data": False, "companies": [], "sector_totals": {}, "total_portfolio_value": 0}
-        return _exposure_json_response(payload)
-
-    # 5. Kick off the heavy analysis in a background thread.
-    exposure_cache.set_in_progress(google_id)
-
-    def _run_analysis() -> None:
-        try:
-            result: ExposureResult | None = build_exposure_data(google_id, stocks_and_etfs, mf_data)
-            if result is not None:
-                # Set timestamp before putting in cache so the next poll
-                # that returns 200 already sees a non-null exposure_last_updated.
-                state_manager.set_exposure_updated(google_id)
-                exposure_cache.put(google_id, result)
-            else:
-                logger.info("Exposure analysis returned no data for user=%s", google_id[:8])
-                exposure_cache.mark_no_data(google_id)
-        except Exception as exc:
-            logger.exception("Exposure analysis failed for user=%s: %s", google_id[:8], exc)
-            exposure_cache.mark_no_data(google_id)
-        finally:
-            exposure_cache.clear_in_progress(google_id)
-
-    threading.Thread(
-        target=_run_analysis,
-        name=f"ExposureAnalysis-{google_id[:8]}",
-        daemon=True,
-    ).start()
-
-    return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
+    payload, status_code = exposure_service.get_or_start_analysis(
+        google_id, stocks_and_etfs, mf_data
+    )
+    return _exposure_json_response(payload), status_code
 
 
 @app_ui.route("/api/exposure/refresh", methods=["POST"])
@@ -768,61 +724,17 @@ def exposure_refresh():
 
     Returns 202 (analysis started) or 409 (already in progress).
     """
-    from .api.exposure import ExposureResult, build_exposure_data, exposure_cache
-
     user = _current_user()
     assert user is not None
     google_id = user["google_id"]
 
-    if exposure_cache.is_in_progress(google_id):
-        return _exposure_json_response({"status": "processing"}), HTTP_CONFLICT
-
-    exposure_cache.invalidate(google_id)
-
     stocks_and_etfs = _build_stocks_data(user)
     mf_data = _build_mf_data(user)
 
-    if not stocks_and_etfs and not mf_data:
-        payload = {
-            "has_data": False,
-            "companies": [],
-            "sector_totals": {},
-            "total_portfolio_value": 0,
-        }
-        return _exposure_json_response(payload)
-
-    exposure_cache.set_in_progress(google_id)
-
-    def _run_analysis() -> None:
-        try:
-            result: ExposureResult | None = build_exposure_data(
-                google_id,
-                stocks_and_etfs,
-                mf_data,
-            )
-            if result is not None:
-                state_manager.set_exposure_updated(google_id)
-                exposure_cache.put(google_id, result)
-            else:
-                logger.info("Exposure refresh returned no data for user=%s", google_id[:8])
-                exposure_cache.mark_no_data(google_id)
-        except Exception as exc:
-            logger.exception(
-                "Exposure refresh failed for user=%s: %s",
-                google_id[:8],
-                exc,
-            )
-            exposure_cache.mark_no_data(google_id)
-        finally:
-            exposure_cache.clear_in_progress(google_id)
-
-    threading.Thread(
-        target=_run_analysis,
-        name=f"ExposureRefresh-{google_id[:8]}",
-        daemon=True,
-    ).start()
-
-    return _exposure_json_response({"status": "processing"}), HTTP_ACCEPTED
+    payload, status_code = exposure_service.refresh_analysis(
+        google_id, stocks_and_etfs, mf_data
+    )
+    return _exposure_json_response(payload), status_code
 
 
 @app_ui.route("/api/fd_summary_data", methods=["GET"])
@@ -1180,8 +1092,6 @@ def cas_upload():
       - file: The CAS PDF file
       - password: PDF password
     """
-    from .api.cas_parser import parse_cas_pdf, serialise_parse_result
-
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -1198,14 +1108,11 @@ def cas_upload():
         return jsonify({"error": "File too large. Maximum size is 15 MB."}), 400
 
     try:
-        result = parse_cas_pdf(file_bytes, password)
+        result = cas_service.process_upload(file_bytes, password)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    if not result.schemes:
-        return jsonify({"error": "No mutual fund schemes found in the PDF."}), 400
-
-    return jsonify(serialise_parse_result(result))
+    return jsonify(result)
 
 
 @app_ui.route("/api/cas/confirm", methods=["POST"])
@@ -1216,16 +1123,7 @@ def cas_confirm():
     Expects JSON body:
       - account: str - Account name for these holdings
       - schemes: list of {isin, fund_name, units, avg_nav, transactions}
-
-    Re-upload logic:
-      - All CAMS rows for this account are deleted first, then replaced with
-        fresh data. This prevents double-counting on re-upload.
-      - Only rows with source="cams" for the matching account are removed.
-        Rows from other sources (manual, zerodha, etc.) are untouched.
     """
-    from .api.mf_market_data import mf_market_cache
-    from .api.user_sheets import SHEET_CONFIGS
-
     user = _current_user()
     assert user is not None
     google_id = user["google_id"]
@@ -1245,119 +1143,17 @@ def cas_confirm():
     assert client is not None
     assert spreadsheet_id is not None
 
-    cfg = SHEET_CONFIGS["mutual_funds"]
-
     try:
-        client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
-        raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
-    except Exception as e:
-        return _sheets_error_response(e, "reading", "mutual_funds")
-
-    # Find existing cams rows for this account and delete them
-    rows_to_delete: list[int] = []
-    if raw and len(raw) >= 2:
-        fields = cfg["fields"]
-        for idx, row in enumerate(raw[1:], start=2):
-            if is_blank_row(row):
-                break
-            entry: dict[str, Any] = {}
-            for fi, fname in enumerate(fields):
-                entry[fname] = row[fi] if fi < len(row) else ""
-            row_source = (entry.get("source") or "").strip()
-            row_account = (entry.get("account") or "").strip()
-            if row_source == "cams" and row_account == account:
-                rows_to_delete.append(idx)
-
-    if rows_to_delete:
-        try:
-            client.batch_delete_rows(spreadsheet_id, cfg["sheet_name"], rows_to_delete)
-            logger.info(
-                "CAS confirm: deleted %d stale cams rows for account=%s",
-                len(rows_to_delete),
-                account,
-            )
-        except Exception:
-            logger.exception("Failed to delete stale cams rows for account=%s", account)
-
-    # Build and append all new rows
-    new_rows: list[list[Any]] = []
-    all_transactions: list[dict] = []
-
-    for scheme in schemes:
-        isin = (scheme.get("isin") or "").strip().upper()
-        fund_name = (scheme.get("fund_name") or "").strip()
-        units = float(scheme.get("units") or 0)
-        avg_nav_raw = scheme.get("avg_nav")
-        avg_nav = round(float(avg_nav_raw), 4) if avg_nav_raw is not None else 0.0
-        transactions = scheme.get("transactions", [])
-
-        if not isin or units <= 0:
-            continue
-
-        # Look up latest NAV from MF cache
-        latest_nav = ""
-        nav_date = ""
-        cache_info = mf_market_cache.get_by_isin(isin)
-        if cache_info:
-            latest_nav = cache_info.latest_nav
-            nav_date = cache_info.nav_updated_date
-            if not fund_name:
-                fund_name = cache_info.scheme_name
-
-        for txn in transactions:
-            all_transactions.append({"isin": isin, "fund_name": fund_name, **txn})
-
-        new_rows.append(
-            [
-                isin,
-                fund_name,
-                str(units),
-                str(avg_nav),
-                account,
-                "cams",
-                latest_nav,
-                nav_date,
-            ]
+        result = cas_service.confirm_import(
+            client, spreadsheet_id, google_id, account, schemes, user
         )
+    except Exception as e:
+        return _sheets_error_response(e, "saving", "mutual_funds")
 
-    added = 0
-    if new_rows:
-        try:
-            client.batch_append_rows(spreadsheet_id, cfg["sheet_name"], new_rows)
-            added = len(new_rows)
-        except Exception:
-            logger.exception("Failed to append cams rows for account=%s", account)
-            return jsonify({"error": "Failed to save funds to Google Sheets"}), 500
-
-    # Refresh the sheet cache
-    _refresh_single_sheet_cache(client, spreadsheet_id, google_id, "mutual_funds")
-
-    # Store transactions for the transaction history page
-    if all_transactions:
-        _store_cas_transactions(google_id, account, all_transactions)
-
-    logger.info(
-        "CAS confirm: deleted=%d added=%d transactions=%d account=%s",
-        len(rows_to_delete),
-        added,
-        len(all_transactions),
-        account,
-    )
-
-    refreshed = _build_data_for_type(user, "mutual_funds")
-
-    return jsonify(
-        {
-            "status": "saved",
-            "added": added,
-            "updated": len(rows_to_delete),
-            "has_transactions": bool(all_transactions),
-            **refreshed,
-        }
-    )
+    return jsonify(result)
 
 
-@app_ui.route("/api/cas/transactions", methods=["GET"])
+@app_ui.route("/api/mutual-funds/transactions", methods=["GET"])
 @pin_required
 def cas_transactions():
     """Return stored CAS transaction history for the current user."""
@@ -1365,18 +1161,17 @@ def cas_transactions():
     assert user is not None
     google_id = user["google_id"]
 
-    all_txns = _get_cas_transactions(google_id)
-    transactions = [
-        t for t in all_txns
-        if t.get("type") not in ("STAMP_DUTY_TAX", "STT_TAX")
-    ]
-    if not transactions:
-        return jsonify({"transactions": [], "has_data": False})
+    page_param = request.args.get("page")
+    page = int(page_param) if page_param is not None else None
+    per_page = int(request.args.get("per_page", 50))
+    account = request.args.get("account") or None
 
-    return jsonify({"transactions": transactions, "has_data": True})
+    return jsonify(
+        cas_service.get_transaction_data(google_id, page, per_page, account)
+    )
 
 
-@app_ui.route("/transactions", methods=["GET"])
+@app_ui.route("/mutual-funds/transactions", methods=["GET"])
 @login_required
 def transactions_page():
     """Serve the mutual fund transaction history page."""
@@ -1410,29 +1205,6 @@ def transactions_page():
     return response
 
 
-# CAS transaction storage — in-memory per-user
-_cas_transactions_lock = threading.Lock()
-_cas_transactions: dict[str, list[dict]] = {}
-
-
-def _store_cas_transactions(
-    google_id: str, account: str, transactions: list[dict]
-) -> None:
-    """Store CAS transactions for the user, replacing any existing ones for this account."""
-    with _cas_transactions_lock:
-        existing = _cas_transactions.get(google_id, [])
-        # Drop old transactions for this account, then append the fresh ones.
-        kept = [t for t in existing if t.get("account") != account]
-        tagged = [{"account": account, **t} for t in transactions]
-        _cas_transactions[google_id] = kept + tagged
-
-
-def _get_cas_transactions(google_id: str) -> list[dict]:
-    """Retrieve stored CAS transactions for a user."""
-    with _cas_transactions_lock:
-        return list(_cas_transactions.get(google_id, []))
-
-
 # ---------------------------------------------------------------------------
 # Manual-entry CRUD  (Google Sheets backed)
 # ---------------------------------------------------------------------------
@@ -1444,8 +1216,7 @@ def sheets_list(sheet_type):
     """List all rows from a manual-entry sheet tab."""
     from .api.user_sheets import SHEET_CONFIGS
 
-    cfg = SHEET_CONFIGS.get(sheet_type)
-    if not cfg:
+    if sheet_type not in SHEET_CONFIGS:
         return jsonify({"error": "Unknown sheet type"}), 400
 
     client, spreadsheet_id, err = _get_sheets_client()
@@ -1455,23 +1226,10 @@ def sheets_list(sheet_type):
     assert spreadsheet_id is not None
 
     try:
-        client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
-        raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
+        rows = sheets_list_rows(client, spreadsheet_id, sheet_type)
     except Exception as e:
         return _sheets_error_response(e, "listing", sheet_type)
 
-    if not raw or len(raw) < 2:
-        return jsonify([])
-
-    fields = cfg["fields"]
-    rows = []
-    for idx, row in enumerate(raw[1:], start=2):
-        if is_blank_row(row):
-            break
-        entry: dict[str, Any] = {"row_number": idx}
-        for fi, fname in enumerate(fields):
-            entry[fname] = row[fi] if fi < len(row) else ""
-        rows.append(entry)
     return jsonify(rows)
 
 
@@ -1481,8 +1239,7 @@ def sheets_add(sheet_type):
     """Add a new row to a manual-entry sheet tab."""
     from .api.user_sheets import SHEET_CONFIGS
 
-    cfg = SHEET_CONFIGS.get(sheet_type)
-    if not cfg:
+    if sheet_type not in SHEET_CONFIGS:
         return jsonify({"error": "Unknown sheet type"}), 400
 
     client, spreadsheet_id, err = _get_sheets_client()
@@ -1491,60 +1248,20 @@ def sheets_add(sheet_type):
     assert client is not None
     assert spreadsheet_id is not None
 
+    user = _current_user()
+    assert user is not None
+    google_id = user.get("google_id", "")
     data = request.get_json(silent=True) or {}
-    symbol = (data.get("symbol") or "").upper()
-
-    # Validate stock/ETF symbols against NSE before saving.
-    nse_isin = ""
-    if sheet_type in ("stocks", "etfs") and symbol:
-        quote = _validate_nse_symbol(symbol)
-        if not quote:
-            return jsonify({"error": f"Symbol {symbol} doesn't exist on exchange."}), 400
-        # Cache the validated LTP immediately.
-        manual_ltp_cache.put(symbol, quote)
-        nse_isin = quote.get("isin", "")
-
-    values = [data.get(f, "") for f in cfg["fields"]]
-    _normalize_date_values(cfg["fields"], values)
-    # Auto-fill ISIN from NSE when the user left it blank.
-    if nse_isin and "isin" in cfg["fields"]:
-        isin_idx = cfg["fields"].index("isin")
-        if not values[isin_idx]:
-            values[isin_idx] = nse_isin
-    # Default source to "manual" for user-added entries
-    if "source" in cfg["fields"]:
-        si = cfg["fields"].index("source")
-        if not values[si]:
-            values[si] = "manual"
-    # Auto-copy fund to fund_name for manual entries
-    if "fund_name" in cfg["fields"] and "fund" in cfg["fields"]:
-        ni = cfg["fields"].index("fund_name")
-        fi = cfg["fields"].index("fund")
-        if not values[ni] and values[fi]:
-            values[ni] = values[fi]
-    # Auto-populate ISIN and latest NAV from in-memory MF cache when fund name matches.
-    if sheet_type == "mutual_funds":
-        _autofill_mf_nav_from_cache(cfg["fields"], values)
 
     try:
-        client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
-        row_num = client.append_row(spreadsheet_id, cfg["sheet_name"], values)
-        user = _current_user()
-        assert user is not None
-        google_id = user.get("google_id", "")
-        _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
-
-        # Fetch LTPs for any other uncached manual symbols.
-        if sheet_type in ("stocks", "etfs"):
-            _fetch_uncached_manual_ltps(user, symbol)
+        result = sheets_add_row(
+            client, spreadsheet_id, sheet_type, data, google_id, user
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     except Exception as e:
         return _sheets_error_response(e, "adding", sheet_type)
 
-    logger.info("sheets_add: type=%s row=%d", sheet_type, row_num)
-    result: dict[str, Any] = {"status": "added", "row_number": row_num}
-    refreshed = _build_data_for_type(user, sheet_type)
-    if refreshed:
-        result["data"] = refreshed
     return jsonify(result)
 
 
@@ -1554,8 +1271,7 @@ def sheets_update(sheet_type, row_number):
     """Update a specific row in a manual-entry sheet tab."""
     from .api.user_sheets import SHEET_CONFIGS
 
-    cfg = SHEET_CONFIGS.get(sheet_type)
-    if not cfg:
+    if sheet_type not in SHEET_CONFIGS:
         return jsonify({"error": "Unknown sheet type"}), 400
 
     if row_number < 2:
@@ -1567,53 +1283,21 @@ def sheets_update(sheet_type, row_number):
     assert client is not None
     assert spreadsheet_id is not None
 
+    user = _current_user()
+    assert user is not None
+    google_id = user.get("google_id", "")
     data = request.get_json(silent=True) or {}
-    symbol = (data.get("symbol") or "").upper()
-
-    # Validate stock/ETF symbols against NSE before saving.
-    nse_isin = ""
-    if sheet_type in ("stocks", "etfs") and symbol:
-        quote = _validate_nse_symbol(symbol)
-        if not quote:
-            return jsonify({"error": f"Symbol {symbol} doesn't exist on exchange."}), 400
-        manual_ltp_cache.put(symbol, quote)
-        nse_isin = quote.get("isin", "")
-
-    values = [data.get(f, "") for f in cfg["fields"]]
-    _normalize_date_values(cfg["fields"], values)
-    # Auto-fill ISIN from NSE so existing ISIN data is preserved/refreshed on edit.
-    if nse_isin and "isin" in cfg["fields"]:
-        isin_idx = cfg["fields"].index("isin")
-        if not values[isin_idx]:
-            values[isin_idx] = nse_isin
-    # Default source to "manual" for user-edited entries
-    if "source" in cfg["fields"]:
-        si = cfg["fields"].index("source")
-        if not values[si]:
-            values[si] = "manual"
-    # Auto-copy fund to fund_name for manual entries
-    if "fund_name" in cfg["fields"] and "fund" in cfg["fields"]:
-        ni = cfg["fields"].index("fund_name")
-        fi = cfg["fields"].index("fund")
-        if not values[ni] and values[fi]:
-            values[ni] = values[fi]
-    # Auto-populate ISIN and latest NAV from in-memory MF cache when fund name matches.
-    if sheet_type == "mutual_funds":
-        _autofill_mf_nav_from_cache(cfg["fields"], values)
 
     try:
-        client.update_row(spreadsheet_id, cfg["sheet_name"], row_number, values)
-        user = _current_user()
-        assert user is not None
-        google_id = user.get("google_id", "")
-        _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
+        result = sheets_update_row(
+            client, spreadsheet_id, sheet_type, row_number,
+            data, google_id, user,
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     except Exception as e:
         return _sheets_error_response(e, "updating", sheet_type)
 
-    result: dict[str, Any] = {"status": "updated"}
-    refreshed = _build_data_for_type(user, sheet_type)
-    if refreshed:
-        result["data"] = refreshed
     return jsonify(result)
 
 
@@ -1623,8 +1307,7 @@ def sheets_delete(sheet_type, row_number):
     """Delete a specific row from a manual-entry sheet tab."""
     from .api.user_sheets import SHEET_CONFIGS
 
-    cfg = SHEET_CONFIGS.get(sheet_type)
-    if not cfg:
+    if sheet_type not in SHEET_CONFIGS:
         return jsonify({"error": "Unknown sheet type"}), 400
 
     if row_number < 2:
@@ -1636,18 +1319,16 @@ def sheets_delete(sheet_type, row_number):
     assert client is not None
     assert spreadsheet_id is not None
 
+    user = _current_user()
+    assert user is not None
+    google_id = user.get("google_id", "")
+
     try:
-        client.delete_row(spreadsheet_id, cfg["sheet_name"], row_number)
-        # Refresh only the changed sheet in cache (not all 6).
-        user = _current_user()
-        assert user is not None
-        google_id = user.get("google_id", "")
-        _refresh_single_sheet_cache(client, spreadsheet_id, google_id, sheet_type)
+        result = sheets_delete_row(
+            client, spreadsheet_id, sheet_type, row_number,
+            google_id, user,
+        )
     except Exception as e:
         return _sheets_error_response(e, "deleting", sheet_type)
 
-    result: dict[str, Any] = {"status": "deleted"}
-    refreshed = _build_data_for_type(user, sheet_type)
-    if refreshed:
-        result["data"] = refreshed
     return jsonify(result)

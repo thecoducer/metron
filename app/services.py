@@ -6,8 +6,9 @@ from typing import Any
 from cachetools import LRUCache
 
 from .api import AuthenticationManager, HoldingsService, SIPService, ZerodhaAPIClient
+from .api.user_sheets import SheetConfig
 from .logging_config import logger
-from .utils import SessionManager, StateManager, format_timestamp, is_market_open_ist
+from .utils import SessionManager, StateManager, _normalize_date_values, format_timestamp, is_market_open_ist
 
 # Core service singletons
 session_manager = SessionManager()
@@ -513,3 +514,213 @@ def _build_data_for_type(user, sheet_type: str) -> dict:
     except Exception:
         logger.exception("Error building data for %s after CRUD", sheet_type)
         return {}
+
+
+# ---------------------------------------------------------------------------
+# Sheets CRUD orchestration  (validation → write → cache refresh)
+# ---------------------------------------------------------------------------
+
+
+def sheets_list_rows(
+    client: Any,
+    spreadsheet_id: str,
+    sheet_type: str,
+) -> list[dict[str, Any]]:
+    """List all rows from a manual-entry sheet tab."""
+    from .api.google_sheets_client import is_blank_row
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS[sheet_type]
+    client.ensure_sheet_tab(
+        spreadsheet_id, cfg["sheet_name"], cfg["headers"]
+    )
+    raw = client.fetch_sheet_data_until_blank(
+        spreadsheet_id, cfg["sheet_name"]
+    )
+
+    if not raw or len(raw) < 2:
+        return []
+
+    fields = cfg["fields"]
+    rows: list[dict[str, Any]] = []
+    for idx, row in enumerate(raw[1:], start=2):
+        if is_blank_row(row):
+            break
+        entry: dict[str, Any] = {"row_number": idx}
+        for fi, fname in enumerate(fields):
+            entry[fname] = row[fi] if fi < len(row) else ""
+        rows.append(entry)
+    return rows
+
+
+def sheets_add_row(
+    client: Any,
+    spreadsheet_id: str,
+    sheet_type: str,
+    data: dict[str, Any],
+    google_id: str,
+    user: dict[str, Any],
+) -> dict[str, Any]:
+    """Add a new row to a manual-entry sheet tab.
+
+    Returns result dict with status, row_number, and refreshed data.
+    Raises ValueError for invalid NSE symbols.
+    """
+    from .api.user_sheets import SHEET_CONFIGS
+    from .fetchers import _fetch_uncached_manual_ltps
+
+    cfg = SHEET_CONFIGS[sheet_type]
+    symbol = (data.get("symbol") or "").upper()
+
+    nse_isin = _validate_and_cache_symbol(sheet_type, symbol)
+
+    values = [data.get(f, "") for f in cfg["fields"]]
+    _normalize_date_values(cfg["fields"], values)
+    _apply_field_defaults(cfg, values, nse_isin, sheet_type)
+
+    client.ensure_sheet_tab(
+        spreadsheet_id, cfg["sheet_name"], cfg["headers"]
+    )
+    row_num = client.append_row(
+        spreadsheet_id, cfg["sheet_name"], values
+    )
+    _refresh_single_sheet_cache(
+        client, spreadsheet_id, google_id, sheet_type
+    )
+
+    if sheet_type in ("stocks", "etfs"):
+        _fetch_uncached_manual_ltps(user, symbol)
+
+    logger.info("sheets_add: type=%s row=%d", sheet_type, row_num)
+    result: dict[str, Any] = {
+        "status": "added",
+        "row_number": row_num,
+    }
+    refreshed = _build_data_for_type(user, sheet_type)
+    if refreshed:
+        result["data"] = refreshed
+    return result
+
+
+def sheets_update_row(
+    client: Any,
+    spreadsheet_id: str,
+    sheet_type: str,
+    row_number: int,
+    data: dict[str, Any],
+    google_id: str,
+    user: dict[str, Any],
+) -> dict[str, Any]:
+    """Update a specific row in a manual-entry sheet tab.
+
+    Returns result dict with status and refreshed data.
+    Raises ValueError for invalid NSE symbols.
+    """
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS[sheet_type]
+    symbol = (data.get("symbol") or "").upper()
+
+    nse_isin = _validate_and_cache_symbol(sheet_type, symbol)
+
+    values = [data.get(f, "") for f in cfg["fields"]]
+    _normalize_date_values(cfg["fields"], values)
+    _apply_field_defaults(cfg, values, nse_isin, sheet_type)
+
+    client.update_row(
+        spreadsheet_id, cfg["sheet_name"], row_number, values
+    )
+    _refresh_single_sheet_cache(
+        client, spreadsheet_id, google_id, sheet_type
+    )
+
+    result: dict[str, Any] = {"status": "updated"}
+    refreshed = _build_data_for_type(user, sheet_type)
+    if refreshed:
+        result["data"] = refreshed
+    return result
+
+
+def sheets_delete_row(
+    client: Any,
+    spreadsheet_id: str,
+    sheet_type: str,
+    row_number: int,
+    google_id: str,
+    user: dict[str, Any],
+) -> dict[str, Any]:
+    """Delete a specific row from a manual-entry sheet tab.
+
+    Returns result dict with status and refreshed data.
+    """
+    from .api.user_sheets import SHEET_CONFIGS
+
+    cfg = SHEET_CONFIGS[sheet_type]
+    client.delete_row(
+        spreadsheet_id, cfg["sheet_name"], row_number
+    )
+    _refresh_single_sheet_cache(
+        client, spreadsheet_id, google_id, sheet_type
+    )
+
+    result: dict[str, Any] = {"status": "deleted"}
+    refreshed = _build_data_for_type(user, sheet_type)
+    if refreshed:
+        result["data"] = refreshed
+    return result
+
+
+def _validate_and_cache_symbol(
+    sheet_type: str, symbol: str
+) -> str:
+    """Validate stock/ETF symbol against NSE and cache its LTP.
+
+    Returns the ISIN if found, empty string otherwise.
+    Raises ValueError if symbol is invalid.
+    """
+    from .cache import manual_ltp_cache
+    from .fetchers import _validate_nse_symbol
+
+    if sheet_type not in ("stocks", "etfs") or not symbol:
+        return ""
+
+    quote = _validate_nse_symbol(symbol)
+    if not quote:
+        raise ValueError(
+            f"Symbol {symbol} doesn't exist on exchange."
+        )
+    manual_ltp_cache.put(symbol, quote)
+    return quote.get("isin", "")
+
+
+def _apply_field_defaults(
+    cfg: SheetConfig,
+    values: list[Any],
+    nse_isin: str,
+    sheet_type: str,
+) -> None:
+    """Apply common field defaults to sheet row values.
+
+    Handles ISIN auto-fill, source defaulting, fund_name auto-copy,
+    and MF NAV auto-population.
+    """
+    fields = cfg["fields"]
+
+    if nse_isin and "isin" in fields:
+        isin_idx = fields.index("isin")
+        if not values[isin_idx]:
+            values[isin_idx] = nse_isin
+
+    if "source" in fields:
+        si = fields.index("source")
+        if not values[si]:
+            values[si] = "manual"
+
+    if "fund_name" in fields and "fund" in fields:
+        ni = fields.index("fund_name")
+        fi = fields.index("fund")
+        if not values[ni] and values[fi]:
+            values[ni] = values[fi]
+
+    if sheet_type == "mutual_funds":
+        _autofill_mf_nav_from_cache(fields, values)

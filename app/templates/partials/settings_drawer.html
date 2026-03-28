@@ -1,0 +1,458 @@
+<!-- Settings Drawer (shared partial) -->
+<div class="drawer-backdrop"
+     id="drawerBackdrop"
+     onclick="closeSettingsDrawer()"></div>
+<aside class="settings-drawer" id="settingsDrawer">
+    <div class="drawer-header">
+        <h2 class="drawer-title">Settings</h2>
+        <button class="drawer-close" onclick="closeSettingsDrawer()" title="Close">
+            <svg width="20"
+                 height="20"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+                <path d="M18 6L6 18" />
+                <path d="M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+    <div class="drawer-body">
+        <!-- Sync Broker Accounts -->
+        <section class="drawer-section">
+            <h3 class="drawer-section-title">Sync Broker Accounts</h3>
+            <div class="drawer-card">
+                <!-- Zerodha sub-box -->
+                <div class="drawer-broker-sub">
+                    <div class="drawer-broker-header">
+                        <span class="drawer-broker-name">Zerodha</span>
+                    </div>
+                    <p class="drawer-card-hint">
+                        Connect your Kite Connect API accounts. Credentials are stored securely and never displayed.
+                    </p>
+                    <!-- Expandable setup guide -->
+                    <div class="setup-guide" id="setupGuide">
+                        <button type="button"
+                                class="setup-guide-toggle"
+                                id="setupGuideToggle"
+                                aria-expanded="false"
+                                aria-controls="setupGuideBody">
+                            <div class="setup-guide-toggle-left">
+                                <svg class="setup-guide-icon"
+                                     width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                                <span class="setup-guide-label">How to get API Key &amp; Secret</span>
+                            </div>
+                            <svg class="setup-guide-chevron"
+                                 width="14"
+                                 height="14"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2.5"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                        <div class="setup-guide-body" id="setupGuideBody">
+                            <div class="setup-guide-inner">
+                                <div class="setup-guide-steps">
+                                    <div class="setup-step">
+                                        <span class="setup-step-num">1</span>
+                                        <div class="setup-step-content">
+                                            <div class="setup-step-title">Sign up on Zerodha Developer Portal</div>
+                                            <p>
+                                                Go to <a href="https://developers.kite.trade/" target="_blank" rel="noopener">developers.kite.trade</a> and <strong>sign up</strong> for a new account.
+                                            </p>
+                                            <p class="setup-step-muted">
+                                                Important: The developer portal login is separate from your Zerodha Kite account. You must create a new account on the developer portal first, even if you already have a Zerodha trading account.
+                                            </p>
+                                            <p class="setup-step-muted">
+                                                When prompted to choose a plan, select the <strong>Free</strong> plan.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="setup-step">
+                                        <span class="setup-step-num">2</span>
+                                        <div class="setup-step-content">
+                                            <div class="setup-step-title">Create a new app</div>
+                                            <p>
+                                                Click <strong>Create new app</strong>. Fill in:
+                                            </p>
+                                            <ul class="setup-step-list">
+                                                <li>
+                                                    <strong>App name:</strong> anything (e.g. "Metron")
+                                                </li>
+                                                <li>
+                                                    <strong>Redirect URL (web app):</strong>
+                                                    <br>
+                                                    <code>https://metron.thecoducer.com/api/callback</code>
+                                                </li>
+                                                <li>
+                                                    <strong>Postback URL:</strong> leave blank
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="setup-step">
+                                        <span class="setup-step-num">3</span>
+                                        <div class="setup-step-content">
+                                            <div class="setup-step-title">Copy your credentials</div>
+                                            <p>
+                                                After creation, copy the <strong>API Key</strong> and <strong>API Secret</strong> from the app details page.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="setup-step">
+                                        <span class="setup-step-num">4</span>
+                                        <div class="setup-step-content">
+                                            <div class="setup-step-title">Paste them here</div>
+                                            <p>
+                                                Click <strong>Add Account</strong> below, enter a label, paste your key &amp; secret, and hit <strong>Save</strong>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="setup-step">
+                                        <span class="setup-step-num">5</span>
+                                        <div class="setup-step-content">
+                                            <div class="setup-step-title">Authorize &amp; sync</div>
+                                            <p>
+                                                Click <strong>Login</strong> next to the account — authorize on Zerodha's page and your portfolio loads automatically.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- /setup-guide-inner -->
+                        </div>
+                    </div>
+                    <div id="drawerAccountsList" class="drawer-accounts-list">
+                        <div class="drawer-accounts-loading">Loading…</div>
+                    </div>
+                    <button type="button"
+                            class="drawer-btn-add"
+                            id="drawerAddAccountBtn"
+                            title="Add Zerodha account">
+                        <svg width="16"
+                             height="16"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.5"
+                             stroke-linecap="round">
+                            <path d="M12 5v14" />
+                            <path d="M5 12h14" />
+                        </svg>
+                        <span>Add Account</span>
+                    </button>
+                    <div id="drawerAddAccountForm" class="drawer-add-form hidden">
+                        <div class="drawer-field">
+                            <label class="drawer-field-label" for="drawer_account_name">Account Name</label>
+                            <input class="drawer-field-input"
+                                   type="text"
+                                   id="drawer_account_name"
+                                   placeholder="e.g. Personal, Family"
+                                   spellcheck="false"
+                                   autocomplete="off">
+                        </div>
+                        <div class="drawer-field">
+                            <label class="drawer-field-label" for="drawer_api_key">API Key</label>
+                            <input class="drawer-field-input"
+                                   type="text"
+                                   id="drawer_api_key"
+                                   placeholder="e.g. x1y2z3a4b5c6d7e8"
+                                   spellcheck="false"
+                                   autocomplete="off">
+                        </div>
+                        <div class="drawer-field">
+                            <label class="drawer-field-label" for="drawer_api_secret">API Secret</label>
+                            <input class="drawer-field-input"
+                                   type="password"
+                                   id="drawer_api_secret"
+                                   placeholder="e.g. a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+                                   spellcheck="false"
+                                   autocomplete="off">
+                        </div>
+                        <div class="drawer-form-actions">
+                            <button type="button" class="drawer-btn-save" id="drawerSaveAccountBtn">Save</button>
+                            <button type="button" class="drawer-btn-cancel" id="drawerCancelAccountBtn">Cancel</button>
+                            <span class="drawer-save-status" id="drawerSaveStatus"></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- /drawer-broker-sub -->
+            </div>
+        </section>
+        <!-- Import from CAS PDF -->
+        <section class="drawer-section">
+            <h3 class="drawer-section-title">Import from CAS PDF</h3>
+            <div class="drawer-card">
+                <p class="drawer-card-hint">
+                    Upload your CAMS/KFintech Consolidated Account Statement (CAS) PDF to auto-import mutual fund holdings and transaction history.
+                </p>
+                <!-- Download instructions -->
+                <div class="setup-guide" id="casGuide">
+                    <button type="button"
+                            class="setup-guide-toggle"
+                            id="casGuideToggle"
+                            aria-expanded="false"
+                            aria-controls="casGuideBody">
+                        <div class="setup-guide-toggle-left">
+                            <svg class="setup-guide-icon"
+                                 width="16"
+                                 height="16"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            <span class="setup-guide-label">How to download your CAS PDF</span>
+                        </div>
+                        <svg class="setup-guide-chevron"
+                             width="14"
+                             height="14"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </button>
+                    <div class="setup-guide-body" id="casGuideBody">
+                        <div class="setup-guide-inner">
+                            <div class="setup-guide-steps">
+                                <div class="setup-step">
+                                    <span class="setup-step-num">1</span>
+                                    <div class="setup-step-content">
+                                        <div class="setup-step-title">Go to CAMS website</div>
+                                        <p>
+                                            Visit <a href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement"
+    target="_blank"
+    rel="noopener">camsonline.com CAS page</a>.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="setup-step">
+                                    <span class="setup-step-num">2</span>
+                                    <div class="setup-step-content">
+                                        <div class="setup-step-title">Select statement type</div>
+                                        <p>
+                                            Choose <strong>Detailed</strong> statement type. Select <strong>Specific Period</strong> and pick a wide date range (e.g. Jan 2020 to today) to get full transaction history. In Folio Listing Type, choose <strong>With Zero Balance Folios</strong> to include redeemed funds.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="setup-step">
+                                    <span class="setup-step-num">3</span>
+                                    <div class="setup-step-content">
+                                        <div class="setup-step-title">Enter your details</div>
+                                        <p>
+                                            Enter your registered <strong>email</strong> and select <strong>CAMS + KFintech</strong> as the RTA. Submit the form.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="setup-step">
+                                    <span class="setup-step-num">4</span>
+                                    <div class="setup-step-content">
+                                        <div class="setup-step-title">Download the PDF</div>
+                                        <p>
+                                            CAMS takes a few minutes to generate and send the PDF to your email. Open it with the <strong>password you set</strong> on the CAMS website when generating the statement.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Upload form -->
+                <div class="cas-upload-form" id="casUploadForm">
+                    <div class="drawer-field">
+                        <label class="drawer-field-label" for="cas_account">Account Name</label>
+                        <select class="drawer-field-input" id="cas_account">
+                            <option value="">-- Select account --</option>
+                        </select>
+                        <button type="button" class="cas-add-new-btn" id="casAddNewAccount">+ New account</button>
+                        <input class="drawer-field-input cas-new-account"
+                               type="text"
+                               id="cas_new_account"
+                               placeholder="New account name (e.g. Personal, Family)"
+                               spellcheck="false"
+                               autocomplete="off"
+                               style="display:none">
+                    </div>
+                    <div class="drawer-field">
+                        <label class="drawer-field-label" for="cas_file">CAS PDF File</label>
+                        <div class="cas-file-input-wrapper">
+                            <input type="file" id="cas_file" accept=".pdf" class="cas-file-input">
+                            <div class="cas-file-label" id="casFileLabel">
+                                <svg width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     flex-shrink="0">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="17 8 12 3 7 8" />
+                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                </svg>
+                                <span>Choose PDF file</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drawer-field">
+                        <label class="drawer-field-label" for="cas_password">PDF Password</label>
+                        <div class="cas-pw-wrapper">
+                            <input class="drawer-field-input"
+                                   type="password"
+                                   id="cas_password"
+                                   placeholder="Password you set on CAMS website"
+                                   spellcheck="false"
+                                   autocomplete="off">
+                            <button type="button"
+                                    class="cas-pw-toggle"
+                                    id="casPwToggle"
+                                    title="Show / hide password"
+                                    tabindex="-1">
+                                <svg id="casPwEye"
+                                     width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                <svg id="casPwEyeOff"
+                                     width="16"
+                                     height="16"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     style="display:none">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                    <line x1="1" y1="1" x2="23" y2="23" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Progress bar (hidden until upload starts) -->
+                    <div class="cas-progress" id="casProgress" style="display:none">
+                        <div class="cas-progress-track">
+                            <div class="cas-progress-bar" id="casProgressBar"></div>
+                        </div>
+                        <span class="cas-progress-text" id="casProgressText">Uploading...</span>
+                    </div>
+                    <div class="drawer-form-actions">
+                        <button type="button" class="drawer-btn-save" id="casUploadBtn">Upload</button>
+                        <span class="drawer-save-status" id="casUploadStatus"></span>
+                    </div>
+                    <div class="cas-privacy-note">
+                        <svg width="14"
+                             height="14"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <span>Your PDF is processed in memory and never stored on our servers. The password is used only to unlock the PDF — it is not your account password. This is the password you set while generating the statement on the CAMS website.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</aside>
+<!-- CAS Verification Modal -->
+<div class="cas-modal-backdrop hidden" id="casModalBackdrop"></div>
+<!-- CAS Close Confirm Dialog -->
+<div class="cas-confirm-backdrop hidden" id="casConfirmBackdrop">
+    <div class="cas-confirm-dialog">
+        <div class="cas-confirm-icon">
+            <svg width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+        </div>
+        <h3 class="cas-confirm-title">Discard changes?</h3>
+        <p class="cas-confirm-msg">Any unconfirmed changes will be lost.</p>
+        <div class="cas-confirm-actions">
+            <button type="button" class="cas-btn-secondary" id="casConfirmStay">Go Back</button>
+            <button type="button" class="cas-confirm-discard" id="casConfirmDiscard">Discard</button>
+        </div>
+    </div>
+</div>
+<div class="cas-modal hidden" id="casModal">
+    <div class="cas-modal-header">
+        <h2 class="cas-modal-title">Funds Imported from CAS</h2>
+        <button class="cas-modal-close" id="casModalClose" title="Close">
+            <svg width="20"
+                 height="20"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+                <path d="M18 6L6 18" />
+                <path d="M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+    <div class="cas-modal-body" id="casModalBody">
+        <p class="cas-modal-hint">
+            Verify the fund names, quantities and average prices below. Type in the name field to search and match from available mutual funds.
+        </p>
+        <div class="cas-modal-info" id="casModalInfo"></div>
+        <div class="cas-schemes-list" id="casSchemesListContainer"></div>
+    </div>
+    <div class="cas-modal-footer">
+        <div class="cas-modal-summary" id="casModalSummary"></div>
+        <div class="cas-modal-actions">
+            <button type="button" class="cas-btn-secondary" id="casModalCancel">Cancel</button>
+            <button type="button" class="cas-btn-primary" id="casModalConfirm">
+                <span class="cas-btn-text">Confirm &amp; Import</span>
+                <span class="cas-btn-spinner hidden"></span>
+            </button>
+        </div>
+    </div>
+</div>

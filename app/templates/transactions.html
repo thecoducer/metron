@@ -9,6 +9,7 @@
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
               rel="stylesheet">
         <link rel="stylesheet" href="/static/css/styles.css">
+        <link rel="stylesheet" href="/static/css/nav-header.css">
         <link rel="stylesheet" href="/static/css/transactions.css">
         <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
         <link rel="icon" href="/static/images/favicon.ico" sizes="48x48">
@@ -29,113 +30,23 @@
         </script>
         <div class="container"
              {% if not pin_verified %}style="visibility:hidden"{% endif %}>
-            <header>
-                <nav class="nav-hamburger">
-                    <button class="hamburger-btn"
-                            id="hamburgerBtn"
-                            aria-label="Navigation menu"
-                            aria-expanded="false">
-                        <svg class="hamburger-icon"
-                             width="20"
-                             height="20"
-                             viewBox="0 0 24 24"
-                             fill="none"
-                             stroke="currentColor"
-                             stroke-width="2"
-                             stroke-linecap="round"
-                             stroke-linejoin="round">
-                            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-                        </svg>
-                    </button>
-                </nav>
-                <div class="header-brand">
-                    <a href="/" class="brand-mark" aria-label="Metron home">
-                        <span class="brand-logo"></span>
-                        <span class="brand-name">Metron</span>
-                    </a>
-                </div>
-                <div class="controls">
-                    {% if user %}
-                        <div class="user-profile" id="userProfile">
-                            <button class="user-avatar-btn"
-                                    id="userAvatarBtn"
-                                    title="{{ user.name or user.email }}">
-                                {% if user.picture %}
-                                    <img src="{{ user.picture }}"
-                                         alt=""
-                                         class="user-avatar-img"
-                                         referrerpolicy="no-referrer"
-                                         width="40"
-                                         height="40">
-                                {% else %}
-                                    <span class="user-avatar-initial">{{ (user.name or user.email)[0]|upper }}</span>
-                                {% endif %}
-                            </button>
-                            <div class="user-dropdown" id="userDropdown">
-                                <div class="user-dropdown-header">
-                                    <div class="user-dropdown-avatar">
-                                        {% if user.picture %}
-                                            <img src="{{ user.picture }}"
-                                                 alt=""
-                                                 referrerpolicy="no-referrer"
-                                                 width="40"
-                                                 height="40">
-                                        {% else %}
-                                            <span>{{ (user.name or user.email)[0]|upper }}</span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="user-dropdown-info">
-                                        <strong>{{ user.name or 'User' }}</strong>
-                                        <span>{{ user.email }}</span>
-                                    </div>
-                                </div>
-                                <div class="user-dropdown-section">
-                                    <div class="user-dropdown-section-label">Preferences</div>
-                                    <button class="user-dropdown-toggle-btn"
-                                            id="theme_toggle_btn"
-                                            onclick="toggleTheme()"
-                                            title="Toggle theme">
-                                        <span class="dropdown-icon theme-icon-css" id="theme_toggle_icon">
-                                            <span class="theme-icon-sun"></span>
-                                            <span class="theme-icon-moon"></span>
-                                        </span>
-                                        <span>Theme</span>
-                                        <span class="toggle-switch" id="theme_toggle_label"><span class="toggle-knob"></span></span>
-                                    </button>
-                                </div>
-                                <div class="user-dropdown-section user-dropdown-section--logout">
-                                    <button class="user-dropdown-item user-dropdown-logout"
-                                            onclick="handleLogout()">
-                                        <svg class="dropdown-icon"
-                                             width="17"
-                                             height="17"
-                                             viewBox="0 0 24 24"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             stroke-width="1.8"
-                                             stroke-linecap="round"
-                                             stroke-linejoin="round">
-                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                                            <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-                                        </svg>
-                                        <span>Sign Out</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            </header>
+            {% set nav_show_settings = true %}
+            {% include 'partials/nav_header.html' %}
             <!-- Main content -->
             <div class="txn-container" id="txnContent">
                 <div class="txn-header-row">
                     <div>
                         <h1 class="txn-page-title">Mutual Fund Transactions</h1>
-                        <p class="txn-page-subtitle">Complete buy &amp; sell history from your CAS statement.</p>
+                        <p class="txn-page-subtitle">
+                            Complete buy &amp; sell history from your CAS statement.
+                            <button class="section-info-btn"
+                                    id="txnInfoBtn"
+                                    title="About this data"
+                                    aria-label="About transaction data"></button>
+                        </p>
                         <p class="txn-page-period hidden" id="txnPeriod"></p>
                     </div>
-                    <a href="/" class="txn-portfolio-btn">
-                        Return to Portfolio
+                    <a href="/" class="nav-cta">
                         <svg width="14"
                              height="14"
                              viewBox="0 0 24 24"
@@ -144,9 +55,10 @@
                              stroke-width="2"
                              stroke-linecap="round"
                              stroke-linejoin="round">
-                            <path d="M5 12h14" />
-                            <path d="M12 5l7 7-7 7" />
+                            <path d="M19 12H5" />
+                            <path d="M12 19l-7-7 7-7" />
                         </svg>
+                        Portfolio
                     </a>
                 </div>
                 <!-- Loading state -->
@@ -170,8 +82,8 @@
                         <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
                     <h3>No transaction history yet</h3>
-                    <p>Upload a CAS PDF from Settings to import your mutual fund transaction history.</p>
-                    <a href="/" class="txn-empty-cta">Go to Portfolio</a>
+                    <p>Upload a CAMS CAS PDF to import your mutual fund transaction history.</p>
+                    <button class="txn-empty-cta" onclick="openSettingsDrawer()">Open Settings</button>
                 </div>
                 <!-- Data content -->
                 <div class="txn-data hidden" id="txnData">
@@ -189,13 +101,58 @@
                             <p class="txn-chart-desc">Monthly transaction volume</p>
                             <div class="txn-chart" id="txnBuySellChart"></div>
                         </div>
+                        <div class="txn-chart-card">
+                            <h3 class="txn-chart-title">Fund Allocation</h3>
+                            <p class="txn-chart-desc">Current invested amount by fund</p>
+                            <div class="txn-chart txn-chart-donut" id="txnAllocationChart"></div>
+                        </div>
+                        <div class="txn-chart-card">
+                            <h3 class="txn-chart-title">Avg Purchase NAV vs Latest NAV</h3>
+                            <p class="txn-chart-desc">Cost basis vs current NAV per fund</p>
+                            <div class="txn-chart" id="txnNavCompareChart"></div>
+                        </div>
+                        <div class="txn-chart-card">
+                            <h3 class="txn-chart-title">NAV Trend</h3>
+                            <p class="txn-chart-desc">NAV at each transaction for selected fund</p>
+                            <select class="txn-nav-fund-select" id="txnNavFundSelect">
+                                <option value="">Select a fund</option>
+                            </select>
+                            <div class="txn-chart" id="txnNavTrendChart"></div>
+                        </div>
+                        <div class="txn-chart-card">
+                            <h3 class="txn-chart-title">Units Accumulated</h3>
+                            <p class="txn-chart-desc">Running unit balance for selected fund</p>
+                            <select class="txn-nav-fund-select" id="txnUnitsFundSelect">
+                                <option value="">Select a fund</option>
+                            </select>
+                            <div class="txn-chart" id="txnUnitsChart"></div>
+                        </div>
                     </div>
-                    <!-- Fund filter -->
-                    <div class="txn-filter-row">
-                        <label class="txn-filter-label" for="txnFundFilter">Filter by Fund</label>
-                        <select class="txn-filter-select" id="txnFundFilter">
-                            <option value="">All Funds</option>
-                        </select>
+                    <!-- Fund filter + Account filter + rows per page -->
+                    <div class="txn-table-controls">
+                        <div class="txn-filters-left">
+                            <div class="pagination-controls">
+                                <label for="txnFundFilter">Fund:</label>
+                                <select id="txnFundFilter">
+                                    <option value="">All Funds</option>
+                                </select>
+                            </div>
+                            <div class="pagination-controls">
+                                <label for="txnAccountFilter">Account:</label>
+                                <select id="txnAccountFilter">
+                                    <option value="">All Accounts</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="pagination-controls">
+                            <label for="txn_page_size">Show:</label>
+                            <select id="txn_page_size" onchange="window.changeTxnPageSize(this.value)">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">All</option>
+                            </select>
+                        </div>
                     </div>
                     <!-- Transaction table -->
                     <div class="txn-table-wrapper">
@@ -231,6 +188,14 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                    <div class="pagination-info" id="txn_pagination_info"></div>
+                    <div class="pagination-buttons" id="txn_pagination_buttons"></div>
+                    <!-- SIP Consistency Heatmap -->
+                    <div class="txn-heatmap-section" id="txnHeatmapSection">
+                        <h3 class="txn-heatmap-title">SIP Consistency</h3>
+                        <p class="txn-heatmap-desc">Investment activity heatmap</p>
+                        <div class="txn-heatmap-container" id="txnHeatmapChart"></div>
                     </div>
                 </div>
             </div>
@@ -276,10 +241,13 @@
                         <p class="pin-subtitle" id="pinSubtitle" style="display:none"></p>
                     {% else %}
                         <h2 class="pin-title" id="pinTitle">Create PIN</h2>
-                        <p class="pin-subtitle" id="pinSubtitle">Choose a 6-character alphanumeric PIN to secure your data.</p>
+                        <p class="pin-subtitle" id="pinSubtitle">
+                            Choose a 6-character alphanumeric PIN to secure your data. This PIN is never stored — remember it carefully.
+                        </p>
                     {% endif %}
                 </div>
                 <div class="pin-body">
+                    <!-- PIN field group -->
                     <div class="pin-field-group" id="pinFieldGroup1">
                         <div class="pin-field-header"
                              id="pinFieldHeader1"
@@ -332,6 +300,7 @@
                                    autocomplete="off">
                         </div>
                     </div>
+                    <!-- Confirm PIN field group (setup mode) -->
                     <div class="pin-field-group"
                          id="pinConfirmGroup"
                          style="{% if has_pin %}display:none{% endif %}">
@@ -384,22 +353,68 @@
                                    autocomplete="off">
                         </div>
                     </div>
-                    <p class="pin-error" id="pinError"></p>
-                    <button class="pin-submit-btn" id="pinSubmitBtn" disabled>
-                        {% if has_pin %}
-                            Unlock
-                        {% else %}
-                            Create PIN
-                        {% endif %}
-                    </button>
-                    <p class="pin-forgot"
-                       id="pinForgot"
-                       {% if not has_pin %}style="display:none"{% endif %}>
-                        <button type="button" class="pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
+                    <p class="pin-info"
+                       id="pinInfo"
+                       style="{% if has_pin %}display:none{% endif %}">
+                        Letters and numbers allowed &nbsp;·&nbsp; a–z, A–Z, 0–9
                     </p>
+                    <div class="pin-error" id="pinError"></div>
+                    <div class="pin-footer-links"
+                         id="pinFooterLinks"
+                         style="{% if not has_pin %}display:none{% endif %}">
+                        <button class="pin-text-btn pin-forgot-btn" id="pinForgotBtn">Forgot PIN?</button>
+                        <span class="pin-footer-sep">·</span>
+                        <button class="pin-text-btn pin-logout-btn" id="pinLogoutBtn">Logout</button>
+                    </div>
                 </div>
             </div>
         </div>
+        <!-- PIN Reset Confirmation Dialog -->
+        <div class="pin-reset-dialog" id="pinResetDialog" style="display:none">
+            <div class="pin-reset-content">
+                <div class="pin-brand">metron</div>
+                <div class="pin-reset-header">
+                    <div class="pin-reset-icon">
+                        <svg width="32"
+                             height="32"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.5"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                    </div>
+                    <h3 class="pin-reset-title">Reset PIN?</h3>
+                    <p class="pin-reset-desc">
+                        This will permanently delete all stored credentials and sessions. You'll need to re-add your accounts and set a new PIN.
+                    </p>
+                </div>
+                <div class="pin-reset-body">
+                    <div class="pin-reset-field-group">
+                        <p class="pin-reset-prompt">
+                            Type <strong>reset</strong> below to confirm
+                        </p>
+                        <input type="text"
+                               class="pin-reset-input"
+                               id="pinResetInput"
+                               placeholder="reset"
+                               autocomplete="off"
+                               spellcheck="false">
+                    </div>
+                    <div class="pin-reset-actions">
+                        <button class="pin-reset-cancel" id="pinResetCancel">Cancel</button>
+                        <button class="pin-reset-confirm" id="pinResetConfirm" disabled>Reset Everything</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if user %}
+            {% include 'partials/settings_drawer.html' %}
+        {% endif %}
+        {% include 'partials/nav_drawer.html' %}
         <script src="/static/js/nav.js"></script>
         <script>
 // App fetch wrapper — adds auth header and handles 403 pin_required.
@@ -422,6 +437,7 @@ window.metronFetch = async function(url, options) {
 };
         </script>
         <script src="/static/js/portfolio-ui.js"></script>
+        <script src="/static/js/cas-import.js"></script>
         <script>
 // Standalone toggle implementations for this page
 function toggleTheme() {
@@ -436,7 +452,54 @@ function toggleTheme() {
   if (themeLabel) themeLabel.classList.toggle('toggle-on', isDark);
 })();
         </script>
-        <script src="/static/js/transactions.js"></script>
+        <script type="module" src="/static/js/utils.js"></script>
+        <script type="module" src="/static/js/transactions.js"></script>
+        <script>
+// Info popup for transaction data source
+(function() {
+  var btn = document.getElementById('txnInfoBtn');
+  if (!btn) return;
+  var overlay = null;
+
+  function close() {
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    btn.classList.remove('active');
+    setTimeout(function() { if (overlay) { overlay.remove(); overlay = null; } }, 200);
+  }
+
+  btn.addEventListener('click', function() {
+    if (overlay) { close(); return; }
+    overlay = document.createElement('div');
+    overlay.className = 'section-info-overlay';
+    overlay.innerHTML =
+      '<div class="section-info-popup">' +
+        '<div class="section-info-popup-header">' +
+          '<span class="section-info-popup-title">About this data</span>' +
+          '<button class="section-info-popup-close" id="txnInfoClose">&times;</button>' +
+        '</div>' +
+        '<div class="section-info-popup-body">' +
+          '<ul class="section-info-popup-list">' +
+            '<li>This page only shows transactions from your <strong>CAMS CAS statement</strong> (PDF import).</li>' +
+            '<li>Mutual funds added via <strong>broker sync</strong> or <strong>manually</strong> in the portfolio are not included here.</li>' +
+            '<li><strong>Total Purchases</strong> is the sum of all purchase transactions, including funds later redeemed.</li>' +
+            '<li><strong>Total Current Invested</strong> is the remaining invested amount after subtracting the cost of redeemed units (average cost method).</li>' +
+            '<li><strong>Total Redeemed</strong> is the sale proceeds at redemption-time NAV, not the original purchase cost.</li>' +
+            '<li>Charts and cards reflect only the data present in the imported CAS statement.</li>' +
+          '</ul>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    btn.classList.add('active');
+    requestAnimationFrame(function() { overlay.classList.add('open'); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+    overlay.querySelector('#txnInfoClose').addEventListener('click', close);
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
+    });
+  });
+})();
+        </script>
         <script>
 document.addEventListener('DOMContentLoaded', async function() {
   {% if not pin_verified %}

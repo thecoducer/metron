@@ -52,6 +52,21 @@ FD_HEADERS = [
     "Account",
 ]
 
+# ── Transaction history sheet (CAS-sourced) ─────────────────
+
+TRANSACTIONS_SHEET_NAME = "Transactions"
+TRANSACTIONS_HEADERS = [
+    "ISIN",
+    "Fund Name",
+    "Date",
+    "Type",
+    "Amount",
+    "Units",
+    "NAV",
+    "Balance",
+    "Account",
+]
+
 # ── Manual-entry sheet templates ─────────────────────────────
 
 STOCKS_SHEET_NAME = "Stocks"
@@ -161,6 +176,21 @@ SHEET_CONFIGS: dict[str, SheetConfig] = {
             "account",
         ],
     },
+    "transactions": {
+        "sheet_name": TRANSACTIONS_SHEET_NAME,
+        "headers": TRANSACTIONS_HEADERS,
+        "fields": [
+            "isin",
+            "fund_name",
+            "date",
+            "type",
+            "amount",
+            "units",
+            "nav",
+            "balance",
+            "account",
+        ],
+    },
 }
 
 # All sheet tabs to create for a new user
@@ -171,6 +201,7 @@ ALL_SHEETS = [
     (ETFS_SHEET_NAME, ETFS_HEADERS, 3),
     (MF_SHEET_NAME, MF_HEADERS, 4),
     (SIPS_SHEET_NAME, SIPS_HEADERS, 5),
+    (TRANSACTIONS_SHEET_NAME, TRANSACTIONS_HEADERS, 6),
 ]
 
 
@@ -219,54 +250,5 @@ def create_portfolio_sheet(credentials: Credentials, title: str = "Metron") -> s
         },
     ).execute()
 
-    # Apply formatting: bold headers + auto-resize
-    _format_headers(sheets_service, spreadsheet_id)
-
     logger.info("Populated headers for all %d sheets", len(ALL_SHEETS))
     return spreadsheet_id
-
-
-def _format_headers(sheets_service, spreadsheet_id: str) -> None:
-    """Apply bold + background colour to the header row in each sheet."""
-    meta = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id, fields="sheets.properties").execute()
-
-    # Build a lookup from sheet name → header count
-    header_counts = {name: len(headers) for name, headers, _idx in ALL_SHEETS}
-
-    requests = []
-    for sheet_props in meta.get("sheets", []):
-        title = sheet_props["properties"]["title"]
-        sheet_id = sheet_props["properties"]["sheetId"]
-        col_count = header_counts.get(title)
-        if col_count is None:
-            continue
-        requests.append(
-            {
-                "repeatCell": {
-                    "range": {
-                        "sheetId": sheet_id,
-                        "startRowIndex": 0,
-                        "endRowIndex": 1,
-                        "startColumnIndex": 0,
-                        "endColumnIndex": col_count,
-                    },
-                    "cell": {
-                        "userEnteredFormat": {
-                            "textFormat": {"bold": True},
-                            "backgroundColor": {
-                                "red": 0.9,
-                                "green": 0.93,
-                                "blue": 0.98,
-                            },
-                        }
-                    },
-                    "fields": "userEnteredFormat(textFormat,backgroundColor)",
-                }
-            }
-        )
-
-    if requests:
-        sheets_service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body={"requests": requests},
-        ).execute()

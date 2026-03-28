@@ -634,7 +634,7 @@ class TestMiscRoutes(unittest.TestCase):
         app_ui.testing = True
 
     def test_healthz(self):
-        resp = self.client.get("/healthz")
+        resp = self.client.get("/api/health")
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.data)
         self.assertEqual(data["status"], "ok")
@@ -773,11 +773,11 @@ class TestSheetsCRUD(unittest.TestCase):
         resp = self.client.get("/api/sheets/stocks", headers=_APP_HEADERS)
         self.assertEqual(resp.status_code, 400)
 
-    @patch("app.routes._fetch_uncached_manual_ltps")
-    @patch("app.routes._refresh_single_sheet_cache")
-    @patch("app.routes._build_data_for_type", return_value={})
-    @patch("app.routes._validate_nse_symbol", return_value={"ltp": 100})
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.fetchers._fetch_uncached_manual_ltps")
+    @patch("app.services._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
+    @patch("app.fetchers._validate_nse_symbol", return_value={"ltp": 100})
+    @patch("app.cache.manual_ltp_cache")
     @patch("app.routes._get_sheets_client")
     def test_sheets_add_stocks(self, mock_get_client, mock_ltp, mock_validate, mock_build, mock_refresh, mock_uncached):
         mock_client = Mock()
@@ -794,7 +794,7 @@ class TestSheetsCRUD(unittest.TestCase):
         data = json.loads(resp.data)
         self.assertEqual(data["status"], "added")
 
-    @patch("app.routes._validate_nse_symbol", return_value=None)
+    @patch("app.fetchers._validate_nse_symbol", return_value=None)
     @patch("app.routes._get_sheets_client")
     def test_sheets_add_invalid_symbol(self, mock_get_client, mock_validate):
         mock_get_client.return_value = (Mock(), "sid", None)
@@ -806,8 +806,8 @@ class TestSheetsCRUD(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
-    @patch("app.routes._refresh_single_sheet_cache")
-    @patch("app.routes._build_data_for_type", return_value={})
+    @patch("app.services._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
     @patch("app.routes._get_sheets_client")
     def test_sheets_update(self, mock_get_client, mock_build, mock_refresh):
         mock_client = Mock()
@@ -831,8 +831,8 @@ class TestSheetsCRUD(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
-    @patch("app.routes._refresh_single_sheet_cache")
-    @patch("app.routes._build_data_for_type", return_value={})
+    @patch("app.services._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
     @patch("app.routes._get_sheets_client")
     def test_sheets_delete(self, mock_get_client, mock_build, mock_refresh):
         mock_client = Mock()
@@ -873,9 +873,9 @@ class TestSheetsCRUD(unittest.TestCase):
         self.assertEqual(resp.status_code, 401)
         self.assertIn("sign in", json.loads(resp.data)["error"].lower())
 
-    @patch("app.routes._fetch_uncached_manual_ltps")
-    @patch("app.routes._refresh_single_sheet_cache")
-    @patch("app.routes._build_data_for_type", return_value={})
+    @patch("app.fetchers._fetch_uncached_manual_ltps")
+    @patch("app.services._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
     @patch("app.routes._get_sheets_client")
     def test_sheets_add_refresh_error_returns_401(self, mock_get_client, mock_build, mock_refresh, mock_uncached):
         mock_client = Mock()
@@ -890,8 +890,8 @@ class TestSheetsCRUD(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 401)
 
-    @patch("app.routes._build_data_for_type", return_value={})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_sheets_delete_refresh_error_returns_401(self, mock_get_client, mock_refresh, mock_build):
         mock_client = Mock()
@@ -1266,7 +1266,7 @@ class TestRouteHelpers(unittest.TestCase):
     def test_sync_spreadsheet_id_no_user(self):
         """before_request handler should not error when no user in session."""
         client = app_ui.test_client()
-        resp = client.get("/healthz")
+        resp = client.get("/health")
         self.assertEqual(resp.status_code, 200)
 
     @patch("app.firebase_store.get_user", return_value={"spreadsheet_id": "new_sid"})
@@ -1288,7 +1288,7 @@ class TestRouteHelpers(unittest.TestCase):
 
         session_manager.set_pin("g1", "test01")
         # Any request triggers before_request
-        resp = client.get("/healthz")
+        resp = client.get("/health")
         self.assertEqual(resp.status_code, 200)
 
     @patch("app.fetchers.manual_ltp_cache")
@@ -1928,8 +1928,8 @@ class TestSheetsAddRoute(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes._build_data_for_type", return_value={})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_add_success(self, mock_gsc, mock_refresh, mock_build):
         mock_client = Mock()
@@ -1945,7 +1945,7 @@ class TestSheetsAddRoute(unittest.TestCase):
         data = json.loads(resp.data)
         self.assertEqual(data["status"], "added")
 
-    @patch("app.routes._validate_nse_symbol", return_value=None)
+    @patch("app.fetchers._validate_nse_symbol", return_value=None)
     @patch("app.routes._get_sheets_client")
     def test_add_invalid_nse_symbol(self, mock_gsc, mock_validate):
         mock_gsc.return_value = (Mock(), "sid", None)
@@ -1957,10 +1957,10 @@ class TestSheetsAddRoute(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
-    @patch("app.routes._validate_nse_symbol", return_value={"ltp": 1500})
-    @patch("app.routes._fetch_uncached_manual_ltps")
-    @patch("app.routes._build_data_for_type", return_value={"stocks": []})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.fetchers._validate_nse_symbol", return_value={"ltp": 1500})
+    @patch("app.fetchers._fetch_uncached_manual_ltps")
+    @patch("app.services._build_data_for_type", return_value={"stocks": []})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_add_stock_with_ltp(self, mock_gsc, mock_refresh, mock_build, mock_fetch_ltps, mock_validate):
         mock_client = Mock()
@@ -2013,8 +2013,8 @@ class TestSheetsAddRoute(unittest.TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn("Google credentials", json.loads(resp.data)["error"])
 
-    @patch("app.routes._build_data_for_type", return_value={})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_update_success(self, mock_gsc, mock_refresh, mock_build):
         mock_client = Mock()
@@ -2040,9 +2040,9 @@ class TestSheetsAddRoute(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
-    @patch("app.routes._validate_nse_symbol", return_value={"ltp": 1500})
-    @patch("app.routes._build_data_for_type", return_value={"stocks": []})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.fetchers._validate_nse_symbol", return_value={"ltp": 1500})
+    @patch("app.services._build_data_for_type", return_value={"stocks": []})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_update_stock_with_validation(self, mock_gsc, mock_refresh, mock_build, mock_validate):
         mock_client = Mock()
@@ -2098,8 +2098,8 @@ class TestSheetsDeleteRoute(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes._build_data_for_type", return_value={})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_delete_success(self, mock_gsc, mock_refresh, mock_build):
         mock_client = Mock()
@@ -2634,11 +2634,11 @@ class TestSheetsAddSuccessPaths(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes._build_data_for_type", return_value={"stocks": [{"s": 1}]})
-    @patch("app.routes._fetch_uncached_manual_ltps")
-    @patch("app.routes._refresh_single_sheet_cache")
-    @patch("app.routes._validate_nse_symbol", return_value={"ltp": 100})
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.services._build_data_for_type", return_value={"stocks": [{"s": 1}]})
+    @patch("app.fetchers._fetch_uncached_manual_ltps")
+    @patch("app.services._refresh_single_sheet_cache")
+    @patch("app.fetchers._validate_nse_symbol", return_value={"ltp": 100})
+    @patch("app.cache.manual_ltp_cache")
     @patch("app.routes._get_sheets_client")
     def test_add_stock_with_data_refresh(
         self, mock_get_client, mock_ltp, mock_validate, mock_refresh, mock_uncached, mock_build
@@ -2657,8 +2657,8 @@ class TestSheetsAddSuccessPaths(unittest.TestCase):
         self.assertIn("data", data)
         mock_uncached.assert_called_once()
 
-    @patch("app.routes._build_data_for_type", return_value={})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_add_mutual_fund_no_validation(self, mock_get_client, mock_refresh, mock_build):
         """Add mutual_fund type — no NSE validation, no _fetch_uncached_manual_ltps."""
@@ -2694,10 +2694,10 @@ class TestSheetsUpdateSuccessPaths(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes._build_data_for_type", return_value={"stocks": [{"s": 1}]})
-    @patch("app.routes._refresh_single_sheet_cache")
-    @patch("app.routes._validate_nse_symbol", return_value={"ltp": 200})
-    @patch("app.routes.manual_ltp_cache")
+    @patch("app.services._build_data_for_type", return_value={"stocks": [{"s": 1}]})
+    @patch("app.services._refresh_single_sheet_cache")
+    @patch("app.fetchers._validate_nse_symbol", return_value={"ltp": 200})
+    @patch("app.cache.manual_ltp_cache")
     @patch("app.routes._get_sheets_client")
     def test_update_stock_with_validation(self, mock_get_client, mock_ltp, mock_validate, mock_refresh, mock_build):
         mock_client = Mock()
@@ -2713,7 +2713,7 @@ class TestSheetsUpdateSuccessPaths(unittest.TestCase):
         self.assertIn("data", data)
         mock_validate.assert_called_once()
 
-    @patch("app.routes._validate_nse_symbol", return_value=None)
+    @patch("app.fetchers._validate_nse_symbol", return_value=None)
     @patch("app.routes._get_sheets_client")
     def test_update_stock_invalid_symbol(self, mock_get_client, mock_validate):
         mock_get_client.return_value = (Mock(), "sid", None)
@@ -2746,8 +2746,8 @@ class TestSheetsDeleteSuccessPaths(unittest.TestCase):
         self.client = app_ui.test_client()
         app_ui.testing = True
 
-    @patch("app.routes._build_data_for_type", return_value={"stocks": []})
-    @patch("app.routes._refresh_single_sheet_cache")
+    @patch("app.services._build_data_for_type", return_value={"stocks": []})
+    @patch("app.services._refresh_single_sheet_cache")
     @patch("app.routes._get_sheets_client")
     def test_delete_with_data_refresh(self, mock_get_client, mock_refresh, mock_build):
         mock_client = Mock()

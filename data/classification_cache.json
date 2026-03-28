@@ -1,4 +1,8 @@
 {
+ "364 DAY T-BILL 19.11.26": [
+  "Diversified",
+  0.07643681764602661
+ ],
  "7.32% GOI MAT 131130": [
   "Infrastructure - General",
   0.06120618060231209
@@ -139,6 +143,10 @@
   "Diversified",
   0.34499725699424744
  ],
+ "Epam Systems Inc": [
+  "Diversified",
+  0.09806648641824722
+ ],
  "Export Import Bank of India (27/05/2026)": [
   "Finance - Banks - Private Sector",
   0.3131747245788574
@@ -158,6 +166,10 @@
  "Gold 1 Kg Bar (995 fineness)": [
   "Diversified",
   0.10482139140367508
+ ],
+ "Grasim Industries Limited  (Call Option)": [
+  "Industrials",
+  0.37605372071266174
  ],
  "HDFC Bank Limited (10/09/2026)": [
   "Financials",
@@ -250,6 +262,18 @@
  "Kotak Securities Limited (07/05/2026)": [
   "Investment Company",
   0.7495572566986084
+ ],
+ "Larsen & Toubro Limited (Call Option)": [
+  "Holding Company",
+  0.07000838965177536
+ ],
+ "Margin amount for Derivative positions": [
+  "Diversified",
+  0.23816315829753876
+ ],
+ "Maruti Suzuki India Limited (Call Option)": [
+  "Industrials",
+  0.24083493649959564
  ],
  "Meta Platforms Registered Shares A": [
   "Diversified",
@@ -358,6 +382,10 @@
  "State Bank of India (27/03/2026)": [
   "Finance - Banks - Public Sector",
   0.4908464550971985
+ ],
+ "State Bank of India (Call Option)": [
+  "Finance - Term Lending Institutions",
+  0.11988659203052521
  ],
  "Sun Pharma": [
   "Pharmaceuticals",

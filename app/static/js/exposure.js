@@ -23,15 +23,6 @@
 
   // ─── Chart helpers ────────────────────────────────────────────
 
-  // Generate visually distinct colors using golden-angle hue spacing.
-  const GOLDEN_ANGLE = 137.508;
-  function chartColor(index) {
-    const hue = (index * GOLDEN_ANGLE) % 360;
-    const dark = isDark();
-    const sat = dark ? '55%' : '58%';
-    const lum = dark ? '62%' : '56%';
-    return 'hsl(' + hue + ',' + sat + ',' + lum + ')';
-  }
 
   function isDark() {
     return document.body.classList.contains('dark-theme');
