@@ -78,16 +78,12 @@ def configure(level: int | None = None, fmt: str | None = None) -> None:
         root.addHandler(handler)
     else:
         for handler in root.handlers:
-            if isinstance(handler, logging.StreamHandler) and not isinstance(
-                handler, logging.FileHandler
-            ):
+            if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
                 handler.setFormatter(formatter)
 
     # Add JSON file handler once — guard against duplicate calls
     has_json_handler = any(
-        isinstance(h, RotatingFileHandler)
-        and isinstance(h.formatter, _JSONFormatter)
-        for h in root.handlers
+        isinstance(h, RotatingFileHandler) and isinstance(h.formatter, _JSONFormatter) for h in root.handlers
     )
     if not has_json_handler:
         log_dir = Path("logs")

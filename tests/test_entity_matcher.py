@@ -75,6 +75,7 @@ class TestEntityMatcherCluster(unittest.TestCase):
         The mock ``_encode`` returns pre-computed vectors whose
         pairwise dot products reproduce *sim_matrix*.
         """
+
         def fake_encode(texts: list[str]) -> np.ndarray:
             n = len(texts)
             return sim_matrix[:n]
