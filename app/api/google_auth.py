@@ -99,7 +99,6 @@ def exchange_code_for_credentials(code: str, redirect_uri: str) -> Credentials:
     return flow.credentials  # type: ignore[return-value]
 
 
-
 def credentials_from_dict(data: dict) -> Credentials:
     """Re‑hydrate a :class:`Credentials` object from a serialised dict.
 
