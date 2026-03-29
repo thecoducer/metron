@@ -88,9 +88,57 @@
     bar.style.opacity = '0';
   }
 
+  // ─── Body-node tracking ───────────────────────────────
+  // Automatically tracks every element page scripts append to <body>.
+  // No manual marking needed — the observer handles it generically.
+  // Starts at router init to catch initial page scripts, and restarts
+  // before each SPA page's scripts so new pages are tracked too.
+
+  let _spaBodyNodes = [];
+  let _bodyObserver = null;
+
+  function startTrackingBodyNodes() {
+    if (_bodyObserver) _bodyObserver.disconnect();
+    _spaBodyNodes = [];
+    // Tag names to ignore: script/link/style are infrastructure managed
+    // by cleanupCurrentPage and syncCss — don't let the observer touch them.
+    const SKIP_TAGS = { SCRIPT: 1, LINK: 1, STYLE: 1 };
+
+    _bodyObserver = new MutationObserver(function(mutations) {
+      for (let i = 0; i < mutations.length; i++) {
+        const added = mutations[i].addedNodes;
+        for (let j = 0; j < added.length; j++) {
+          const n = added[j];
+          if (n.nodeType !== 1) continue;           // elements only
+          if (n === progressEl) continue;            // router's progress bar
+          if (SKIP_TAGS[n.tagName]) continue;        // scripts / stylesheets
+          _spaBodyNodes.push(n);
+        }
+      }
+    });
+    _bodyObserver.observe(document.body, { childList: true });
+  }
+
+  function cleanupTrackedBodyNodes() {
+    if (_bodyObserver) {
+      _bodyObserver.disconnect();
+      _bodyObserver = null;
+    }
+    for (let i = 0; i < _spaBodyNodes.length; i++) {
+      const el = _spaBodyNodes[i];
+      if (el.parentNode) el.remove();
+    }
+    _spaBodyNodes = [];
+    // Restore any scroll lock a page script may have applied
+    document.body.style.overflow = '';
+  }
+
   // ─── Cleanup ──────────────────────────────────────────
 
   function cleanupCurrentPage() {
+    // Stop observing and remove all body elements the current page added
+    cleanupTrackedBodyNodes();
+
     // Remove dynamically-added scripts from previous SPA navigation
     document.querySelectorAll('script[data-spa]').forEach(function(s) {
       s.remove();
@@ -138,8 +186,8 @@
 
   // ─── CSS sync ─────────────────────────────────────────
 
+  // Returns a Promise that resolves once all newly-added stylesheets have loaded.
   function syncCss(newDoc) {
-    // Collect current and new stylesheet hrefs
     const current = {};
     document.querySelectorAll('link[rel="stylesheet"]').forEach(function(l) {
       const h = l.getAttribute('href');
@@ -159,15 +207,22 @@
       }
     });
 
-    // Add new CSS
+    // Add new CSS and collect load promises for sheets not yet present
+    const pending = [];
     Object.keys(needed).forEach(function(href) {
       if (!current[href]) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = href;
+        pending.push(new Promise(function(resolve) {
+          link.onload = resolve;
+          link.onerror = resolve; // don't block on 404
+        }));
         document.head.appendChild(link);
       }
     });
+
+    return Promise.all(pending);
   }
 
   // ─── Script execution ────────────────────────────────
@@ -296,50 +351,54 @@
     .then(function(html) {
       const doc = new DOMParser().parseFromString(html, 'text/html');
 
-      // 1. Cleanup previous page JS
+      // 1. Cleanup previous page JS and all body elements it created
       cleanupCurrentPage();
 
       // 2. Title
       document.title = doc.title || 'Metron';
 
-      // 3. CSS
-      syncCss(doc);
-
-      // 4. Swap container content
-      const newContainer = doc.querySelector('.container');
-      const curContainer = document.querySelector('.container');
-      if (newContainer && curContainer) {
-        curContainer.innerHTML = newContainer.innerHTML;
-        // Preserve or update container-level attributes
-        const style = newContainer.getAttribute('style');
-        if (style) {
-          curContainer.setAttribute('style', style);
-        } else {
-          curContainer.removeAttribute('style');
+      // 3. CSS – wait for new sheets to load before swapping content (prevents FOUC)
+      return syncCss(doc).then(function() {
+        // 4. Swap container content
+        const newContainer = doc.querySelector('.container');
+        const curContainer = document.querySelector('.container');
+        if (newContainer && curContainer) {
+          curContainer.innerHTML = newContainer.innerHTML;
+          // Preserve or update container-level attributes
+          const style = newContainer.getAttribute('style');
+          if (style) {
+            curContainer.setAttribute('style', style);
+          } else {
+            curContainer.removeAttribute('style');
+          }
         }
-      }
 
-      // 5. Swap outside-container elements
-      swapOutsideElements(doc);
+        // 5. Swap outside-container elements
+        swapOutsideElements(doc);
 
-      // 6. Update sidebar
-      updateSidebarActive(targetPath);
+        // 6. Update sidebar
+        updateSidebarActive(targetPath);
 
-      // 7. Re-bind nav header events
-      if (typeof window.bindNavHeaderEvents === 'function') {
-        window.bindNavHeaderEvents();
-      }
+        // 7. Re-bind nav header events
+        if (typeof window.bindNavHeaderEvents === 'function') {
+          window.bindNavHeaderEvents();
+        }
 
-      // 8. Execute scripts
-      return executeScripts(doc);
+        // 8. Start tracking body mutations before scripts run so any elements
+        //    they append to <body> are automatically captured for later cleanup
+        startTrackingBodyNodes();
+
+        // 9. Execute scripts
+        return executeScripts(doc);
+      });
     })
     .then(function() {
-      // 9. Push state
+      // 10. Push state
       if (doPush !== false) {
         history.pushState({ metronSpa: true }, '', url);
       }
 
-      // 10. Scroll to top
+      // 11. Scroll to top
       window.scrollTo(0, 0);
     })
     .catch(function(err) {
@@ -384,4 +443,46 @@
 
   // Mark initial load in history
   history.replaceState({ metronSpa: true }, '', location.href);
+
+  // Start tracking body mutations from the initial page's scripts so the
+  // first navigation cleans them up automatically (e.g. fundModalOverlay).
+  startTrackingBodyNodes();
+
+  // ─── CSS preloading ───────────────────────────────────
+  // After the page is idle, fetch all other SPA routes in the background
+  // and preload their page-specific CSS so navigation is instant with no FOUC.
+
+  function preloadSpaAssets() {
+    const currentPath = location.pathname;
+    const otherRoutes = SPA_ROUTES.filter(function(r) { return r !== currentPath; });
+
+    otherRoutes.forEach(function(route) {
+      fetch(route, {
+        headers: { 'X-Requested-With': 'MetronApp' }
+      })
+      .then(function(r) { return r.ok ? r.text() : Promise.reject(); })
+      .then(function(html) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        doc.querySelectorAll('link[rel="stylesheet"]').forEach(function(l) {
+          const href = l.getAttribute('href');
+          if (!href || isSharedCss(href)) return;
+          // Skip if already loaded or preloaded
+          if (document.querySelector('link[href="' + href + '"]')) return;
+          const preload = document.createElement('link');
+          preload.rel = 'preload';
+          preload.as = 'style';
+          preload.href = href;
+          document.head.appendChild(preload);
+        });
+      })
+      .catch(function() { /* best-effort, ignore failures */ });
+    });
+  }
+
+  // Defer until the browser is idle so it doesn't compete with main content
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(preloadSpaAssets, { timeout: 3000 });
+  } else {
+    setTimeout(preloadSpaAssets, 2000);
+  }
 })();

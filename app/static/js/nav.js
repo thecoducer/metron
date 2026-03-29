@@ -166,5 +166,26 @@ function bindNavHeaderEvents() {
       }
     });
   }
+
+  // Restore sidebar state after SPA navigation.
+  // DOMContentLoaded handles initial page load; this handles subsequent SPA swaps.
+  if (isDesktopSidebar()) {
+    const drawer = document.getElementById('navDrawer');
+    if (drawer) {
+      const isOpen = localStorage.getItem('sidebarOpen') === 'true';
+      // Apply without transition so the sidebar doesn't animate in during navigation
+      drawer.style.transition = 'none';
+      document.body.style.transition = 'none';
+      drawer.classList.toggle('open', isOpen);
+      document.body.classList.toggle('sidebar-open', isOpen);
+      if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          drawer.style.transition = '';
+          document.body.style.transition = '';
+        });
+      });
+    }
+  }
 }
 window.bindNavHeaderEvents = bindNavHeaderEvents;
