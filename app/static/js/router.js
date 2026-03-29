@@ -103,6 +103,10 @@
     // Tag names to ignore: script/link/style are infrastructure managed
     // by cleanupCurrentPage and syncCss — don't let the observer touch them.
     const SKIP_TAGS = { SCRIPT: 1, LINK: 1, STYLE: 1 };
+    // Nav drawer and backdrop are part of the page shell (rendered after the
+    // script tags in the HTML), so the observer fires for them on initial load.
+    // Exclude them so they are never treated as page-owned nodes and removed.
+    const SKIP_IDS = { navDrawer: 1, navDrawerBackdrop: 1 };
 
     _bodyObserver = new MutationObserver(function(mutations) {
       for (let i = 0; i < mutations.length; i++) {
@@ -112,6 +116,7 @@
           if (n.nodeType !== 1) continue;           // elements only
           if (n === progressEl) continue;            // router's progress bar
           if (SKIP_TAGS[n.tagName]) continue;        // scripts / stylesheets
+          if (SKIP_IDS[n.id]) continue;              // persistent shell elements
           _spaBodyNodes.push(n);
         }
       }
