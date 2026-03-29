@@ -7,6 +7,7 @@ htmlcov/
 .git/
 .github/
 .env
+.env.example
 tests/
 config/firebase-credentials.json
 config/google-oauth-credentials.json
@@ -25,3 +26,32 @@ firebase.json
 .firebase/
 firebase-public/
 deploy-firebase.sh
+
+# Dev tools and caches
+.venv/
+.ruff_cache/
+.coverage
+.coveragerc
+.claude/
+.stylelintrc.json
+node_modules/
+package.json
+package-lock.json
+eslint.config.mjs
+pytest.ini
+specs/
+data/
+
+# Documentation / CI
+CLAUDE.md
+README.md
+render.yaml
+
+# Dev scripts
+start-dev.sh
+start-tunnel.sh
+start-signoz.sh
+start-prod.sh
+run-tests.sh
+Dockerfile.tunnel
+cloudflared-docker.yml

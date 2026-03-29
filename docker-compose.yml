@@ -59,6 +59,10 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1g
     ulimits:
       nproc: 65535
       nofile:
@@ -102,8 +106,7 @@ services:
       - OTEL_RESOURCE_ATTRIBUTES=host.name=signoz-host,os.type=linux
       - LOW_CARDINAL_EXCEPTION_GROUPING=false
       - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER=cluster
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=false
       - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
     entrypoint: ["/bin/sh"]
     command:
@@ -127,8 +130,7 @@ services:
       - metron-net
     environment:
       - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER=cluster
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=false
       - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
     entrypoint: ["/bin/sh"]
     command:

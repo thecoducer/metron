@@ -1,4 +1,4 @@
-"""Semantic entity matching using SentenceTransformers.
+"""Semantic entity matching using ONNX Runtime.
 
 Clusters variant entity names (company names, sector labels) into
 canonical groups using sentence embeddings and cosine similarity.
@@ -11,9 +11,8 @@ Examples of variants that should cluster together::
     "TATA CONSULTANCY SERV LT"  /  "Tata Consultancy Services Limited"
     "Finance - Banks - Private Sector"  /  "Banking"
 
-Uses ``all-MiniLM-L6-v2`` (~22 M params, ~100 MB RAM, ~750 encodes/s
-on CPU) — the smallest and fastest SentenceTransformer model, well
-suited for short entity-name strings.
+Uses ``all-MiniLM-L6-v2`` via ONNX Runtime for lightweight CPU
+inference — no PyTorch or GPU dependencies required.
 """
 
 import re
@@ -21,9 +20,10 @@ import threading
 from pathlib import Path
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
+import onnxruntime as ort
+from tokenizers import Tokenizer
 
-from ..constants import SEMANTIC_MATCH_THRESHOLD, SENTENCE_TRANSFORMER_MODEL_PATH
+from ..constants import MINILM_MODEL_PATH, SEMANTIC_MATCH_THRESHOLD
 from ..logging_config import logger
 
 # ---------------------------------------------------------------------------
@@ -76,10 +76,15 @@ class EntityMatcher:
         # Resolve model path relative to project root (two levels up from
         # this file: app/api/entity_matcher.py → project root).
         project_root = Path(__file__).resolve().parent.parent.parent
-        model_path = project_root / SENTENCE_TRANSFORMER_MODEL_PATH
-        logger.info("Loading SentenceTransformer model from %s …", model_path)
-        self.model = SentenceTransformer(str(model_path), local_files_only=True, device="cpu")
-        logger.info("SentenceTransformer model loaded (local, cpu-only)")
+        model_dir = project_root / MINILM_MODEL_PATH
+        logger.info("Loading ONNX model from %s …", model_dir)
+        self._tokenizer = Tokenizer.from_file(str(model_dir / "tokenizer.json"))
+        self._tokenizer.enable_padding()
+        self._tokenizer.enable_truncation(max_length=512)
+        self._session = ort.InferenceSession(
+            str(model_dir / "onnx" / "model.onnx"),
+        )
+        logger.info("MiniLM model loaded (cpu-only)")
 
     # ---- public API -------------------------------------------------------
 
@@ -102,11 +107,7 @@ class EntityMatcher:
             return {names[0]: names[0]}
 
         processed = [_preprocess_for_embedding(n) for n in names]
-        embeddings = self.model.encode(
-            processed,
-            normalize_embeddings=True,
-            show_progress_bar=False,
-        )
+        embeddings = self._encode(processed)
 
         # Pairwise cosine similarity (dot product since normalised).
         sim_matrix: np.ndarray = embeddings @ embeddings.T
@@ -145,6 +146,32 @@ class EntityMatcher:
                 name_map[member] = canonical
 
         return name_map
+
+    # ---- private ---------------------------------------------------------
+
+    def _encode(self, texts: list[str]) -> np.ndarray:
+        """Tokenize, run ONNX inference, mean-pool, and L2-normalize."""
+        encoded = self._tokenizer.encode_batch(texts)
+        input_ids = np.array([e.ids for e in encoded], dtype=np.int64)
+        attention_mask = np.array([e.attention_mask for e in encoded], dtype=np.int64)
+        token_type_ids = np.array([e.type_ids for e in encoded], dtype=np.int64)
+        outputs = self._session.run(
+            None,
+            {
+                "input_ids": input_ids,
+                "attention_mask": attention_mask,
+                "token_type_ids": token_type_ids,
+            },
+        )
+        # Mean pooling over token embeddings.
+        token_embeddings: np.ndarray = outputs[0]  # type: ignore[assignment]
+        mask = attention_mask[:, :, np.newaxis].astype(np.float32)
+        summed = np.sum(token_embeddings * mask, axis=1)
+        counts = np.clip(mask.sum(axis=1), a_min=1e-9, a_max=None)
+        mean_pooled = summed / counts
+        # L2 normalise.
+        norms = np.linalg.norm(mean_pooled, axis=1, keepdims=True)
+        return mean_pooled / norms
 
 
 # ---------------------------------------------------------------------------

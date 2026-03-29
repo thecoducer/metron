@@ -92,8 +92,8 @@ YF_BASE_URL = "https://query1.finance.yahoo.com"
 MAX_EXPOSURE_CACHE_USERS = 200
 HOLDINGS_FETCH_TIMEOUT = 10  # seconds per holdings URL request
 HOLDINGS_FETCH_MAX_WORKERS = 10  # max concurrent holdings fetch threads
-SEMANTIC_MATCH_THRESHOLD = 0.75  # cosine similarity for SentenceTransformer entity clustering
-SENTENCE_TRANSFORMER_MODEL_PATH = "models/all-MiniLM-L6-v2"  # local model weights (no network calls)
+SEMANTIC_MATCH_THRESHOLD = 0.75  # cosine similarity for entity clustering
+MINILM_MODEL_PATH = "models/all-MiniLM-L6-v2"  # local MiniLM model directory (no network calls)
 
 # CDN row names that are cash/repo instruments, not equities — excluded from exposure.
 # Checked as upper-cased prefixes against the normalised company name.

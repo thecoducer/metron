@@ -92,6 +92,6 @@ def post_fork(server, worker):
         from app.api.entity_matcher import get_entity_matcher
 
         get_entity_matcher()
-        server.log.info("SentenceTransformer model loaded in worker %s", worker.pid)
+        server.log.info("MiniLM entity matcher loaded in worker %s", worker.pid)
     except Exception as exc:
-        server.log.warning("SentenceTransformer model load failed: %s", exc)
+        server.log.warning("MiniLM entity matcher load failed: %s", exc)

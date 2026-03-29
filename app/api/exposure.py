@@ -14,7 +14,7 @@ Pipeline
    suffixes are preserved (they carry meaningful info for non-equity
    instruments like bonds and certificates of deposit).
 3. **Cluster** — pass all unique normalised names to a local
-   SentenceTransformer model (``all-MiniLM-L6-v2``) which groups
+   MiniLM model (``all-MiniLM-L6-v2``) which groups
    remaining near-duplicates that normalisation missed (e.g.
    ``"TATA CONSULTANCY SERV LT"`` ↔ ``"TATA CONSULTANCY SERVICES
    LIMITED"``).

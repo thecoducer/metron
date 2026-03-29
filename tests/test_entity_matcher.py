@@ -1,7 +1,7 @@
 """Unit tests for app/api/entity_matcher.py."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 
@@ -70,28 +70,19 @@ class TestEntityMatcherCluster(unittest.TestCase):
     """Tests for EntityMatcher.cluster_names with a mocked model."""
 
     def _make_matcher(self, sim_matrix: np.ndarray) -> EntityMatcher:
-        """Build an EntityMatcher with a mocked SentenceTransformer model.
+        """Build an EntityMatcher with a mocked MiniLM model.
 
-        The mock model's ``encode`` returns one-hot-style vectors whose
+        The mock ``_encode`` returns pre-computed vectors whose
         pairwise dot products reproduce *sim_matrix*.
         """
-        # Cholesky decomposition gives us vectors whose dot product == sim_matrix
-        # For test simplicity, just mock encode to return the sim_matrix rows
-        # normalized so dot product gives sim_matrix values.
-        mock_model = MagicMock()
-
-        def fake_encode(texts, **kwargs):
+        def fake_encode(texts: list[str]) -> np.ndarray:
             n = len(texts)
-            # Return sim_matrix rows directly (assumes sim_matrix is already
-            # the product of normalized vectors).
             return sim_matrix[:n]
-
-        mock_model.encode.side_effect = fake_encode
 
         with patch.object(EntityMatcher, "__init__", lambda self, **kw: None):
             matcher = EntityMatcher()
             matcher.threshold = 0.75
-            matcher.model = mock_model
+            matcher._encode = fake_encode  # type: ignore[assignment]
         return matcher
 
     def test_empty_input(self):

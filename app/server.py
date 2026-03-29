@@ -106,9 +106,9 @@ def main() -> None:
             from .api.entity_matcher import get_entity_matcher
 
             get_entity_matcher()
-            logger.info("SentenceTransformer model loaded")
+            logger.info("MiniLM entity matcher loaded")
         except Exception as exc:
-            logger.warning("SentenceTransformer model load failed: %s", exc)
+            logger.warning("MiniLM entity matcher load failed: %s", exc)
 
         logger.info("Servers ready. Press CTRL+C to stop.")
 
