@@ -46,7 +46,6 @@ from .services import (
     sheets_update_row,
 )
 from .telemetry import (
-    init_telemetry,
     record_auth_event,
     record_sheets_operation,
 )
@@ -100,9 +99,6 @@ app_ui.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") != "development",
 )
-
-# OpenTelemetry instrumentation (logs, traces, metrics → OpenObserve)
-init_telemetry(app_ui)
 
 
 # ---------------------------------------------------------------------------

@@ -326,20 +326,19 @@ setup_config_file() {
     if [ ! -f "$CONFIG_FILE" ]; then
         print_info "Creating config.yml at $CONFIG_FILE..."
         
-        cat > "$CONFIG_FILE" << 'EOF'
+        cat > "$CONFIG_FILE" << EOF
 # Metron Cloudflare Tunnel Configuration
-# This file routes traffic from Cloudflare to your local application
+# Routes traffic from Cloudflare to local services
 
 tunnel: metron-tunnel
 credentials-file: ~/.cloudflared/metron-tunnel.json
 
 ingress:
-  # Example: Change "yourdomain.com" to your actual domain
-  - hostname: yourdomain.com
-    service: http://localhost:8000
-  
-  # Catch-all for any other hostname
-  - service: http_status:404
+  - hostname: metron.thecoducer.com
+    service: http://localhost:${LOCAL_PORT}
+  - hostname: metron-logs.thecoducer.com
+    service: http://localhost:${GRAFANA_PORT:-3000}
+  - service: http_status:200
 EOF
         
         print_success "config.yml created at $CONFIG_FILE"

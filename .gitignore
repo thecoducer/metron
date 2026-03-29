@@ -38,6 +38,10 @@ node_modules/
 .coverage.*
 htmlcov/
 .pytest_cache/
+
+# Grafana local binaries & data
+.grafana-bin/
+.grafana-data/
 coverage.xml
 
 # Logs & observability data

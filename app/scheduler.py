@@ -5,12 +5,14 @@ without blocking the Flask request loop.
 
 Jobs:
   - market_data_refresh: daily at MARKET_DATA_CRON_HOUR_IST (2 AM IST)
+  - log_cleanup: daily at 03:00 IST — deletes log files older than 30 days
 
 On startup the scheduler also fires the market data fetch immediately in a
 background thread so the cache is warm before the first cron run.
 """
 
 import threading
+from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -20,6 +22,8 @@ from .logging_config import logger
 
 _scheduler: BackgroundScheduler | None = None
 
+LOG_RETENTION_DAYS = 30
+
 
 def _run_market_data_fetch() -> None:
     """Cron task: fetch and cache MF market data and NSE equity master."""
@@ -28,6 +32,23 @@ def _run_market_data_fetch() -> None:
 
     fetch_and_cache_market_data()
     fetch_and_cache_nse_equity()
+
+
+def _cleanup_old_logs() -> None:
+    """Delete log files older than LOG_RETENTION_DAYS."""
+    import time
+
+    log_dir = Path("logs")
+    if not log_dir.exists():
+        return
+    cutoff = time.time() - (LOG_RETENTION_DAYS * 86400)
+    deleted = 0
+    for f in log_dir.glob("*.log*"):
+        if f.stat().st_mtime < cutoff:
+            f.unlink()
+            deleted += 1
+    if deleted:
+        logger.info("Log cleanup: deleted %d file(s) older than %d days", deleted, LOG_RETENTION_DAYS)
 
 
 def start_scheduler() -> None:
@@ -53,6 +74,15 @@ def start_scheduler() -> None:
         # Allow up to 1 hour late execution (e.g. if server was down at 2 AM).
         misfire_grace_time=3600,
         # If multiple firings were missed, run only the latest one.
+        coalesce=True,
+    )
+
+    _scheduler.add_job(
+        _cleanup_old_logs,
+        trigger=CronTrigger(hour=3, minute=0, timezone="Asia/Kolkata"),
+        id="log_cleanup",
+        name="Log File Cleanup",
+        misfire_grace_time=3600,
         coalesce=True,
     )
 

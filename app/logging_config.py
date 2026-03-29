@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -17,6 +18,24 @@ class _UTCFormatter(logging.Formatter):
     converter = time.gmtime  # force UTC regardless of server timezone
 
 
+class _JSONFormatter(logging.Formatter):
+    """Emit one JSON object per line — ideal for Promtail/Loki ingestion."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        ct = time.gmtime(record.created)
+        ts = time.strftime("%Y-%m-%dT%H:%M:%S", ct)
+        timestamp = f"{ts}.{int(record.msecs):03d}Z"
+        entry: dict[str, object] = {
+            "ts": timestamp,
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if record.exc_info and record.exc_info[1]:
+            entry["exception"] = self.formatException(record.exc_info)
+        return json.dumps(entry, default=str)
+
+
 def configure(level: int | None = None, fmt: str | None = None) -> None:
     """Configure root logging for the application.
 
@@ -25,6 +44,10 @@ def configure(level: int | None = None, fmt: str | None = None) -> None:
 
     The log level is resolved in order: *level* argument → ``LOG_LEVEL``
     environment variable → ``logging.INFO`` default.
+
+    Two handlers are installed:
+    - **StreamHandler** (stdout) — human-readable for console / ``docker logs``
+    - **RotatingFileHandler** (``logs/metron.log``) — JSON lines for Promtail
     """
     if level is None:
         env_level = os.environ.get("LOG_LEVEL", "").upper()
@@ -36,25 +59,53 @@ def configure(level: int | None = None, fmt: str | None = None) -> None:
 
     # Build a UTC-aware formatter with millisecond precision
     formatter = _UTCFormatter(fmt=fmt, datefmt="%Y-%m-%dT%H:%M:%SZ")
-    # Override formatTime to include milliseconds in ISO-8601 UTC
 
-    def _utc_format_time(record, datefmt=None):
+    def _utc_format_time(record: logging.LogRecord, datefmt: str | None = None) -> str:
         ct = time.gmtime(record.created)
         t = time.strftime("%Y-%m-%dT%H:%M:%S", ct)
         return f"{t}.{int(record.msecs):03d}Z"
 
-    formatter.formatTime = _utc_format_time
+    formatter.formatTime = _utc_format_time  # type: ignore[assignment]
 
     # Apply to root logger
     root = logging.getLogger()
     root.setLevel(level)
+
+    # Only apply plain-text formatter to StreamHandlers (not file handlers)
     if not root.handlers:
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
         root.addHandler(handler)
     else:
         for handler in root.handlers:
-            handler.setFormatter(formatter)
+            if isinstance(handler, logging.StreamHandler) and not isinstance(
+                handler, logging.FileHandler
+            ):
+                handler.setFormatter(formatter)
+
+    # Add JSON file handler once — guard against duplicate calls
+    has_json_handler = any(
+        isinstance(h, RotatingFileHandler)
+        and isinstance(h.formatter, _JSONFormatter)
+        for h in root.handlers
+    )
+    if not has_json_handler:
+        log_dir = Path("logs")
+        log_dir.mkdir(exist_ok=True)
+        json_handler = RotatingFileHandler(
+            log_dir / "metron-json.log",
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=5,
+        )
+        json_handler.setFormatter(_JSONFormatter())
+        json_handler.setLevel(level)
+        root.addHandler(json_handler)
+
+    # Suppress noisy Werkzeug request logs
+    try:
+        logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    except Exception:
+        pass
 
     # Ensure our shared logger inherits configuration
     logger.setLevel(level)

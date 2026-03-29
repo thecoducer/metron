@@ -11,138 +11,72 @@ services:
       - ./logs:/app/logs
     environment:
       - PORT=8000
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4318
-      - OTEL_SERVICE_NAME=metron
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
     expose:
       - "8000"
     depends_on:
-      signoz-otel-collector:
-        condition: service_started
+      loki:
+        condition: service_healthy
     # Healthcheck defined in Dockerfile; compose inherits it.
 
-  # --- SigNoz stack ---
-  zookeeper:
-    image: signoz/zookeeper:3.7.1
-    container_name: metron-zookeeper
+  # --- Grafana + Loki observability stack ---
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: metron-loki
     restart: unless-stopped
     networks:
       - metron-net
     volumes:
-      - signoz-zookeeper:/bitnami/zookeeper
-    environment:
-      - ZOO_SERVER_ID=1
-      - ALLOW_ANONYMOUS_LOGIN=yes
-      - ZOO_AUTOPURGE_INTERVAL=1
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s -m 2 http://localhost:8080/commands/ruok | grep error | grep null"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  clickhouse:
-    image: clickhouse/clickhouse-server:${CLICKHOUSE_TAG:-25.5.6}
-    container_name: metron-clickhouse
-    restart: unless-stopped
-    networks:
-      - metron-net
-    volumes:
-      - signoz-clickhouse:/var/lib/clickhouse/
-      - ./signoz/clickhouse-cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
-    environment:
-      - CLICKHOUSE_SKIP_USER_SETUP=1
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "0.0.0.0:8123/ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-    ulimits:
-      nproc: 65535
-      nofile:
-        soft: 262144
-        hard: 262144
-
-  signoz:
-    image: signoz/signoz:${SIGNOZ_VERSION:-v0.117.1}
-    container_name: metron-signoz
-    restart: unless-stopped
-    networks:
-      - metron-net
-    volumes:
-      - signoz-sqlite:/var/lib/signoz/
-    environment:
-      - SIGNOZ_ALERTMANAGER_PROVIDER=signoz
-      - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN=tcp://clickhouse:9000
-      - SIGNOZ_SQLSTORE_SQLITE_PATH=/var/lib/signoz/signoz.db
-      - SIGNOZ_TOKENIZER_JWT_SECRET=${SIGNOZ_JWT_SECRET:-metron-signoz-secret-change-me}
-    ports:
-      - "8080:8080"
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "localhost:8080/api/v1/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  signoz-otel-collector:
-    image: signoz/signoz-otel-collector:${SIGNOZ_OTELCOL_TAG:-v0.144.2}
-    container_name: metron-signoz-otel-collector
-    restart: unless-stopped
-    networks:
-      - metron-net
-    volumes:
-      - ./signoz/otel-collector-config.yaml:/etc/otel-collector-config.yaml
-      - ./signoz/otel-collector-opamp-config.yaml:/etc/manager-config.yaml
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=host.name=signoz-host,os.type=linux
-      - LOW_CARDINAL_EXCEPTION_GROUPING=false
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=false
-      - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
-    entrypoint: ["/bin/sh"]
-    command:
-      - -c
-      - |
-        /signoz-otel-collector migrate sync check &&
-        /signoz-otel-collector --config=/etc/otel-collector-config.yaml --manager-config=/etc/manager-config.yaml --copy-path=/var/tmp/collector-config.yaml
+      - loki-data:/loki
+      - ./grafana/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
     expose:
-      - "4317"
-      - "4318"
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-      signoz-migrator:
-        condition: service_completed_successfully
+      - "3100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3100/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
-  signoz-migrator:
-    image: signoz/signoz-otel-collector:${SIGNOZ_OTELCOL_TAG:-v0.144.2}
-    container_name: metron-signoz-migrator
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: metron-promtail
+    restart: unless-stopped
     networks:
       - metron-net
-    environment:
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000
-      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=false
-      - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
-    entrypoint: ["/bin/sh"]
-    command:
-      - -c
-      - |
-        /signoz-otel-collector migrate bootstrap &&
-        /signoz-otel-collector migrate sync up &&
-        /signoz-otel-collector migrate async up
-    restart: "no"
+    volumes:
+      - ./grafana/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./logs:/var/log/metron:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
     depends_on:
-      clickhouse:
+      loki:
         condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:12.0.0
+    container_name: metron-grafana
+    restart: unless-stopped
+    networks:
+      - metron-net
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-metron}
+      - GF_SERVER_ROOT_URL=https://metron-logs.thecoducer.com
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_EXPLORE_ENABLED=true
+    ports:
+      - "3000:3000"
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
   tunnel:
     build:
@@ -155,7 +89,7 @@ services:
     depends_on:
       app:
         condition: service_healthy
-      signoz:
+      grafana:
         condition: service_healthy
     volumes:
       - ~/.cloudflared:/cloudflared:ro
@@ -170,6 +104,5 @@ networks:
   metron-net:
 
 volumes:
-  signoz-clickhouse:
-  signoz-sqlite:
-  signoz-zookeeper:
+  loki-data:
+  grafana-data:

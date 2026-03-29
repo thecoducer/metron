@@ -20,10 +20,6 @@ dependencies = [
     "apscheduler>=3.11.2",
     "tokenizers>=0.21.0",
     "casparser>=0.8.1",
-    "opentelemetry-api>=1.20.0",
-    "opentelemetry-sdk>=1.20.0",
-    "opentelemetry-exporter-otlp-proto-http>=1.20.0",
-    "opentelemetry-instrumentation-flask>=0.41b0",
     "onnxruntime>=1.24.4",
 ]
 
