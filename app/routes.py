@@ -225,6 +225,7 @@ def google_login():
 def google_callback():
     """Handle the OAuth 2.0 callback from Google."""
     from .api.google_auth import (
+        REQUIRED_SCOPES,
         credentials_to_dict,
         exchange_code_for_credentials,
         get_user_info,
@@ -235,6 +236,29 @@ def google_callback():
     code = request.args.get("code")
     if not code:
         return render_template("callback_error.html"), 400
+
+    # Google includes the actually-granted scopes as a space-separated string
+    # in the callback URL. Check this BEFORE exchanging the code — it's the
+    # only reliable signal since OAUTHLIB_RELAX_TOKEN_SCOPE causes
+    # credentials.scopes to reflect the requested scopes, not the granted ones.
+    granted_scopes = set(request.args.get("scope", "").split())
+    if not REQUIRED_SCOPES.issubset(granted_scopes):
+        logger.warning(
+            "OAuth callback: required scopes not granted; granted=%s",
+            granted_scopes,
+        )
+        record_auth_event("google_login", success=False)
+        return render_template(
+            "auth_error.html",
+            error_title="Permission Required",
+            error_message=(
+                "Metron needs access to Google Drive to create and manage "
+                "your portfolio spreadsheet. Please sign in again and check "
+                "the Google Drive permission when prompted."
+            ),
+            retry_url="/api/auth/google/login",
+            image_url="/static/images/auth-error/required-permission.png",
+        ), 403
 
     redirect_uri = request.url_root.rstrip("/") + "/api/auth/google/callback"
 

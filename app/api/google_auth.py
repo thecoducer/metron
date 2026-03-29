@@ -75,6 +75,11 @@ def build_oauth_flow(redirect_uri: str) -> Flow:
     return flow
 
 
+REQUIRED_SCOPES = {
+    "https://www.googleapis.com/auth/drive.file",
+}
+
+
 def exchange_code_for_credentials(code: str, redirect_uri: str) -> Credentials:
     """Exchange an authorization code for user credentials.
 
@@ -87,11 +92,12 @@ def exchange_code_for_credentials(code: str, redirect_uri: str) -> Credentials:
         access token, refresh token, scopes, etc.
     """
     flow = build_oauth_flow(redirect_uri)
-    # Allow Google to return fewer scopes than requested (e.g. user
-    # unchecked optional scopes on the consent screen).
+    # Allow Google to return fewer scopes than requested so we can detect
+    # and handle missing scopes explicitly via has_required_scopes().
     os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
     flow.fetch_token(code=code)
     return flow.credentials  # type: ignore[return-value]
+
 
 
 def credentials_from_dict(data: dict) -> Credentials:

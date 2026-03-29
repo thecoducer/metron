@@ -2,80 +2,266 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
-        <title>Error</title>
+        <title>Error — Metron</title>
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
               rel="stylesheet">
+        <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
         <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Poppins', sans-serif;
-    background: #faf8f5;
-    color: #2d2621;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  body{
+    font-family:Inter,system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+    background:#fafafa;
+    color:#111;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
   }
-  .error-card {
-    text-align: center;
-    max-width: 480px;
-    padding: 48px 36px;
-    background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,.06);
+
+  .bg-grid{
+    position:fixed;inset:0;z-index:0;
+    background-image:radial-gradient(circle,#d1d1d1 1px,transparent 1px);
+    background-size:24px 24px;
+    opacity:.4;
+    pointer-events:none;
   }
-  .error-icon { font-size: 48px; margin-bottom: 16px; }
-  .error-card h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: #c44;
+
+  .page{
+    position:relative;z-index:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+    min-height:100vh;
+    padding:0 24px 48px;
   }
-  .error-card p {
-    font-size: 14px;
-    color: #5d4e42;
-    line-height: 1.7;
-    margin-bottom: 8px;
+
+  /* Nav */
+  .nav{
+    width:100%;max-width:960px;
+    display:flex;align-items:center;
+    padding:20px 0;
   }
-  .error-detail {
-    background: #f5f0ea;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 12px;
-    color: #7a6857;
-    text-align: left;
-    word-break: break-word;
-    margin-top: 16px;
+  .nav-brand{
+    display:flex;align-items:center;gap:10px;
+    text-decoration:none;color:#111;
   }
-  .back-btn {
-    display: inline-block;
-    margin-top: 24px;
-    padding: 10px 24px;
-    background: #5d4e42;
-    color: #fff;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
+  .nav-logo{
+    width:34px;height:34px;
+    border-radius:10px;
+    background:linear-gradient(145deg,#0f172a 0%,#1e293b 100%);
+    position:relative;
+    box-shadow:0 1px 4px rgb(0,0,0,.15),0 0 0 1px rgb(255,255,255,.06) inset;
+    overflow:hidden;
+    flex-shrink:0;
   }
-  .back-btn:hover { background: #7a6857; }
-  @media (prefers-color-scheme: dark) {
-    body { background: #1a1714; color: #e5ddd5; }
-    .error-card { background: #23201d; box-shadow: 0 4px 24px rgba(0,0,0,.25); }
-    .error-card h1 { color: #e57373; }
-    .error-card p { color: #c4b8a8; }
-    .error-detail { background: #2d2a26; color: #a89888; }
+  .nav-logo::before{
+    content:'';position:absolute;
+    bottom:8px;left:8px;
+    width:5px;height:7px;
+    border-radius:1.5px 1.5px 0 0;
+    background:rgb(255,255,255,.3);
+    box-shadow:
+      7px 0 0 0 rgb(255,255,255,.5),
+      7px -5px 0 0 rgb(255,255,255,.5),
+      14px 0 0 0 #2dd4bf,
+      14px -5px 0 0 #2dd4bf,
+      14px -10px 0 0 #2dd4bf;
+  }
+  .nav-logo::after{
+    content:'';position:absolute;
+    bottom:6px;left:7px;
+    width:20px;height:1px;
+    background:rgb(255,255,255,.12);
+    border-radius:1px;
+  }
+  .nav-name{font-size:15px;font-weight:600;letter-spacing:-.02em}
+
+  /* Card */
+  .error-wrap{
+    width:100%;
+    max-width:520px;
+    margin-top:64px;
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+  }
+
+  .error-card{
+    background:rgb(255,255,255,.7);
+    backdrop-filter:blur(12px);
+    border:1px solid rgb(0,0,0,.08);
+    border-radius:16px;
+    padding:40px 36px 36px;
+    text-align:center;
+  }
+
+  .error-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#111;
+    color:#fff;
+    font-size:11px;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:4px 12px;
+    border-radius:100px;
+    margin-bottom:20px;
+  }
+
+  .error-card h1{
+    font-size:20px;font-weight:700;
+    letter-spacing:-.02em;
+    color:#111;
+    margin-bottom:12px;
+    line-height:1.3;
+  }
+
+  .error-card p{
+    font-size:14px;
+    color:#555;
+    line-height:1.7;
+    margin-bottom:4px;
+  }
+
+  .error-detail{
+    background:#f4f4f4;
+    border:1px solid #e8e8e8;
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:12px;
+    color:#777;
+    text-align:left;
+    word-break:break-word;
+    margin-top:16px;
+    font-family:ui-monospace,monospace;
+  }
+
+  .btn-primary{
+    display:inline-flex;align-items:center;gap:8px;
+    margin-top:28px;
+    padding:10px 24px;
+    background:#111;
+    color:#fff;
+    border-radius:8px;
+    text-decoration:none;
+    font-size:13px;font-weight:500;
+    transition:background .2s,transform .1s;
+  }
+  .btn-primary:hover{background:#333}
+  .btn-primary:active{transform:scale(.98)}
+  .btn-primary svg{width:14px;height:14px;flex-shrink:0}
+
+  /* Reference image */
+  .image-card{
+    background:rgb(255,255,255,.7);
+    backdrop-filter:blur(12px);
+    border:1px solid rgb(0,0,0,.08);
+    border-radius:16px;
+    padding:20px;
+    text-align:center;
+  }
+  .image-card-label{
+    font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:#999;
+    margin-bottom:14px;
+  }
+  .image-card img{
+    width:100%;
+    border-radius:8px;
+    border:1px solid rgb(0,0,0,.08);
+    display:block;
+  }
+
+  /* Dark theme */
+  body.dark-theme{background:#0a0a0a;color:#e5e5e5}
+  body.dark-theme .bg-grid{background-image:radial-gradient(circle,#333 1px,transparent 1px);opacity:.3}
+  body.dark-theme .nav-brand{color:#e5e5e5}
+  body.dark-theme .nav-name{color:#e5e5e5}
+  body.dark-theme .error-card{background:rgb(18,18,18,.8);border-color:rgb(255,255,255,.07)}
+  body.dark-theme .error-badge{background:#e5e5e5;color:#0a0a0a}
+  body.dark-theme .error-card h1{color:#f5f5f5}
+  body.dark-theme .error-card p{color:#888}
+  body.dark-theme .error-detail{background:#1a1a1a;border-color:#2a2a2a;color:#666}
+  body.dark-theme .btn-primary{background:#e5e5e5;color:#0a0a0a}
+  body.dark-theme .btn-primary:hover{background:#d4d4d4}
+  body.dark-theme .image-card{background:rgb(18,18,18,.8);border-color:rgb(255,255,255,.07)}
+  body.dark-theme .image-card-label{color:#555}
+  body.dark-theme .image-card img{border-color:rgb(255,255,255,.07)}
+
+  @media(prefers-color-scheme:dark){
+    body:not(.light-theme){background:#0a0a0a;color:#e5e5e5}
+    body:not(.light-theme) .bg-grid{background-image:radial-gradient(circle,#333 1px,transparent 1px);opacity:.3}
+    body:not(.light-theme) .nav-brand{color:#e5e5e5}
+    body:not(.light-theme) .nav-name{color:#e5e5e5}
+    body:not(.light-theme) .error-card{background:rgb(18,18,18,.8);border-color:rgb(255,255,255,.07)}
+    body:not(.light-theme) .error-badge{background:#e5e5e5;color:#0a0a0a}
+    body:not(.light-theme) .error-card h1{color:#f5f5f5}
+    body:not(.light-theme) .error-card p{color:#888}
+    body:not(.light-theme) .error-detail{background:#1a1a1a;border-color:#2a2a2a;color:#666}
+    body:not(.light-theme) .btn-primary{background:#e5e5e5;color:#0a0a0a}
+    body:not(.light-theme) .btn-primary:hover{background:#d4d4d4}
+    body:not(.light-theme) .image-card{background:rgb(18,18,18,.8);border-color:rgb(255,255,255,.07)}
+    body:not(.light-theme) .image-card-label{color:#555}
+    body:not(.light-theme) .image-card img{border-color:rgb(255,255,255,.07)}
+  }
+
+  @media(max-width:560px){
+    .error-card{padding:32px 20px 28px}
+    .error-wrap{margin-top:40px}
   }
         </style>
     </head>
     <body>
-        <div class="error-card">
-            <div class="error-icon">⚠️</div>
-            <h1>{{ error_title or "Something went wrong" }}</h1>
-            <p>{{ error_message or "An unexpected error occurred. Please try again." }}</p>
-            {% if error_detail %}<div class="error-detail">{{ error_detail }}</div>{% endif %}
-            <a href="/" class="back-btn">Back to Home</a>
+        <script>
+  (function(){
+    var t=localStorage.getItem('theme');
+    if(t==='dark')document.body.classList.add('dark-theme');
+    else if(t==='light')document.body.classList.add('light-theme');
+  })();
+        </script>
+        <div class="bg-grid"></div>
+        <div class="page">
+            <nav class="nav">
+                <a href="/" class="nav-brand">
+                    <span class="nav-logo"></span>
+                    <span class="nav-name">Metron</span>
+                </a>
+            </nav>
+            <div class="error-wrap">
+                <div class="error-card">
+                    <div class="error-badge">Error</div>
+                    <h1>{{ error_title or "Something went wrong" }}</h1>
+                    <p>{{ error_message or "An unexpected error occurred. Please try again." }}</p>
+                    {% if error_detail %}<div class="error-detail">{{ error_detail }}</div>{% endif %}
+                    {% if retry_url %}
+                    <a href="{{ retry_url }}" class="btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                        Try Again
+                    </a>
+                    {% else %}
+                    <a href="/" class="btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>
+                        </svg>
+                        Back to Home
+                    </a>
+                    {% endif %}
+                </div>
+                {% if image_url %}
+                <div class="image-card">
+                    <div class="image-card-label">What to do on the next screen</div>
+                    <img src="{{ image_url }}" alt="Grant Google Drive permission on the consent screen">
+                </div>
+                {% endif %}
+            </div>
         </div>
     </body>
 </html>
