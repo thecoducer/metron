@@ -4,29 +4,29 @@
 (function() {
   'use strict';
 
-  var SPA_ROUTES = ['/', '/exposure', '/nifty50', '/mutual-funds/transactions'];
+  const SPA_ROUTES = ['/', '/exposure', '/nifty50', '/mutual-funds/transactions'];
 
-  var SHARED_SCRIPT_PATTERNS = [
+  const SHARED_SCRIPT_PATTERNS = [
     '/static/js/nav.js',
     '/static/js/router.js',
     '/static/js/pwa-install.js'
   ];
 
-  var SHARED_CSS_PATTERNS = [
+  const SHARED_CSS_PATTERNS = [
     '/static/css/styles.css',
     '/static/css/nav-header.css',
     '/static/css/pwa-install.css',
     'fonts.googleapis.com'
   ];
 
-  var isNavigating = false;
-  var abortController = null;
+  let isNavigating = false;
+  let abortController = null;
 
   // ─── Helpers ──────────────────────────────────────────
 
   function isSpaRoute(href) {
     try {
-      var u = new URL(href, location.origin);
+      const u = new URL(href, location.origin);
       if (u.origin !== location.origin) return false;
       return SPA_ROUTES.indexOf(u.pathname) !== -1;
     } catch (e) { return false; }
@@ -34,7 +34,7 @@
 
   function isSharedScript(src) {
     if (!src) return false;
-    for (var i = 0; i < SHARED_SCRIPT_PATTERNS.length; i++) {
+    for (let i = 0; i < SHARED_SCRIPT_PATTERNS.length; i++) {
       if (src.indexOf(SHARED_SCRIPT_PATTERNS[i]) !== -1) return true;
     }
     return false;
@@ -42,7 +42,7 @@
 
   function isSkippableInline(text) {
     if (!text) return false;
-    var t = text.trim();
+    const t = text.trim();
     // Skip theme init and service worker registration
     if (t.length < 200 && t.indexOf("localStorage.getItem('theme')") !== -1) return true;
     if (t.indexOf('serviceWorker') !== -1 && t.indexOf('register') !== -1 && t.length < 150) return true;
@@ -51,7 +51,7 @@
 
   function isSharedCss(href) {
     if (!href) return false;
-    for (var i = 0; i < SHARED_CSS_PATTERNS.length; i++) {
+    for (let i = 0; i < SHARED_CSS_PATTERNS.length; i++) {
       if (href.indexOf(SHARED_CSS_PATTERNS[i]) !== -1) return true;
     }
     return false;
@@ -59,7 +59,7 @@
 
   // ─── Progress bar ─────────────────────────────────────
 
-  var progressEl = null;
+  let progressEl = null;
 
   function getProgressBar() {
     if (!progressEl) {
@@ -71,7 +71,7 @@
   }
 
   function startProgress() {
-    var bar = getProgressBar();
+    const bar = getProgressBar();
     bar.style.transition = 'none';
     bar.style.width = '0%';
     bar.style.opacity = '1';
@@ -82,7 +82,7 @@
   }
 
   function finishProgress() {
-    var bar = getProgressBar();
+    const bar = getProgressBar();
     bar.style.transition = 'width .15s ease-out, opacity .3s ease .15s';
     bar.style.width = '100%';
     bar.style.opacity = '0';
@@ -140,15 +140,15 @@
 
   function syncCss(newDoc) {
     // Collect current and new stylesheet hrefs
-    var current = {};
+    const current = {};
     document.querySelectorAll('link[rel="stylesheet"]').forEach(function(l) {
-      var h = l.getAttribute('href');
+      const h = l.getAttribute('href');
       if (h) current[h] = l;
     });
 
-    var needed = {};
+    const needed = {};
     newDoc.querySelectorAll('link[rel="stylesheet"]').forEach(function(l) {
-      var h = l.getAttribute('href');
+      const h = l.getAttribute('href');
       if (h) needed[h] = true;
     });
 
@@ -162,7 +162,7 @@
     // Add new CSS
     Object.keys(needed).forEach(function(href) {
       if (!current[href]) {
-        var link = document.createElement('link');
+        const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = href;
         document.head.appendChild(link);
@@ -173,32 +173,32 @@
   // ─── Script execution ────────────────────────────────
 
   function executeScripts(newDoc) {
-    var scripts = [];
+    const scripts = [];
     newDoc.querySelectorAll('body script').forEach(function(s) {
-      var src = s.getAttribute('src');
+      const src = s.getAttribute('src');
       if (src && isSharedScript(src)) return;
       if (!src && isSkippableInline(s.textContent)) return;
       scripts.push({ src: src, type: s.type || '', text: s.textContent, attrs: s.attributes });
     });
 
     return new Promise(function(resolve) {
-      var idx = 0;
+      let idx = 0;
 
       function next() {
         if (idx >= scripts.length) { resolve(); return; }
-        var info = scripts[idx++];
-        var el = document.createElement('script');
+        const info = scripts[idx++];
+        const el = document.createElement('script');
         el.setAttribute('data-spa', '1');
 
         // Copy attributes
-        for (var i = 0; i < info.attrs.length; i++) {
-          var a = info.attrs[i];
+        for (let i = 0; i < info.attrs.length; i++) {
+          const a = info.attrs[i];
           if (a.name === 'src') continue; // handled below
           el.setAttribute(a.name, a.value);
         }
 
         if (info.src) {
-          var finalSrc = info.src;
+          let finalSrc = info.src;
           // Cache-bust modules so browser re-executes them
           if (info.type === 'module') {
             finalSrc += (finalSrc.indexOf('?') === -1 ? '?' : '&') + '_v=' + Date.now();
@@ -230,8 +230,8 @@
 
   function updateSidebarActive(path) {
     document.querySelectorAll('.nav-drawer-link').forEach(function(link) {
-      var href = link.getAttribute('href');
-      var active = false;
+      const href = link.getAttribute('href');
+      let active = false;
       active = href === path;
       link.classList.toggle('active', active);
     });
@@ -239,7 +239,7 @@
 
   // ─── Swap outside-container elements ──────────────────
 
-  var OUTSIDE_SELECTORS = [
+  const OUTSIDE_SELECTORS = [
     '.settings-drawer',
     '#drawerBackdrop',
     '.app-tour-overlay',
@@ -254,11 +254,11 @@
       document.querySelectorAll(sel).forEach(function(el) { el.remove(); });
     });
 
-    var refNode = document.getElementById('navDrawerBackdrop') ||
+    const refNode = document.getElementById('navDrawerBackdrop') ||
                   document.getElementById('navDrawer');
 
     // Insert new outside-container elements from fetched page
-    var newBody = newDoc.querySelector('body');
+    const newBody = newDoc.querySelector('body');
     if (!newBody) return;
 
     OUTSIDE_SELECTORS.forEach(function(sel) {
@@ -275,7 +275,7 @@
   // ─── Main navigate ───────────────────────────────────
 
   function navigateTo(url, doPush) {
-    var targetPath = new URL(url, location.origin).pathname;
+    const targetPath = new URL(url, location.origin).pathname;
     if (targetPath === location.pathname) return;
     if (isNavigating) return;
     isNavigating = true;
@@ -294,7 +294,7 @@
       return resp.text();
     })
     .then(function(html) {
-      var doc = new DOMParser().parseFromString(html, 'text/html');
+      const doc = new DOMParser().parseFromString(html, 'text/html');
 
       // 1. Cleanup previous page JS
       cleanupCurrentPage();
@@ -306,12 +306,12 @@
       syncCss(doc);
 
       // 4. Swap container content
-      var newContainer = doc.querySelector('.container');
-      var curContainer = document.querySelector('.container');
+      const newContainer = doc.querySelector('.container');
+      const curContainer = document.querySelector('.container');
       if (newContainer && curContainer) {
         curContainer.innerHTML = newContainer.innerHTML;
         // Preserve or update container-level attributes
-        var style = newContainer.getAttribute('style');
+        const style = newContainer.getAttribute('style');
         if (style) {
           curContainer.setAttribute('style', style);
         } else {
@@ -357,13 +357,13 @@
 
   document.addEventListener('click', function(e) {
     if (e.defaultPrevented) return;
-    var link = e.target.closest('a[href]');
+    const link = e.target.closest('a[href]');
     if (!link) return;
     // Don't intercept modified clicks (new tab, etc.)
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
     if (link.target === '_blank') return;
 
-    var href = link.getAttribute('href');
+    const href = link.getAttribute('href');
     if (href && isSpaRoute(href)) {
       e.preventDefault();
       // Close mobile nav drawer if it's open

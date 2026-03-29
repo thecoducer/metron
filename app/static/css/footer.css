@@ -89,7 +89,7 @@
   height: 14px;
   vertical-align: -2px;
   margin-right: 4px;
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 /* ── Footer Bottom ───────────────────────────── */
@@ -125,14 +125,12 @@
 .mf-credit {
   font-weight: 600;
   background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .mf-credit--claude {
   background: linear-gradient(135deg, #d97706, #f59e0b);
-  -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -177,7 +175,7 @@ body.dark-theme .mf-love {
 }
 
 /* ── Responsive ──────────────────────────────── */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .mf-content {
     grid-template-columns: 1fr 1fr;
     gap: 28px;
@@ -193,7 +191,7 @@ body.dark-theme .mf-love {
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .mf-content {
     grid-template-columns: 1fr;
     gap: 24px;

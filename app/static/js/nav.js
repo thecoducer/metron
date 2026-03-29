@@ -7,8 +7,8 @@ function isDesktopSidebar() {
 }
 
 function openNavDrawer() {
-  var drawer = document.getElementById('navDrawer');
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  const drawer = document.getElementById('navDrawer');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
   if (!drawer) return;
 
   drawer.classList.add('open');
@@ -17,7 +17,7 @@ function openNavDrawer() {
     document.body.classList.add('sidebar-open');
     localStorage.setItem('sidebarOpen', 'true');
   } else {
-    var backdrop = document.getElementById('navDrawerBackdrop');
+    const backdrop = document.getElementById('navDrawerBackdrop');
     if (backdrop) backdrop.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -26,8 +26,8 @@ function openNavDrawer() {
 }
 
 function closeNavDrawer() {
-  var drawer = document.getElementById('navDrawer');
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  const drawer = document.getElementById('navDrawer');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
   if (!drawer) return;
 
   drawer.classList.remove('open');
@@ -36,7 +36,7 @@ function closeNavDrawer() {
     document.body.classList.remove('sidebar-open');
     localStorage.setItem('sidebarOpen', 'false');
   } else {
-    var backdrop = document.getElementById('navDrawerBackdrop');
+    const backdrop = document.getElementById('navDrawerBackdrop');
     if (backdrop) backdrop.classList.remove('open');
     document.body.style.overflow = '';
   }
@@ -45,7 +45,7 @@ function closeNavDrawer() {
 }
 
 function toggleNavDrawer() {
-  var drawer = document.getElementById('navDrawer');
+  const drawer = document.getElementById('navDrawer');
   if (!drawer) return;
   if (drawer.classList.contains('open')) {
     closeNavDrawer();
@@ -56,8 +56,8 @@ function toggleNavDrawer() {
 
 // Close user dropdown when clicking outside
 document.addEventListener('click', function(event) {
-  var dropdown = document.getElementById('userDropdown');
-  var avatarBtn = document.getElementById('userAvatarBtn');
+  const dropdown = document.getElementById('userDropdown');
+  const avatarBtn = document.getElementById('userAvatarBtn');
   if (dropdown && avatarBtn && !avatarBtn.contains(event.target) && !dropdown.contains(event.target)) {
     dropdown.classList.remove('open');
   }
@@ -72,10 +72,10 @@ document.addEventListener('keydown', function(event) {
 
 // Handle breakpoint changes between desktop sidebar and mobile drawer
 _desktopSidebarMQ.addEventListener('change', function(e) {
-  var drawer = document.getElementById('navDrawer');
+  const drawer = document.getElementById('navDrawer');
   if (!drawer) return;
-  var backdrop = document.getElementById('navDrawerBackdrop');
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  const backdrop = document.getElementById('navDrawerBackdrop');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
 
   if (e.matches) {
     // Entered desktop — clean up mobile drawer state
@@ -100,13 +100,13 @@ _desktopSidebarMQ.addEventListener('change', function(e) {
 
 document.addEventListener('DOMContentLoaded', function() {
   // Nav drawer backdrop click (mobile)
-  var backdrop = document.getElementById('navDrawerBackdrop');
+  const backdrop = document.getElementById('navDrawerBackdrop');
   if (backdrop) {
     backdrop.addEventListener('click', closeNavDrawer);
   }
 
   // Nav drawer close button (mobile, hidden on desktop via CSS)
-  var closeBtn = document.getElementById('navDrawerClose');
+  const closeBtn = document.getElementById('navDrawerClose');
   if (closeBtn) {
     closeBtn.addEventListener('click', closeNavDrawer);
   }
@@ -116,10 +116,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Restore sidebar state on desktop page load
   if (isDesktopSidebar() && localStorage.getItem('sidebarOpen') === 'true') {
-    var drawer = document.getElementById('navDrawer');
+    const drawer = document.getElementById('navDrawer');
     if (drawer) {
-      var hamburgerBtn = document.getElementById('hamburgerBtn');
-      var header = document.querySelector('header');
+      const hamburgerBtn = document.getElementById('hamburgerBtn');
+      const header = document.querySelector('header');
       // Disable transitions to avoid slide-in animation on load
       drawer.style.transition = 'none';
       document.body.style.transition = 'none';
@@ -145,8 +145,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // Call this whenever the header DOM is replaced.
 function bindNavHeaderEvents() {
   // User avatar dropdown toggle
-  var avatarBtn = document.getElementById('userAvatarBtn');
-  var dropdown = document.getElementById('userDropdown');
+  const avatarBtn = document.getElementById('userAvatarBtn');
+  const dropdown = document.getElementById('userDropdown');
   if (avatarBtn && dropdown) {
     avatarBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -155,7 +155,7 @@ function bindNavHeaderEvents() {
   }
 
   // Hamburger: toggle on desktop, open drawer on mobile
-  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
   if (hamburgerBtn) {
     hamburgerBtn.addEventListener('click', function(e) {
       e.stopPropagation();

@@ -258,32 +258,39 @@
 }
 .txn-donut-wrap { flex-shrink: 0; }
 .txn-donut-wrap svg { display: block; overflow: visible; }
+
 .txn-donut-segment {
   transition: transform .18s ease, filter .18s ease;
   cursor: pointer;
 }
+
 .txn-donut-segment:hover {
   transform: scale(1.06);
   filter: brightness(1.12);
 }
+
 .txn-donut-total-label {
   font-size: 11px; fill: #999;
   font-family: Inter, system-ui, sans-serif;
 }
+
 .txn-donut-total-value {
   font-size: 14px; font-weight: 600;
   fill: #37352f;
   font-family: Inter, system-ui, sans-serif;
 }
+
 .txn-donut-legend {
   display: flex; flex-direction: column; gap: 5px;
   overflow-y: auto; max-height: 240px;
   font-size: 12px;
 }
+
 .txn-donut-legend-item {
   display: flex; align-items: center; gap: 6px;
   white-space: nowrap;
 }
+
 .txn-donut-dot {
   width: 8px; height: 8px;
   border-radius: 50%; flex-shrink: 0;
@@ -299,23 +306,27 @@
   margin-top: 32px;
   padding: 0;
 }
+
 .txn-heatmap-title {
   font-size: 15px;
   font-weight: 600;
   color: #37352f;
   margin: 0 0 2px;
 }
+
 .txn-heatmap-desc {
   font-size: 12px;
   color: #888;
   margin: 0 0 14px;
 }
+
 .txn-heatmap-container {
   width: 100%;
   overflow-x: auto;
   position: relative;
 }
 .txn-heatmap-container svg { display: block; width: 100%; }
+
 .txn-heatmap-cell {
   transition: opacity .12s;
   cursor: default;
@@ -517,14 +528,17 @@ body.dark-theme .txn-summary-card {
   border-color: color-mix(in srgb, var(--accent-color, #37352f) 8%, rgb(45,45,45,.7));
   box-shadow: 0 1px 3px rgb(0,0,0,.2), inset 0 1px 0 rgb(255,255,255,.02);
 }
+
 body.dark-theme .txn-summary-card::after {
   opacity: 0.16;
 }
+
 body.dark-theme .txn-summary-card:hover {
   background: color-mix(in srgb, var(--accent-color, #37352f) 6%, rgb(24,24,24,.97));
   border-color: color-mix(in srgb, var(--accent-color, #37352f) 14%, rgb(50,50,50,.7));
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-color, #37352f) 8%, transparent), 0 1px 3px rgb(0,0,0,.2), inset 0 1px 0 rgb(255,255,255,.03);
 }
+
 body.dark-theme .txn-summary-card:hover::after {
   opacity: 0.14;
 }
@@ -537,6 +551,7 @@ body.dark-theme .txn-chart-card {
   border-color: #333;
   box-shadow: 0 1px 3px rgb(0,0,0,.2), inset 0 1px 0 rgb(255,255,255,.03);
 }
+
 body.dark-theme .txn-chart-card:hover {
   background: #282828;
   box-shadow: 0 4px 16px rgb(0,0,0,.25), 0 1px 3px rgb(0,0,0,.2);
