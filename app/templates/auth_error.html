@@ -239,27 +239,39 @@
                     <p>{{ error_message or "An unexpected error occurred. Please try again." }}</p>
                     {% if error_detail %}<div class="error-detail">{{ error_detail }}</div>{% endif %}
                     {% if retry_url %}
-                    <a href="{{ retry_url }}" class="btn-primary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M3 3v5h5"/>
-                        </svg>
-                        Try Again
-                    </a>
+                        <a href="{{ retry_url }}" class="btn-primary">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                <path d="M3 3v5h5" />
+                            </svg>
+                            Try Again
+                        </a>
                     {% else %}
-                    <a href="/" class="btn-primary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>
-                        </svg>
-                        Back to Home
-                    </a>
+                        <a href="/" class="btn-primary">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M5 12h14" />
+                                <path d="M12 5l7 7-7 7" />
+                            </svg>
+                            Back to Home
+                        </a>
                     {% endif %}
                 </div>
                 {% if image_url %}
-                <div class="image-card">
-                    <div class="image-card-label">What to do on the next screen</div>
-                    <img src="{{ image_url }}" alt="Grant Google Drive permission on the consent screen">
-                </div>
+                    <div class="image-card">
+                        <div class="image-card-label">What to do on the next screen</div>
+                        <img src="{{ image_url }}"
+                             alt="Grant Google Drive permission on the consent screen">
+                    </div>
                 {% endif %}
             </div>
         </div>

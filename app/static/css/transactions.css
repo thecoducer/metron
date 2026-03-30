@@ -71,6 +71,7 @@
   font-family: Inter, sans-serif;
   transition: color 0.3s ease;
 }
+
 .txn-status-tag .status-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
