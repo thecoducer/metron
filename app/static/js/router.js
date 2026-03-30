@@ -302,6 +302,8 @@
   const OUTSIDE_SELECTORS = [
     '.settings-drawer',
     '#drawerBackdrop',
+    '#casModal',
+    '#casModalBackdrop',
     '.app-tour-overlay',
     '.app-tour-tooltip',
     '.pin-overlay',

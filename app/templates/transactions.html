@@ -35,31 +35,38 @@
             <!-- Main content -->
             <div class="txn-container" id="txnContent">
                 <div class="txn-header-row">
-                    <div>
-                        <h1 class="txn-page-title">Mutual Fund Transactions</h1>
-                        <p class="txn-page-subtitle">
-                            Complete buy &amp; sell history from your CAS statement.
+                    <div class="txn-header-left">
+                        <div class="txn-title-with-info">
+                            <h1 class="txn-page-title">Mutual Fund Transactions</h1>
                             <button class="section-info-btn"
                                     id="txnInfoBtn"
                                     title="About this data"
                                     aria-label="About transaction data"></button>
-                        </p>
+                        </div>
+                        <p class="txn-page-subtitle">Complete buy &amp; sell history from your CAS statement.</p>
                         <p class="txn-page-period hidden" id="txnPeriod"></p>
                     </div>
-                    <a href="/" class="nav-cta">
-                        <svg width="14"
-                             height="14"
-                             viewBox="0 0 24 24"
-                             fill="none"
-                             stroke="currentColor"
-                             stroke-width="2"
-                             stroke-linecap="round"
-                             stroke-linejoin="round">
-                            <path d="M19 12H5" />
-                            <path d="M12 19l-7-7 7-7" />
-                        </svg>
-                        Portfolio
-                    </a>
+                    <div class="txn-header-right" id="txnHeaderRight" style="display:none">
+                        <button class="refresh-btn" id="txnRefreshBtn" onclick="triggerTxnRefresh()">
+                            <svg class="refresh-icon"
+                                 width="13"
+                                 height="13"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                            </svg>
+                            <span class="refresh-label">Refresh</span>
+                        </button>
+                        <div id="txnStatusTag" class="txn-status-tag" style="display:none">
+                            <span class="status-dot"></span>
+                            <span id="txnStatusText">updated</span>
+                        </div>
+                    </div>
                 </div>
                 <!-- Loading state -->
                 <div class="txn-loading" id="txnLoading">
@@ -208,6 +215,7 @@
         {% include 'partials/nav_drawer.html' %}
         <script src="/static/js/nav.js?v={{ v }}"></script>
         <script src="/static/js/router.js?v={{ v }}"></script>
+        <script src="/static/js/refresh-ui.js?v={{ v }}"></script>
         <script>
 // App fetch wrapper — adds auth header and handles 403 pin_required.
 window.metronFetch = async function(url, options) {

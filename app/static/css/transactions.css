@@ -14,6 +14,12 @@
   gap: 16px;
 }
 
+.txn-title-with-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .txn-page-title {
   font-size: 24px; font-weight: 700;
   margin: 0; color: #37352f;
@@ -23,7 +29,6 @@
 .txn-page-subtitle {
   font-size: 14px; color: #888;
   margin: 4px 0 0; line-height: 1.5;
-  display: flex; align-items: center; gap: 2px;
 }
 
 .txn-page-period {
@@ -43,6 +48,41 @@
 .txn-period-range { color: #444; font-weight: 600; }
 .txn-period-sep { color: #bbb; font-size: 13px; }
 .txn-period-span { color: #999; font-weight: 400; font-size: 11px; }
+
+/* Right column: refresh button + status tag */
+.txn-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+/* Txn page status tag (mirrors exposure-status-tag) */
+.txn-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #aaa;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  font-family: Inter, sans-serif;
+  transition: color 0.3s ease;
+}
+.txn-status-tag .status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #999; color: #999;
+  box-shadow: 0 0 5px currentcolor;
+  transition: all 0.3s ease;
+}
+.txn-status-tag.updating .status-dot { background: #eab308; color: #eab308; }
+.txn-status-tag.updated .status-dot  { background: #22c55e; color: #22c55e; }
+.txn-status-tag.updated.market_closed .status-dot { background: #ef4444; color: #ef4444; }
+
+body.dark-theme .txn-status-tag { color: #555; }
 
 /* Back button */
 .nav-cta {
@@ -615,14 +655,6 @@ body.dark-theme .txn-chart-empty { color: #666; }
   }
   .txn-page-title { font-size: 20px; }
 
-  .txn-header-row {
-    flex-direction: column-reverse;
-    align-items: flex-start;
-  }
-
-  .txn-header-row .nav-cta {
-    align-self: flex-end;
-  }
 }
 
 @media (width <= 640px) {

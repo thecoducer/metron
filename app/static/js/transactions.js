@@ -80,6 +80,10 @@ async function init() {
     populateFundFilter();
     setupSorting();
     renderTable(allTransactions);
+    const headerRight = document.getElementById('txnHeaderRight');
+    if (headerRight) headerRight.style.display = '';
+    _txnLastRefreshISO = new Date().toISOString();
+    _txnApplyMarketStatus();
 
   } catch {
     loading.classList.add('hidden');
@@ -277,7 +281,7 @@ function renderBuySellChart() {
 
 // ── SVG Area Chart ──
 function renderAreaChart(container, labels, values, lineColor, fillColor, opts) {
-  const yFmt = (opts && opts.yFormat) || Formatter.formatCurrencyForSummary.bind(Formatter);
+  const yFmt = (opts && opts.yFormat) || Formatter.formatCurrencyCompact.bind(Formatter);
   const xFmt = (opts && opts.xFormat) || Formatter.formatMonthShort;
   const W = container.clientWidth || 600;
   const H = 200;
@@ -370,7 +374,7 @@ function renderBarChart(container, months, monthly) {
   for (let i = 0; i <= 4; i++) {
     const val = (maxVal / 4) * i;
     const y = yScale(val);
-    yLabels += `<text x="${padL - 8}" y="${y + 4}" class="txn-chart-label" text-anchor="end">${Formatter.formatCurrencyForSummary(val)}</text>`;
+    yLabels += `<text x="${padL - 8}" y="${y + 4}" class="txn-chart-label" text-anchor="end">${Formatter.formatCurrencyCompact(val)}</text>`;
     gridLines += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" class="txn-chart-grid"/>`;
   }
 
@@ -447,7 +451,7 @@ function addAreaChartTooltip(container, labels, values) {
 
     showTooltip(tt,
       '<span class="txn-tt-label">' + Formatter.formatShortDate(label) + '</span>' +
-      '<span class="txn-tt-value">' + Formatter.formatCurrency(value, 2) + '</span>',
+      '<span class="txn-tt-value">' + Formatter.formatCurrencyCompact(value) + '</span>',
       e.clientX, e.clientY
     );
   });
@@ -490,8 +494,8 @@ function addBarChartTooltip(container, months, monthly) {
     const label = monthNames[parseInt(mon)] + ' ' + year;
     showTooltip(tt,
       '<span class="txn-tt-label">' + label + '</span>' +
-      (d.buy ? '<span class="txn-tt-buy">Buy: ' + Formatter.formatCurrency(d.buy, 2) + '</span>' : '') +
-      (d.sell ? '<span class="txn-tt-sell">Sell: ' + Formatter.formatCurrency(d.sell, 2) + '</span>' : ''),
+      (d.buy ? '<span class="txn-tt-buy">Buy: ' + Formatter.formatCurrencyCompact(d.buy) + '</span>' : '') +
+      (d.sell ? '<span class="txn-tt-sell">Sell: ' + Formatter.formatCurrencyCompact(d.sell) + '</span>' : ''),
       e.clientX, e.clientY
     );
   });
@@ -568,7 +572,7 @@ function renderAllocationChart() {
       '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
         arcs +
         '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" class="txn-donut-total-label">Total</text>' +
-        '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" class="txn-donut-total-value">' + Formatter.formatCurrencyForSummary(total) + '</text>' +
+        '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" class="txn-donut-total-value">' + Formatter.formatCurrencyCompact(total) + '</text>' +
       '</svg>' +
     '</div>' +
     '<div class="txn-donut-legend">' + legendHTML + '</div>';
@@ -582,7 +586,7 @@ function renderAllocationChart() {
     if (!d) return;
     showTooltip(tt,
       '<span class="txn-tt-label">' + escapeHtml(truncate(d.name, 36)) + '</span>' +
-      '<span class="txn-tt-value">' + Formatter.formatCurrency(d.value, 2) + '</span>' +
+      '<span class="txn-tt-value">' + Formatter.formatCurrencyCompact(d.value) + '</span>' +
       '<span class="txn-tt-label">' + (d.value / total * 100).toFixed(1) + '%</span>',
       e.clientX, e.clientY);
   });
@@ -1072,6 +1076,67 @@ window.reloadTransactions = async function() {
   } catch { /* silent */ }
 };
 
+// ── Refresh (force reload from Google Sheets) ──
+const _txnRefreshUI = new RefreshUI('txnRefreshBtn', 'txnStatusTag', 'txnStatusText');
+let _txnLastRefreshISO = null; // ISO timestamp string for Formatter.formatRelativeTime
+
+function _txnStatusText() {
+  const relative = Formatter.formatRelativeTime(_txnLastRefreshISO);
+  return relative ? 'updated ' + relative : 'updated';
+}
+
+function _txnApplyMarketStatus() {
+  metronFetch('/api/status')
+    .then(r => r.json())
+    .then(status => {
+      const tag = document.getElementById('txnStatusTag');
+      if (tag) tag.classList.toggle('market_closed', status.market_open === false);
+      _txnRefreshUI.setDoneWithText(_txnStatusText());
+      _txnStartRelativeTimer();
+    })
+    .catch(() => { /* non-critical */ });
+}
+
+function _txnStartRelativeTimer() {
+  clearInterval(_txnRefreshTimerInterval);
+  _txnRefreshTimerInterval = setInterval(() => {
+    const tag = document.getElementById('txnStatusTag');
+    if (!tag || tag.classList.contains('updating')) return;
+    _txnRefreshUI.setDoneWithText(_txnStatusText());
+  }, 60000);
+}
+
+window.triggerTxnRefresh = async function() {
+  _txnRefreshUI.setUpdating();
+  try {
+    const resp = await metronFetch(
+      '/api/mutual-funds/transactions/refresh',
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account: currentAccount || null }) }
+    );
+    if (!resp.ok) { _txnRefreshUI.setError(); return; }
+    const data = await resp.json();
+    _txnLastRefreshISO = new Date().toISOString();
+
+    if (data.has_data && data.transactions && data.transactions.length) {
+      applyData(data);
+      empty.classList.add('hidden');
+      dataSection.classList.remove('hidden');
+      populateAccountFilter(data.accounts || []);
+      selectedFundIsin = '';
+      populateFundFilter();
+      renderAll();
+      rerenderTable();
+    }
+
+    _txnApplyMarketStatus();
+  } catch {
+    _txnRefreshUI.setError();
+  }
+};
+
+let _txnRefreshTimerInterval = null;
+
 // ── Re-render charts on theme toggle ──
 const _txnThemeObserver = new MutationObserver(() => {
   if (allTransactions.length) {
@@ -1084,8 +1149,10 @@ _txnThemeObserver.observe(document.body, { attributes: true, attributeFilter: ['
 window.cleanupTransactions = function() {
   window.removeEventListener('resize', _txnResizeHandler);
   clearTimeout(resizeTimeout);
+  clearInterval(_txnRefreshTimerInterval);
   _txnThemeObserver.disconnect();
   delete window.reloadTransactions;
+  delete window.triggerTxnRefresh;
   delete window.txnGoToPage;
   delete window.changeTxnPageSize;
 };

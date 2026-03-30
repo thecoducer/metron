@@ -1382,8 +1382,13 @@ window.toggleGroupExpand = function(event, groupId) {
   }
 };
 
-// Delegate row-click on group rows to toggle expansion
-document.addEventListener('click', function(event) {
+// Delegate row-click on group rows to toggle expansion.
+// Stored on window so SPA re-runs can remove the previous listener before
+// re-adding — prevents duplicate listeners that would toggle twice per click.
+if (window._groupRowClickHandler) {
+  document.removeEventListener('click', window._groupRowClickHandler);
+}
+window._groupRowClickHandler = function(event) {
   // Don't trigger on buttons, links, or CRUD actions inside the row
   const target = event.target;
   if (target.closest('button, a, .crud-row-actions, .source-indicator')) return;
@@ -1393,7 +1398,8 @@ document.addEventListener('click', function(event) {
   if (!toggle) return;
   const groupId = toggle.dataset.groupId;
   window.toggleGroupExpand(event, groupId);
-});
+};
+document.addEventListener('click', window._groupRowClickHandler);
 
 // Global function to switch Fixed Deposits tabs
 window.switchFDTab = function(tabName) {

@@ -1169,8 +1169,20 @@ def cas_confirm():
     assert client is not None
     assert spreadsheet_id is not None
 
+    add_to_portfolio = bool(data.get("add_to_portfolio", True))
+    add_transactions = bool(data.get("add_transactions", True))
+
     try:
-        result = cas_service.confirm_import(client, spreadsheet_id, google_id, account, schemes, user)
+        result = cas_service.confirm_import(
+            client,
+            spreadsheet_id,
+            google_id,
+            account,
+            schemes,
+            user,
+            add_to_portfolio=add_to_portfolio,
+            add_transactions=add_transactions,
+        )
     except Exception as e:
         return _sheets_error_response(e, "saving", "mutual_funds")
 
@@ -1191,6 +1203,21 @@ def cas_transactions():
     account = request.args.get("account") or None
 
     return jsonify(cas_service.get_transaction_data(google_id, page, per_page, account))
+
+
+@app_ui.route("/api/mutual-funds/transactions/refresh", methods=["POST"])
+@pin_required
+def cas_transactions_refresh():
+    """Force-reload CAS transaction data from Google Sheet, clearing the cache."""
+    user = _current_user()
+    assert user is not None
+    google_id = user["google_id"]
+
+    cas_service.clear_transactions(google_id)
+    cas_service.load_transactions_from_sheet(google_id)
+
+    account = (request.get_json(silent=True) or {}).get("account") or None
+    return jsonify(cas_service.get_transaction_data(google_id, None, 50, account))
 
 
 @app_ui.route("/mutual-funds/transactions", methods=["GET"])

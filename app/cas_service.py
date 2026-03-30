@@ -61,6 +61,13 @@ def has_cached_transactions(google_id: str) -> bool:
         return bool(_cas_transactions.get(google_id))
 
 
+def clear_transactions(google_id: str) -> None:
+    """Clear in-memory transaction cache for a user (force reload on next access)."""
+    with _cas_transactions_lock:
+        _cas_transactions.pop(google_id, None)
+        _cas_scheme_summaries.pop(google_id, None)
+
+
 def ensure_transactions_loaded(google_id: str) -> None:
     """Ensure transaction data is in memory, loading from sheet if needed."""
     if not has_cached_transactions(google_id):
@@ -624,6 +631,8 @@ def confirm_import(
     account: str,
     schemes: list[dict],
     user: dict[str, Any],
+    add_to_portfolio: bool = True,
+    add_transactions: bool = True,
 ) -> dict[str, Any]:
     """Save verified CAS data to Google Sheets and update caches.
 
@@ -632,42 +641,48 @@ def confirm_import(
       - Only rows with source="cams" for the matching account are removed.
       - Rows from other sources (manual, zerodha, etc.) are untouched.
 
+    add_to_portfolio: write holdings to the mutual_funds sheet.
+    add_transactions: write transaction history to the transactions sheet/cache.
+
     Returns result dict with status, counts, and optionally refreshed data.
     """
     from .api.mf_market_data import mf_market_cache
     from .api.user_sheets import SHEET_CONFIGS
     from .services import _build_data_for_type, _refresh_single_sheet_cache
 
+    added = 0
+    rows_to_delete: list[int] = []
     cfg = SHEET_CONFIGS["mutual_funds"]
-    client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
-    raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
 
-    rows_to_delete = _find_stale_cams_rows(raw, cfg, account)
+    if add_to_portfolio:
+        client.ensure_sheet_tab(spreadsheet_id, cfg["sheet_name"], cfg["headers"])
+        raw = client.fetch_sheet_data_until_blank(spreadsheet_id, cfg["sheet_name"])
 
-    if rows_to_delete:
-        try:
-            client.batch_delete_rows(spreadsheet_id, cfg["sheet_name"], rows_to_delete)
-            logger.info(
-                "CAS confirm: deleted %d stale cams rows for account=%s",
-                len(rows_to_delete),
-                account,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to delete stale cams rows for account=%s",
-                account,
-            )
+        rows_to_delete = _find_stale_cams_rows(raw, cfg, account)
+
+        if rows_to_delete:
+            try:
+                client.batch_delete_rows(spreadsheet_id, cfg["sheet_name"], rows_to_delete)
+                logger.info(
+                    "CAS confirm: deleted %d stale cams rows for account=%s",
+                    len(rows_to_delete),
+                    account,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to delete stale cams rows for account=%s",
+                    account,
+                )
 
     new_rows, all_transactions, scheme_sums = _build_cas_rows(schemes, mf_market_cache, account)
 
-    added = 0
-    if new_rows:
-        client.batch_append_rows(spreadsheet_id, cfg["sheet_name"], new_rows)
-        added = len(new_rows)
+    if add_to_portfolio:
+        if new_rows:
+            client.batch_append_rows(spreadsheet_id, cfg["sheet_name"], new_rows)
+            added = len(new_rows)
+        _refresh_single_sheet_cache(client, spreadsheet_id, google_id, "mutual_funds")
 
-    _refresh_single_sheet_cache(client, spreadsheet_id, google_id, "mutual_funds")
-
-    if all_transactions:
+    if add_transactions and all_transactions:
         # Hydrate cache from sheet first so other accounts' data is
         # preserved (handles server-restart → import scenario).
         ensure_transactions_loaded(google_id)
@@ -675,14 +690,16 @@ def confirm_import(
         start_txn_sync_thread(google_id, account, tagged)
 
     logger.info(
-        "CAS confirm: deleted=%d added=%d transactions=%d account=%s",
+        "CAS confirm: deleted=%d added=%d transactions=%d account=%s add_to_portfolio=%s add_transactions=%s",
         len(rows_to_delete),
         added,
         len(all_transactions),
         account,
+        add_to_portfolio,
+        add_transactions,
     )
 
-    refreshed = _build_data_for_type(user, "mutual_funds")
+    refreshed = _build_data_for_type(user, "mutual_funds") if add_to_portfolio else {}
     return {
         "status": "saved",
         "added": added,

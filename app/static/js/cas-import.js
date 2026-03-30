@@ -34,12 +34,58 @@ const modalClose = document.getElementById('casModalClose');
 const confirmBackdrop = document.getElementById('casConfirmBackdrop');
 const confirmStay = document.getElementById('casConfirmStay');
 const confirmDiscard = document.getElementById('casConfirmDiscard');
+const choicePortfolio = document.getElementById('casChoiceAdd');
+const choiceTransactions = document.getElementById('casChoiceSkip');
+const targetsHint = document.getElementById('casTargetsHint');
 
 if (!uploadBtn || !modal) return;
+
+// Guard against re-initialisation on SPA navigation.
+// cas-import.js is a module; the router cache-busts it on every navigation,
+// re-executing initCasImport() with a fresh closure (modalOpen = false).
+// Without this guard, each run attaches duplicate listeners to the same DOM
+// elements — the fresh-closure listener always wins and skips confirmation.
+if (modal.dataset.casInitialized) return;
+modal.dataset.casInitialized = '1';
+
+// ── Import target toggle handlers ──
+function _syncTargetUI() {
+  if (choicePortfolio) {
+    choicePortfolio.classList.toggle('selected', targetPortfolio === true);
+    choicePortfolio.setAttribute('aria-pressed', targetPortfolio === true ? 'true' : 'false');
+  }
+  if (choiceTransactions) {
+    choiceTransactions.classList.toggle('selected', targetTransactions === true);
+    choiceTransactions.setAttribute('aria-pressed', targetTransactions === true ? 'true' : 'false');
+  }
+  const atLeastOne = targetPortfolio === true || targetTransactions === true;
+  if (modalConfirm) modalConfirm.disabled = !atLeastOne;
+  if (targetsHint) targetsHint.classList.toggle('hidden', atLeastOne || (targetPortfolio === null && targetTransactions === null));
+}
+
+function resetImportTargets() {
+  targetPortfolio = null;
+  targetTransactions = null;
+  _syncTargetUI();
+}
+
+choicePortfolio?.addEventListener('click', () => {
+  // Toggle: null → true → false → true …
+  targetPortfolio = targetPortfolio !== true;
+  _syncTargetUI();
+});
+
+choiceTransactions?.addEventListener('click', () => {
+  targetTransactions = targetTransactions !== true;
+  _syncTargetUI();
+});
 
 let parsedData = null;
 let newAccountMode = false;
 let modalOpen = false;
+// Independent import targets: null = untouched (required), true/false = explicitly set
+let targetPortfolio = null;
+let targetTransactions = null;
 
 // ── Setup guide toggle ──
 if (casGuideToggle && casGuide) {
@@ -262,6 +308,7 @@ function openVerificationModal(data, account) {
     '<span>' + active.length + ' active fund' + (active.length !== 1 ? 's' : '') + '</span>' +
     '<span>Invested: ' + formatCurrency(totalInvested) + '</span>';
 
+  resetImportTargets();
   modal.classList.remove('hidden');
   modalBackdrop.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -355,6 +402,7 @@ function closeModal(force = false) {
     showConfirmDialog();
     return;
   }
+  hideConfirmDialog();
   modalOpen = false;
   parsedData = null;
   modal.classList.add('hidden');
@@ -473,6 +521,16 @@ function setupAutocomplete(input, list) {
 modalConfirm?.addEventListener('click', async () => {
   if (!parsedData) return;
 
+  // Block submit if no target selected
+  if (targetPortfolio !== true && targetTransactions !== true) {
+    const choiceEl = document.getElementById('casPortfolioChoice');
+    if (choiceEl) choiceEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    choiceEl?.classList.add('cas-choice-required');
+    if (targetsHint) targetsHint.classList.remove('hidden');
+    setTimeout(() => choiceEl?.classList.remove('cas-choice-required'), 400);
+    return;
+  }
+
   // Block submit if any ISIN errors exist
   const errorCards = schemesContainer.querySelectorAll('.cas-scheme-isin-error');
   if (errorCards.length) {
@@ -508,7 +566,12 @@ modalConfirm?.addEventListener('click', async () => {
     const resp = await metronFetch('/api/cas/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ account, schemes }),
+      body: JSON.stringify({
+        account,
+        schemes,
+        add_to_portfolio: targetPortfolio === true,
+        add_transactions: targetTransactions === true,
+      }),
     });
     const result = await resp.json();
     if (!resp.ok) {

@@ -105,16 +105,18 @@ class Formatter {
     }
   }
 
+  /** Always compact Indian notation (e.g. ₹1.2L, ₹3.4Cr). */
+  static formatCurrencyCompact(n, digits = 2) {
+    return '₹' + this.formatCompactIndian(n, digits);
+  }
+
   /**
-   * Format currency for summary cards - respects compact format toggle.
+   * Format currency for summary cards - compact when toggle is on, full otherwise.
    * @param {number} n
    * @param {number} digits
    */
   static formatCurrencyForSummary(n, digits = 1) {
-    if (this.isCompactFormat) {
-      return '₹' + this.formatCompactIndian(n, 2);
-    }
-    return this.formatCurrency(n, digits);
+    return this.isCompactFormat ? this.formatCurrencyCompact(n, 2) : this.formatCurrency(n, digits);
   }
 
   static colorPL(pl) {
